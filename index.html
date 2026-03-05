@@ -84,7 +84,7 @@
             ArrowRight, UserX, BarChart3, CalendarDays, Activity, TrendingUp, 
             Layers, ArrowUpDown, ArrowUp, ArrowDown, Download, ShieldAlert,
             HeartPulse, GitBranch, Lightbulb, UserCog, Database, ChevronLeft,
-            Edit2, CalendarX, ShieldCheck, Pin, Ban, Heart, Copy, LogOut, Lock, User, MoreHorizontal, Check
+            Edit2, CalendarX, ShieldCheck, Pin, Ban, Heart, Copy, LogOut, Lock, User, MoreHorizontal, Check, ArrowLeftRight
         } from 'lucide-react';
         import { createClient } from '@supabase/supabase-js';
 
@@ -368,14 +368,31 @@
                     setMemberPositions(mpData || []);
                     setQuarterSettings(qsData || []);
 
+                    // 處理系統自訂節日，過濾掉已過期的節日
+                    const today = new Date();
+                    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
                     let parsedHolidays = {};
+                    let needsUpdate = false;
+
                     if (sysSettingsData && sysSettingsData.length > 0) {
                         const datesArr = sysSettingsData[0].unavailable_dates;
                         if (Array.isArray(datesArr)) {
                             datesArr.forEach(item => {
                                 const [d, n] = item.split('|');
-                                if (d && n) parsedHolidays[d] = n;
+                                if (d && n) {
+                                    if (d >= todayStr) {
+                                        parsedHolidays[d] = n;
+                                    } else {
+                                        needsUpdate = true; // 發現有過期節日，標記需要更新
+                                    }
+                                }
                             });
+                        }
+                        // 如果有過期資料被濾除，自動更新回資料庫
+                        if (needsUpdate) {
+                            const sysMemId = sysSettingsData[0].member_id;
+                            const updatedArr = Object.entries(parsedHolidays).map(([d, n]) => `${d}|${n}`);
+                            supabase.from('member_quarter_settings').upsert({ member_id: sysMemId, quarter: 'SYSTEM', unavailable_dates: updatedArr }, { onConflict: 'member_id, quarter' }).then();
                         }
                     }
                     setCustomHolidays(parsedHolidays);
@@ -614,6 +631,11 @@
                     return p && p.name.toLowerCase().includes(term);
                 });
                 if (hasMatchingPosition) return true;
+                
+                // 擴增搜尋：堂別
+                const settings = quarterSettings.find(s => s.member_id === m.id);
+                if (settings && settings.preferred_session && settings.preferred_session.includes(term)) return true;
+                
                 return false;
             });
 
@@ -653,7 +675,7 @@
                             {isAdmin && (
                                 <>
                                     <button onClick={() => setIsHolidayManagerOpen(true)} className="whitespace-nowrap flex items-center gap-1.5 bg-sky-50 text-sky-600 hover:bg-sky-100 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"><CalendarX size={14} /> 節日提醒</button>
-                                    <button onClick={triggerCreateNextQuarter} className="whitespace-nowrap flex items-center gap-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"><Copy size={14} /> 新增下一季</button>
+                                    <button onClick={triggerCreateNextQuarter} className="whitespace-nowrap flex items-center gap-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"><Copy size={14} /> 新增季度</button>
                                     <button onClick={openDeleteQuarterModal} className="whitespace-nowrap flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"><Trash2 size={14} /> 刪除季度</button>
                                 </>
                             )}
@@ -665,7 +687,7 @@
                         <div className="px-6 pt-4 pb-2 bg-slate-50 z-10 shrink-0">
                             <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 flex items-center relative">
                                 <Search className="absolute left-4 text-slate-400" size={20} />
-                                <input type="text" placeholder="搜尋姓名、群組或崗位..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-10 py-2.5 bg-transparent outline-none font-bold text-slate-700 text-sm" />
+                                <input type="text" placeholder="搜尋姓名、群組、崗位或堂別..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-10 py-2.5 bg-transparent outline-none font-bold text-slate-700 text-sm" />
                                 {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-4 text-slate-400 hover:text-slate-600 transition-colors p-1"><X size={18} /></button>}
                             </div>
                         </div>
@@ -980,7 +1002,7 @@
             const [activeSlot, setActiveSlot] = useState(null); 
             const [searchTerm, setSearchTerm] = useState('');
             const [draggedItem, setDraggedItem] = useState(null);
-            const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', currentName: '', newName: '', type: '', onConfirm: null });
+            const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', currentName: '', currentInfo: '', newName: '', newInfo: '', type: '', onConfirm: null });
             const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
             const [isSaving, setIsSaving] = useState(false);
 
@@ -1208,16 +1230,25 @@
             };
 
             const requestSubstitute = (newMember) => {
+                const cInfo = `${activeSlot.service_date.slice(5).replace('-','/')}‧${activeSlot._positionName === '執事輪值' ? '一、二堂' : activeSlot.session.replace('第一堂','一堂').replace('第二堂','二堂')}‧${activeSlot._positionName}`;
                 setConfirmDialog({
-                    isOpen: true, title: '執行替補', currentName: activeSlot._memberName, newName: newMember.name, type: 'substitute',
-                    onConfirm: () => { handleSubstitute(newMember); setConfirmDialog({ isOpen: false }); }
+                    isOpen: true, title: '執行替補', 
+                    currentName: activeSlot._memberName, currentInfo: cInfo,
+                    newName: newMember.name, newInfo: cInfo, 
+                    type: 'substitute',
+                    onConfirm: () => { handleSubstitute(newMember); setConfirmDialog(prev => ({ ...prev, isOpen: false })); }
                 });
             };
 
             const requestSwap = (newMember, targetShift) => {
+                const cInfo = `${activeSlot.service_date.slice(5).replace('-','/')}‧${activeSlot._positionName === '執事輪值' ? '一、二堂' : activeSlot.session.replace('第一堂','一堂').replace('第二堂','二堂')}‧${activeSlot._positionName}`;
+                const nInfo = `${targetShift.service_date.slice(5).replace('-','/')}‧${targetShift._positionName === '執事輪值' ? '一、二堂' : targetShift.session.replace('第一堂','一堂').replace('第二堂','二堂')}‧${targetShift._positionName}`;
                 setConfirmDialog({
-                    isOpen: true, title: '執行換班', currentName: activeSlot._memberName, newName: newMember.name, type: 'swap',
-                    onConfirm: () => { handleSwap(newMember, targetShift); setConfirmDialog({ isOpen: false }); }
+                    isOpen: true, title: '執行換班', 
+                    currentName: activeSlot._memberName, currentInfo: cInfo,
+                    newName: newMember.name, newInfo: nInfo, 
+                    type: 'swap',
+                    onConfirm: () => { handleSwap(newMember, targetShift); setConfirmDialog(prev => ({ ...prev, isOpen: false })); }
                 });
             };
 
@@ -1327,7 +1358,7 @@
                         <div className="px-6 pt-5 pb-2 bg-white z-10 sticky top-0 shrink-0">
                             <div className="relative">
                                 <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input type="text" placeholder="搜尋姓名或換班崗位..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-10 py-2.5 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:bg-white transition-all shadow-inner" />
+                                <input type="text" placeholder="搜尋姓名或崗位..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-10 py-2.5 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:bg-white transition-all shadow-inner" />
                                 {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:bg-slate-200 rounded-full transition-all"><X size={14} /></button>}
                             </div>
                         </div>
@@ -1366,13 +1397,13 @@
                                                         ))}
                                                     </div>
                                                     <div className="flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 mt-1">
-                                                        <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5"><Info size={10} /> 不換班，可直接請他支援</p>
+                                                        <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5"><Info size={10} /> 不換班，請求支援</p>
                                                         <button onClick={() => requestSubstitute(c)} className="flex items-center gap-1 bg-white text-orange-600 hover:bg-orange-500 hover:text-white border border-orange-200 px-2 py-1 rounded-md text-[10px] font-bold transition-all shadow-sm"><HandHeart size={10} /> 替補</button>
                                                     </div>
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center justify-between bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
-                                                    <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5"><Info size={10} /> 無班可換，可直接請他支援</p>
+                                                    <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1.5"><Info size={10} /> 無班可換，請求支援</p>
                                                     <button onClick={() => requestSubstitute(c)} className="flex items-center gap-1 bg-white text-orange-600 hover:bg-orange-500 hover:text-white border border-orange-200 px-2 py-1 rounded-md text-[10px] font-bold transition-all shadow-sm"><HandHeart size={10} /> 替補</button>
                                                 </div>
                                             )}
@@ -1661,7 +1692,7 @@
                                     <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3 tracking-tight">{year}Q{quarter} {appMode === 'schedule' ? '預排預覽' : '編輯預覽'}</h2>
                                 </div>
                                 <div className="mt-3 flex flex-wrap items-center gap-6 ml-10">
-                                    <p className="text-slate-500 text-xs font-bold flex items-center gap-1.5"><Search size={14} className="text-indigo-500"/> 點擊姓名可挑選替代人選</p>
+                                    <p className="text-slate-500 text-xs font-bold flex items-center gap-1.5"><Search size={14} className="text-indigo-500"/> 點擊姓名選擇合適替代人選</p>
                                     <p className="text-slate-500 text-xs font-bold flex items-center gap-1.5"><GripVertical size={14} className="text-indigo-500"/> 拖曳姓名可交換位置</p>
                                 </div>
                                 <div className="flex gap-3 mt-2 pt-2 border-t border-slate-100 flex-wrap ml-10">
@@ -1891,15 +1922,29 @@
                     {/* Dialogs */}
                     {confirmDialog.isOpen && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fade-in">
-                            <div className="bg-white rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl animate-pop border border-slate-100">
+                            <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl animate-pop border border-slate-100">
                                 <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">{confirmDialog.type === 'swap' ? <RefreshCw className="text-indigo-500" /> : <HandHeart className="text-orange-500" />}{confirmDialog.title}</h3>
-                                <div className="mb-8 text-sm font-bold text-slate-700 space-y-2 bg-slate-50 p-4 rounded-xl">
-                                    <p className="flex justify-between border-b border-slate-200 pb-2"><span className="text-slate-400">原本是</span> <span>{confirmDialog.currentName}</span></p>
-                                    <p className="flex justify-between pt-2"><span className="text-slate-400">要換成</span> <span className="text-indigo-600">{confirmDialog.newName}</span></p>
+                                
+                                {/* 重新排版的雙向箭頭對比 UI */}
+                                <div className="mb-8 p-5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2 shadow-inner">
+                                    <div className="flex-1 text-center">
+                                        <p className="text-[10px] font-bold text-slate-400 mb-1.5">目前同工</p>
+                                        <p className="text-base font-black text-slate-700">{confirmDialog.currentName}</p>
+                                        <p className="text-[10px] text-slate-500 mt-1">{confirmDialog.currentInfo}</p>
+                                    </div>
+                                    <div className="shrink-0 text-slate-300 px-2">
+                                        <ArrowLeftRight size={24} className={confirmDialog.type === 'swap' ? 'text-indigo-400' : 'text-orange-400'} strokeWidth={2.5} />
+                                    </div>
+                                    <div className="flex-1 text-center">
+                                        <p className="text-[10px] font-bold text-slate-400 mb-1.5">替換同工</p>
+                                        <p className={`text-base font-black ${confirmDialog.type === 'swap' ? 'text-indigo-600' : 'text-orange-600'}`}>{confirmDialog.newName}</p>
+                                        <p className="text-[10px] text-slate-500 mt-1">{confirmDialog.newInfo}</p>
+                                    </div>
                                 </div>
+
                                 <div className="flex gap-3">
                                     <button onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-xl transition-all">取消</button>
-                                    <button onClick={confirmDialog.onConfirm} className={`flex-1 py-3 px-4 font-black text-white rounded-xl transition-all shadow-lg active:scale-95 ${confirmDialog.type === 'swap' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-orange-500 hover:bg-orange-600 shadow-orange-200'}`}>儲存變更</button>
+                                    <button onClick={confirmDialog.onConfirm} className={`flex-1 py-3 px-4 font-black text-white rounded-xl transition-all shadow-lg active:scale-95 ${confirmDialog.type === 'swap' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-orange-500 hover:bg-orange-600 shadow-orange-200'}`}>確認執行</button>
                                 </div>
                             </div>
                         </div>
