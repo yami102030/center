@@ -1014,7 +1014,7 @@
             const [activeSlot, setActiveSlot] = useState(null); 
             const [searchTerm, setSearchTerm] = useState('');
             const [draggedItem, setDraggedItem] = useState(null);
-            const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', currentName: '', currentInfo: '', newName: '', newInfo: '', type: '', onConfirm: null });
+            const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', currentName: '', currentDate: '', currentRole: '', newName: '', newDate: '', newRole: '', type: '', onConfirm: null });
             const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
             const [isSaving, setIsSaving] = useState(false);
 
@@ -1243,11 +1243,12 @@
 
             const requestSubstitute = (newMember) => {
                 const sessionText = activeSlot._positionName === '執事輪值' ? '第一堂、第二堂' : activeSlot.session;
-                const cInfo = `${activeSlot.service_date.replace(/-/g,'/')}‧${sessionText}‧${activeSlot._positionName}`;
+                const cDate = activeSlot.service_date.replace(/-/g,'/');
+                const cRole = `${sessionText}‧${activeSlot._positionName}`;
                 setConfirmDialog({
                     isOpen: true, title: '執行替補', 
-                    currentName: activeSlot._memberName, currentInfo: cInfo,
-                    newName: newMember.name, newInfo: cInfo, 
+                    currentName: activeSlot._memberName, currentDate: cDate, currentRole: cRole,
+                    newName: newMember.name, newDate: cDate, newRole: cRole, 
                     type: 'substitute',
                     onConfirm: () => { handleSubstitute(newMember); setConfirmDialog(prev => ({ ...prev, isOpen: false })); }
                 });
@@ -1255,13 +1256,15 @@
 
             const requestSwap = (newMember, targetShift) => {
                 const sessionText = activeSlot._positionName === '執事輪值' ? '第一堂、第二堂' : activeSlot.session;
-                const cInfo = `${activeSlot.service_date.replace(/-/g,'/')}‧${sessionText}‧${activeSlot._positionName}`;
+                const cDate = activeSlot.service_date.replace(/-/g,'/');
+                const cRole = `${sessionText}‧${activeSlot._positionName}`;
                 const targetSessionText = targetShift._positionName === '執事輪值' ? '第一堂、第二堂' : targetShift.session;
-                const nInfo = `${targetShift.service_date.replace(/-/g,'/')}‧${targetSessionText}‧${targetShift._positionName}`;
+                const nDate = targetShift.service_date.replace(/-/g,'/');
+                const nRole = `${targetSessionText}‧${targetShift._positionName}`;
                 setConfirmDialog({
                     isOpen: true, title: '執行換班', 
-                    currentName: activeSlot._memberName, currentInfo: cInfo,
-                    newName: newMember.name, newInfo: nInfo, 
+                    currentName: activeSlot._memberName, currentDate: cDate, currentRole: cRole,
+                    newName: newMember.name, newDate: nDate, newRole: nRole, 
                     type: 'swap',
                     onConfirm: () => { handleSwap(newMember, targetShift); setConfirmDialog(prev => ({ ...prev, isOpen: false })); }
                 });
@@ -1945,7 +1948,10 @@
                                     <div className="flex-1 text-center break-words">
                                         <p className="text-[10px] font-bold text-slate-400 mb-1.5">目前同工</p>
                                         <p className="text-sm sm:text-base font-black text-slate-700">{confirmDialog.currentName}</p>
-                                        <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 leading-snug">{confirmDialog.currentInfo}</p>
+                                        <div className="text-[10px] sm:text-[11px] text-slate-500 mt-1 leading-snug">
+                                            <p>{confirmDialog.currentDate}</p>
+                                            <p>{confirmDialog.currentRole}</p>
+                                        </div>
                                     </div>
                                     <div className="shrink-0 text-slate-300 px-1">
                                         <ArrowLeftRight size={20} className={`sm:w-6 sm:h-6 ${confirmDialog.type === 'swap' ? 'text-indigo-400' : 'text-orange-400'}`} strokeWidth={2.5} />
@@ -1953,7 +1959,10 @@
                                     <div className="flex-1 text-center break-words">
                                         <p className="text-[10px] font-bold text-slate-400 mb-1.5">替換同工</p>
                                         <p className={`text-sm sm:text-base font-black ${confirmDialog.type === 'swap' ? 'text-indigo-600' : 'text-orange-600'}`}>{confirmDialog.newName}</p>
-                                        <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 leading-snug">{confirmDialog.newInfo}</p>
+                                        <div className="text-[10px] sm:text-[11px] text-slate-500 mt-1 leading-snug">
+                                            <p>{confirmDialog.newDate}</p>
+                                            <p>{confirmDialog.newRole}</p>
+                                        </div>
                                     </div>
                                 </div>
 
