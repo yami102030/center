@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TBC Serve Manager</title>
+    <title>TBC Serve Manager 系統</title>
     
     <!-- 外部排班引擎 (保留第一支程式的設定) -->
     <script src="scheduler.js"></script>
@@ -337,7 +337,7 @@
 
             const [isDeleteQuarterModalOpen, setIsDeleteQuarterModalOpen] = useState(false);
             const [detectedQuarters, setDetectedQuarters] = useState([]);
-            const [quarterToDelete, setQuarterToDelete] = useState('');
+            const [quartersToDelete, setQuartersToDelete] = useState([]);
 
             const [isModalOpen, setIsModalOpen] = useState(false);
             const [isHolidayManagerOpen, setIsHolidayManagerOpen] = useState(false); 
@@ -477,24 +477,24 @@
                     const combined = [...(allSettingsQs || []), ...(allPosQs || [])].map(d => d.quarter);
                     const uniqueQs = [...new Set(combined)].filter(q => q !== 'SYSTEM').sort().reverse();
                     setDetectedQuarters(uniqueQs);
-                    if (uniqueQs.length > 0) setQuarterToDelete(uniqueQs[0]);
-                    else setQuarterToDelete('');
+                    setQuartersToDelete([]);
                     setIsDeleteQuarterModalOpen(true);
                 } catch (err) { showMessage('error', '無法載入現有季度清單'); } finally { setIsLoading(false); }
             };
 
             const executeDeleteQuarter = async () => {
-                if (!quarterToDelete) return;
+                if (quartersToDelete.length === 0) return;
                 setIsLoading(true);
                 try {
-                    const { data: delSettings, error: err1 } = await supabase.from('member_quarter_settings').delete().eq('quarter', quarterToDelete).select();
-                    const { data: delPos, error: err2 } = await supabase.from('member_positions').delete().eq('quarter', quarterToDelete).select();
+                    const { data: delSettings, error: err1 } = await supabase.from('member_quarter_settings').delete().in('quarter', quartersToDelete).select();
+                    const { data: delPos, error: err2 } = await supabase.from('member_positions').delete().in('quarter', quartersToDelete).select();
                     if (err1) throw err1; if (err2) throw err2;
                     if ((!delSettings || delSettings.length === 0) && (!delPos || delPos.length === 0)) throw new Error("未能刪除資料！請確認權限。");
                     
-                    showMessage('success', `${quarterToDelete.replace('-', '')}資料刪除成功`);
+                    const deletedNames = quartersToDelete.map(q => q.replace('-', '')).join('、');
+                    showMessage('success', `${deletedNames}資料刪除成功`);
                     setIsDeleteQuarterModalOpen(false);
-                    if (viewQuarter === quarterToDelete) loadData(); 
+                    loadData(); 
                 } catch (err) { showMessage('error', '刪除失敗: ' + err.message); } finally { setIsLoading(false); }
             };
 
@@ -503,7 +503,7 @@
             };
 
             const handleAddCustomHoliday = async () => {
-                if (!newHolidayDate || !newHolidayName.trim()) return showMessage('error', '選擇日期並填寫節日提醒內容');
+                if (!newHolidayDate || !newHolidayName.trim()) return showMessage('error', '選擇日期，填寫節日提醒內容');
                 
                 const today = new Date();
                 const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -945,10 +945,13 @@
                                             ) : (
                                                 <div className="grid grid-cols-2 gap-2.5 max-h-[40vh] overflow-y-auto p-1 custom-scrollbar">
                                                     {detectedQuarters.map(q => {
-                                                        const isSelected = quarterToDelete === q;
+                                                        const isSelected = quartersToDelete.includes(q);
                                                         return (
                                                             <label key={q} className={`relative flex items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer select-none active:scale-[0.97] ${isSelected ? 'bg-red-50 border-red-500 shadow-md' : 'bg-white border-slate-200 hover:border-red-200'}`}>
-                                                                <input type="radio" className="sr-only" name="deleteQuarter" value={q} checked={isSelected} onChange={(e) => setQuarterToDelete(e.target.value)} />
+                                                                <input type="checkbox" className="sr-only" value={q} checked={isSelected} onChange={(e) => {
+                                                                    if (e.target.checked) setQuartersToDelete([...quartersToDelete, q]);
+                                                                    else setQuartersToDelete(quartersToDelete.filter(item => item !== q));
+                                                                }} />
                                                                 {isSelected && <Check className="absolute top-1 right-1 text-red-500" size={14} strokeWidth={3} />}
                                                                 <span className={`text-sm font-black ${isSelected ? 'text-red-600' : 'text-slate-600'}`}>{q.replace('-', '')}</span>
                                                             </label>
@@ -963,7 +966,7 @@
                                 </div>
                                 <div className="p-3 bg-slate-50 flex gap-2 border-t border-slate-100">
                                     <button onClick={() => {setConfirmAction(null); setIsDeleteQuarterModalOpen(false);}} className="flex-1 py-3.5 font-black text-slate-600 bg-slate-200 rounded-xl">取消</button>
-                                    <button onClick={isDeleteQuarterModalOpen ? executeDeleteQuarter : confirmAction?.onConfirm} className={`flex-1 py-3.5 font-black text-white rounded-xl ${isDeleteQuarterModalOpen || confirmAction?.title === '警告' ? 'bg-red-500' : 'bg-amber-500'}`}>
+                                    <button onClick={isDeleteQuarterModalOpen ? executeDeleteQuarter : confirmAction?.onConfirm} disabled={isDeleteQuarterModalOpen && quartersToDelete.length === 0} className={`flex-1 py-3.5 font-black text-white rounded-xl transition-all ${isDeleteQuarterModalOpen || confirmAction?.title === '警告' ? 'bg-red-500 hover:bg-red-600 disabled:bg-red-300' : 'bg-amber-500 hover:bg-amber-600'} disabled:opacity-50 disabled:cursor-not-allowed`}>
                                         {isDeleteQuarterModalOpen ? '刪除' : (confirmAction?.confirmText || '確定')}
                                     </button>
                                 </div>
