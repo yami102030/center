@@ -670,9 +670,9 @@
                             )}
                             {isAdmin && (
                                 <>
-                                    <button onClick={() => setIsHolidayManagerOpen(true)} className="whitespace-nowrap flex items-center gap-1.5 bg-sky-50 text-sky-600 hover:bg-sky-100 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"><CalendarX size={14} /> 節日提醒</button>
                                     <button onClick={triggerCreateNextQuarter} className="whitespace-nowrap flex items-center gap-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"><Copy size={14} /> 新增季度</button>
                                     <button onClick={openDeleteQuarterModal} className="whitespace-nowrap flex items-center gap-1.5 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"><Trash2 size={14} /> 刪除季度</button>
+                                    <button onClick={() => setIsHolidayManagerOpen(true)} className="whitespace-nowrap flex items-center gap-1.5 bg-sky-50 text-sky-600 hover:bg-sky-100 text-xs font-bold px-3 py-1.5 rounded-full transition-colors"><CalendarX size={14} /> 節日提醒</button>
                                 </>
                             )}
                         </div>
@@ -1713,7 +1713,7 @@
                                 <div className="flex gap-3 mt-2 pt-2 border-t border-slate-100 flex-wrap ml-10">
                                     <p className="text-rose-600 text-[10px] font-black flex items-center gap-1.5 bg-rose-50 px-2 py-1 rounded"><span className="w-2 h-2 rounded-full bg-rose-500"></span> 紅色：崗位兼任</p>
                                     <p className="text-sky-600 text-[10px] font-black flex items-center gap-1.5 bg-sky-50 px-2 py-1 rounded"><span className="w-2 h-2 rounded-full bg-sky-500"></span> 藍色：群組落單</p>
-                                    {appMode === 'schedule' && <p className="text-orange-600 text-[10px] font-black flex items-center gap-1.5 bg-orange-50 px-2 py-1 rounded"><span className="w-2 h-2 rounded-full bg-orange-500"></span> 橘色：防落單替換</p>}
+                                    {appMode === 'schedule' && <p className="text-orange-600 text-[10px] font-black flex items-center gap-1.5 bg-orange-50 px-2 py-1 rounded"><span className="w-2 h-2 rounded-full bg-orange-500"></span> 橘色：落單自動替換</p>}
                                 </div>
                             </div>
                             <div className="flex flex-col items-end gap-3 mt-4 xl:mt-0 w-full xl:w-auto">
