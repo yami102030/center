@@ -504,23 +504,11 @@
 
             const handleAddCustomHoliday = async () => {
                 if (!newHolidayDate || !newHolidayName.trim()) return showMessage('error', '選擇日期並填寫節日提醒內容');
-                setIsLoading(true);
-                try {
-                    const updatedHolidays = { ...customHolidays, [newHolidayDate]: newHolidayName.trim() };
-                    const holidaysArr = Object.entries(updatedHolidays).map(([d, n]) => `${d}|${n}`);
-                    let sysMem = members.find(m => m.name === 'SYSTEM_CUSTOM_HOLIDAYS_DB');
-                    if (!sysMem) {
-                        const { data, error } = await supabase.from('members').insert({ name: 'SYSTEM_CUSTOM_HOLIDAYS_DB', email: 'sys_holiday@tbc.gmail.com' }).select();
-                        if (error) throw error;
-                        sysMem = data[0];
-                    }
-                    const { error: upsertErr } = await supabase.from('member_quarter_settings').upsert({ member_id: sysMem.id, quarter: 'SYSTEM', unavailable_dates: holidaysArr }, { onConflict: 'member_id, quarter' });
-                    if (upsertErr) throw upsertErr;
-                    setCustomHolidays(updatedHolidays); setNewHolidayDate(''); setNewHolidayName(''); loadData(); 
-                } catch (error) { showMessage('error', '新增失敗: ' + error.message); } finally { setIsLoading(false); }
-            };
+                
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                if (newHolidayDate < todayStr) return showMessage('error', '日期逾期，無法新增');
 
-            const handleDeleteCustomHoliday = async (dateToDelete) => {
                 setIsLoading(true);
                 try {
                     const updatedHolidays = { ...customHolidays };
@@ -687,7 +675,7 @@
                         <div className="px-6 pt-4 pb-2 bg-slate-50 z-10 shrink-0">
                             <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 flex items-center relative">
                                 <Search className="absolute left-4 text-slate-400" size={20} />
-                                <input type="text" placeholder="搜尋姓名、群組、崗位或堂別..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-10 py-2.5 bg-transparent outline-none font-bold text-slate-700 text-sm" />
+                                <input type="text" placeholder="搜尋姓名、群組、崗位或堂別" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-10 py-2.5 bg-transparent outline-none font-bold text-slate-700 text-sm" />
                                 {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-4 text-slate-400 hover:text-slate-600 transition-colors p-1"><X size={18} /></button>}
                             </div>
                         </div>
@@ -948,13 +936,26 @@
                                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${confirmAction?.title === '警告' || isDeleteQuarterModalOpen ? 'bg-red-100 text-red-500' : 'bg-amber-100 text-amber-500'}`}>
                                         {isDeleteQuarterModalOpen ? <Trash2 size={32}/> : <AlertCircle size={32}/>}
                                     </div>
-                                    <h3 className="text-xl font-black text-slate-800 mb-3">{isDeleteQuarterModalOpen ? '刪除季度同工資料' : confirmAction?.title}</h3>
+                                    <h3 className="text-xl font-black text-slate-800 mb-3">{isDeleteQuarterModalOpen ? '刪除同工資料' : confirmAction?.title}</h3>
                                     {isDeleteQuarterModalOpen ? (
                                         <>
                                             <p className="text-sm font-bold text-slate-500 mb-4">永久刪除，<span className="text-red-500">無法復原！</span></p>
-                                            <select value={quarterToDelete} onChange={(e) => setQuarterToDelete(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 text-center text-lg">
-                                                {detectedQuarters.map(q => <option key={q} value={q}>{q.replace('-', '')}</option>)}
-                                            </select>
+                                            {detectedQuarters.length === 0 ? (
+                                                <div className="py-6 text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed border-slate-200">尚無可刪除的季度資料</div>
+                                            ) : (
+                                                <div className="grid grid-cols-2 gap-2.5 max-h-[40vh] overflow-y-auto p-1 custom-scrollbar">
+                                                    {detectedQuarters.map(q => {
+                                                        const isSelected = quarterToDelete === q;
+                                                        return (
+                                                            <label key={q} className={`relative flex items-center justify-center p-3 rounded-2xl border-2 transition-all cursor-pointer select-none active:scale-[0.97] ${isSelected ? 'bg-red-50 border-red-500 shadow-md' : 'bg-white border-slate-200 hover:border-red-200'}`}>
+                                                                <input type="radio" className="sr-only" name="deleteQuarter" value={q} checked={isSelected} onChange={(e) => setQuarterToDelete(e.target.value)} />
+                                                                {isSelected && <Check className="absolute top-1 right-1 text-red-500" size={14} strokeWidth={3} />}
+                                                                <span className={`text-sm font-black ${isSelected ? 'text-red-600' : 'text-slate-600'}`}>{q.replace('-', '')}</span>
+                                                            </label>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </>
                                     ) : (
                                         <p className="text-sm font-bold text-slate-500 whitespace-pre-line">{confirmAction?.message}</p>
@@ -1230,7 +1231,8 @@
             };
 
             const requestSubstitute = (newMember) => {
-                const cInfo = `${activeSlot.service_date.slice(5).replace('-','/')}‧${activeSlot._positionName === '執事輪值' ? '一、二堂' : activeSlot.session.replace('第一堂','一堂').replace('第二堂','二堂')}‧${activeSlot._positionName}`;
+                const sessionText = activeSlot._positionName === '執事輪值' ? '第一堂、第二堂' : activeSlot.session;
+                const cInfo = `${activeSlot.service_date.replace(/-/g,'/')}‧${sessionText}‧${activeSlot._positionName}`;
                 setConfirmDialog({
                     isOpen: true, title: '執行替補', 
                     currentName: activeSlot._memberName, currentInfo: cInfo,
@@ -1241,8 +1243,10 @@
             };
 
             const requestSwap = (newMember, targetShift) => {
-                const cInfo = `${activeSlot.service_date.slice(5).replace('-','/')}‧${activeSlot._positionName === '執事輪值' ? '一、二堂' : activeSlot.session.replace('第一堂','一堂').replace('第二堂','二堂')}‧${activeSlot._positionName}`;
-                const nInfo = `${targetShift.service_date.slice(5).replace('-','/')}‧${targetShift._positionName === '執事輪值' ? '一、二堂' : targetShift.session.replace('第一堂','一堂').replace('第二堂','二堂')}‧${targetShift._positionName}`;
+                const sessionText = activeSlot._positionName === '執事輪值' ? '第一堂、第二堂' : activeSlot.session;
+                const cInfo = `${activeSlot.service_date.replace(/-/g,'/')}‧${sessionText}‧${activeSlot._positionName}`;
+                const targetSessionText = targetShift._positionName === '執事輪值' ? '第一堂、第二堂' : targetShift.session;
+                const nInfo = `${targetShift.service_date.replace(/-/g,'/')}‧${targetSessionText}‧${targetShift._positionName}`;
                 setConfirmDialog({
                     isOpen: true, title: '執行換班', 
                     currentName: activeSlot._memberName, currentInfo: cInfo,
@@ -1358,7 +1362,7 @@
                         <div className="px-6 pt-5 pb-2 bg-white z-10 sticky top-0 shrink-0">
                             <div className="relative">
                                 <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input type="text" placeholder="搜尋姓名或崗位..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-10 py-2.5 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:bg-white transition-all shadow-inner" />
+                                <input type="text" placeholder="搜尋姓名或崗位" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-10 py-2.5 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:bg-white transition-all shadow-inner" />
                                 {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:bg-slate-200 rounded-full transition-all"><X size={14} /></button>}
                             </div>
                         </div>
@@ -1926,19 +1930,19 @@
                                 <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2">{confirmDialog.type === 'swap' ? <RefreshCw className="text-indigo-500" /> : <HandHeart className="text-orange-500" />}{confirmDialog.title}</h3>
                                 
                                 {/* 重新排版的雙向箭頭對比 UI */}
-                                <div className="mb-8 p-5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2 shadow-inner">
-                                    <div className="flex-1 text-center">
+                                <div className="mb-8 p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-2 sm:gap-4 shadow-inner">
+                                    <div className="flex-1 text-center break-words">
                                         <p className="text-[10px] font-bold text-slate-400 mb-1.5">目前同工</p>
-                                        <p className="text-base font-black text-slate-700">{confirmDialog.currentName}</p>
-                                        <p className="text-[10px] text-slate-500 mt-1">{confirmDialog.currentInfo}</p>
+                                        <p className="text-sm sm:text-base font-black text-slate-700">{confirmDialog.currentName}</p>
+                                        <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 leading-snug">{confirmDialog.currentInfo}</p>
                                     </div>
-                                    <div className="shrink-0 text-slate-300 px-2">
-                                        <ArrowLeftRight size={24} className={confirmDialog.type === 'swap' ? 'text-indigo-400' : 'text-orange-400'} strokeWidth={2.5} />
+                                    <div className="shrink-0 text-slate-300 px-1">
+                                        <ArrowLeftRight size={20} className={`sm:w-6 sm:h-6 ${confirmDialog.type === 'swap' ? 'text-indigo-400' : 'text-orange-400'}`} strokeWidth={2.5} />
                                     </div>
-                                    <div className="flex-1 text-center">
+                                    <div className="flex-1 text-center break-words">
                                         <p className="text-[10px] font-bold text-slate-400 mb-1.5">替換同工</p>
-                                        <p className={`text-base font-black ${confirmDialog.type === 'swap' ? 'text-indigo-600' : 'text-orange-600'}`}>{confirmDialog.newName}</p>
-                                        <p className="text-[10px] text-slate-500 mt-1">{confirmDialog.newInfo}</p>
+                                        <p className={`text-sm sm:text-base font-black ${confirmDialog.type === 'swap' ? 'text-indigo-600' : 'text-orange-600'}`}>{confirmDialog.newName}</p>
+                                        <p className="text-[10px] sm:text-[11px] text-slate-500 mt-1 leading-snug">{confirmDialog.newInfo}</p>
                                     </div>
                                 </div>
 
