@@ -475,7 +475,15 @@
                     const { data: allSettingsQs } = await supabase.from('member_quarter_settings').select('quarter');
                     const { data: allPosQs } = await supabase.from('member_positions').select('quarter');
                     const combined = [...(allSettingsQs || []), ...(allPosQs || [])].map(d => d.quarter);
-                    const uniqueQs = [...new Set(combined)].filter(q => q !== 'SYSTEM').sort().reverse();
+                    
+                    const currentQ = getCurrentQuarter(); // 取得本季度
+                    
+                    // 過濾掉 SYSTEM 以及 本季度
+                    const uniqueQs = [...new Set(combined)]
+                        .filter(q => q !== 'SYSTEM' && q !== currentQ)
+                        .sort()
+                        .reverse();
+                        
                     setDetectedQuarters(uniqueQs);
                     setQuartersToDelete([]);
                     setIsDeleteQuarterModalOpen(true);
