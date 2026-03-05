@@ -210,7 +210,7 @@
         );
 
         // ==========================================
-        // 登入元件 AuthScreen (已移除註冊功能)
+        // 登入元件 AuthScreen
         // ==========================================
         const AuthScreen = ({ supabase }) => {
             const [account, setAccount] = useState('');
@@ -224,11 +224,21 @@
                 setErrorMsg('');
                 const loginEmail = formatEmailForAuth(account);
                 try {
-                    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
+                    const { data, error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
                     if (error) throw error;
+                    
+                    // 登入僅限管理員
+                    const loggedInEmail = data.user?.email;
+                    const loggedInAccount = extractAccountFromEmail(loggedInEmail);
+                    
+                    if (loggedInAccount !== ADMIN_ACCOUNT && loggedInEmail !== ADMIN_ACCOUNT) {
+                        await supabase.auth.signOut();
+                        throw new Error('僅限管理員登入');
+                    }
                 } catch (error) {
                     let msg = error.message;
                     if (msg.includes('Invalid login credentials')) msg = '登入失敗：帳號或密碼錯誤。';
+                    if (msg === '僅限管理員登入') msg = '登入失敗：僅限管理員使用。';
                     setErrorMsg(msg);
                 } finally {
                     setLoading(false);
@@ -282,13 +292,9 @@
                                 type="submit" disabled={loading}
                                 className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-black py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95 mt-4 text-lg"
                             >
-                                {loading ? '處理中...' : '登入系統'}
+                                {loading ? '處理中...' : '登入'}
                             </button>
                         </form>
-                        
-                        <div className="mt-6 text-center">
-                            <span className="text-xs text-slate-400 font-medium">需要帳號或忘記密碼？請聯絡行政辦公室</span>
-                        </div>
                     </div>
                 </div>
             );
@@ -869,7 +875,9 @@
                                     <button onClick={() => setIsHolidayManagerOpen(false)} className="p-2 bg-slate-100 rounded-full text-slate-500"><X size={20}/></button>
                                 </div>
                                 <div className="p-5 overflow-y-auto space-y-6 flex-1">
-                                    <div className="bg-sky-50 p-4 rounded-2xl border border-sky-100 text-sm font-bold text-sky-700 leading-relaxed">系統內建至 2030 年的節日。手動新增在此的節日，排班時會自動標示出來！</div>
+                                    <div className="bg-sky-50 p-4 rounded-2xl border border-sky-100 text-sm font-bold text-sky-700 leading-relaxed">
+                                        系統內建至 2030 年的節日。手動新增節日提醒，編輯同工資料時會自動標示！
+                                    </div>
                                     <div className="space-y-3">
                                         <label className="text-xs font-bold text-slate-500 uppercase">新增節日提醒</label>
                                         <div className="flex flex-col gap-2 sm:flex-row">
@@ -882,7 +890,7 @@
                                         </div>
                                     </div>
                                     <div className="space-y-3 pb-8">
-                                        <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">已建立的提醒清單 <span className="bg-slate-200 text-slate-500 px-2 rounded-full text-[10px]">{Object.keys(customHolidays).length}</span></label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">自訂節日提醒清單 <span className="bg-slate-200 text-slate-500 px-2 rounded-full text-[10px]">{Object.keys(customHolidays).length}</span></label>
                                         {Object.keys(customHolidays).length === 0 ? (
                                             <div className="text-center py-8 text-slate-400 font-bold bg-slate-50 rounded-2xl border border-dashed border-slate-200">尚無自訂提醒</div>
                                         ) : (
@@ -1930,7 +1938,7 @@
                     <aside className="w-20 lg:w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 shrink-0 shadow-xl z-30">
                         <div className="h-[84px] flex items-center justify-center lg:justify-start lg:px-8 border-b border-slate-800 shrink-0">
                             <Activity className="text-indigo-500 shrink-0" size={28} />
-                            <span className="ml-3 text-lg font-black text-white hidden lg:block tracking-tight whitespace-nowrap">TBC Serve</span>
+                            <span className="ml-2 text-[15px] font-black text-white hidden lg:block tracking-tight whitespace-nowrap truncate">TBC Serve Manager</span>
                         </div>
                         <nav className="flex-1 py-6 px-3 lg:px-4 space-y-3">
                             <button onClick={() => setCurrentMenu('members')} className={`w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3 px-0 lg:px-4 py-3 lg:py-3.5 rounded-2xl font-bold transition-all ${currentMenu === 'members' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'hover:bg-slate-800 hover:text-white text-slate-400'}`}>
@@ -1974,13 +1982,25 @@
             const [isSessionLoaded, setIsSessionLoaded] = useState(false);
             
             useEffect(() => {
-                supabase.auth.getSession().then(({ data: { session } }) => {
-                    setSession(session);
+                const checkAdmin = async (sess) => {
+                    if (sess) {
+                        const acc = extractAccountFromEmail(sess.user?.email);
+                        if (acc !== ADMIN_ACCOUNT && sess.user?.email !== ADMIN_ACCOUNT) {
+                            await supabase.auth.signOut();
+                            setSession(null);
+                            setIsSessionLoaded(true);
+                            return;
+                        }
+                    }
+                    setSession(sess);
                     setIsSessionLoaded(true);
+                };
+
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    checkAdmin(session);
                 });
                 const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-                    setSession(session);
-                    setIsSessionLoaded(true);
+                    checkAdmin(session);
                 });
                 return () => subscription.unsubscribe();
             }, []);
