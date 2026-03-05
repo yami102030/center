@@ -403,7 +403,7 @@
             const triggerCreateNextQuarter = () => {
                 const targetQ = getNextQuarter(viewQuarter);
                 setConfirmAction({
-                    title: '建立同工資料', message: `完整複製【${viewQuarter}】同工資料至【${targetQ}】`, confirmText: '複製',
+                    title: '建立同工資料', message: `完整複製【${viewQuarter.replace('-', '')}】同工資料至【${targetQ.replace('-', '')}】`, confirmText: '複製',
                     onConfirm: () => executeCreateNextQuarter(viewQuarter, targetQ)
                 });
             };
@@ -445,7 +445,7 @@
                         const { error: insErr2 } = await supabase.from('member_positions').upsert(newPos, { onConflict: 'member_id, position_id, quarter' });
                         if (insErr2) throw new Error("寫入資格失敗: " + insErr2.message);
                     }
-                    showMessage('success', `已成功建立 ${targetQ} 資料！`);
+                    showMessage('success', `${targetQ.replace('-', '')}資料建立成功`);
                     setViewQuarter(targetQ);
                 } catch (err) {
                     showMessage('error', '建立失敗: ' + err.message);
@@ -475,7 +475,7 @@
                     if (err1) throw err1; if (err2) throw err2;
                     if ((!delSettings || delSettings.length === 0) && (!delPos || delPos.length === 0)) throw new Error("未能刪除資料！請確認權限。");
                     
-                    showMessage('success', `已徹底刪除 ${quarterToDelete} 的所有資料！`);
+                    showMessage('success', `${quarterToDelete.replace('-', '')}資料刪除成功`);
                     setIsDeleteQuarterModalOpen(false);
                     if (viewQuarter === quarterToDelete) loadData(); 
                 } catch (err) { showMessage('error', '刪除失敗: ' + err.message); } finally { setIsLoading(false); }
@@ -641,7 +641,7 @@
                             {isAdmin && (
                                 <div className="flex items-center bg-slate-50 rounded-lg px-2 py-1.5 border border-slate-200">
                                     <select value={viewQuarter} onChange={(e) => setViewQuarter(e.target.value)} className="bg-transparent border-none font-bold text-indigo-600 text-sm outline-none cursor-pointer">
-                                        {quarterOptions.map(q => <option key={q} value={q}>{q}</option>)}
+                                        {quarterOptions.map(q => <option key={q} value={q}>{q.replace('-', '')}</option>)}
                                     </select>
                                 </div>
                             )}
@@ -926,12 +926,12 @@
                                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${confirmAction?.title === '警告' || isDeleteQuarterModalOpen ? 'bg-red-100 text-red-500' : 'bg-amber-100 text-amber-500'}`}>
                                         {isDeleteQuarterModalOpen ? <Trash2 size={32}/> : <AlertCircle size={32}/>}
                                     </div>
-                                    <h3 className="text-xl font-black text-slate-800 mb-3">{isDeleteQuarterModalOpen ? '刪除同工資料' : confirmAction?.title}</h3>
+                                    <h3 className="text-xl font-black text-slate-800 mb-3">{isDeleteQuarterModalOpen ? '刪除季度同工資料' : confirmAction?.title}</h3>
                                     {isDeleteQuarterModalOpen ? (
                                         <>
                                             <p className="text-sm font-bold text-slate-500 mb-4">永久刪除，<span className="text-red-500">無法復原！</span></p>
                                             <select value={quarterToDelete} onChange={(e) => setQuarterToDelete(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 text-center text-lg">
-                                                {detectedQuarters.map(q => <option key={q} value={q}>{q}</option>)}
+                                                {detectedQuarters.map(q => <option key={q} value={q}>{q.replace('-', '')}</option>)}
                                             </select>
                                         </>
                                     ) : (
@@ -1432,7 +1432,7 @@
                     csvContent += r.map(v => `"${v}"`).join(',') + '\n';
                 });
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `TBC_排班表_${year}_Q${quarter}.csv`;
+                const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `TBC_排班表_${year}Q${quarter}.csv`;
                 document.body.appendChild(link); link.click(); document.body.removeChild(link);
             };
 
@@ -1658,7 +1658,7 @@
                             <div>
                                 <div className="flex items-center gap-3 mb-1">
                                     <button onClick={() => { setSchedulingPhase('setup'); setActiveSlot(null); }} className="text-slate-400 hover:text-indigo-600 transition-colors p-1 rounded hover:bg-slate-50" title="返回上一頁"><ChevronLeft size={24} /></button>
-                                    <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3 tracking-tight">{year} 年 Q{quarter} {appMode === 'schedule' ? '預排預覽' : '編輯預覽'}</h2>
+                                    <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3 tracking-tight">{year}Q{quarter} {appMode === 'schedule' ? '預排預覽' : '編輯預覽'}</h2>
                                 </div>
                                 <div className="mt-3 flex flex-wrap items-center gap-6 ml-10">
                                     <p className="text-slate-500 text-xs font-bold flex items-center gap-1.5"><Search size={14} className="text-indigo-500"/> 點擊姓名可挑選替代人選</p>
