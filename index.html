@@ -107,6 +107,37 @@
         const STATUS_OPTIONS = ['穩定服事', '暫停服事', '安息季', '一季一次'];
 
         // ==========================================
+        // 無限制分頁抓取引擎 (fetchAllData)
+        // ==========================================
+        const fetchAllData = async (queryFn) => {
+            let allData = [];
+            let from = 0;
+            const pageSize = 1000;
+            let hasMore = true;
+
+            try {
+                while (hasMore) {
+                    const { data, error } = await queryFn().range(from, from + pageSize - 1);
+                    if (error) return { data: null, error };
+                    
+                    if (data && data.length > 0) {
+                        allData = [...allData, ...data];
+                        if (data.length < pageSize) {
+                            hasMore = false; 
+                        } else {
+                            from += pageSize; 
+                        }
+                    } else {
+                        hasMore = false;
+                    }
+                }
+                return { data: allData, error: null };
+            } catch (error) {
+                return { data: null, error };
+            }
+        };
+
+        // ==========================================
         // 共用工具函數
         // ==========================================
         const formatEmailForAuth = (acc) => {
@@ -192,19 +223,19 @@
             return null; 
         };
 
-        // 共用統計卡片組件
-        const StatCard = ({ icon: Icon, title, value, unit, iconBgClass, iconTextClass, trend = null }) => (
-            <div className="bg-white p-5 lg:p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-all relative overflow-hidden">
-                <div className="flex justify-between items-start mb-4 relative z-10">
-                    <div className={`${iconBgClass} p-3 rounded-2xl ${iconTextClass}`}><Icon size={22} strokeWidth={2.5}/></div>
+        // 共用統計卡片組件 (支援緊湊模式)
+        const StatCard = ({ icon: Icon, title, value, unit, iconBgClass, iconTextClass, trend = null, compact = false }) => (
+            <div className={`bg-white ${compact ? 'p-4 lg:p-5' : 'p-5 lg:p-6'} rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-between hover:shadow-md transition-all relative overflow-hidden`}>
+                <div className={`flex justify-between items-start ${compact ? 'mb-3' : 'mb-4'} relative z-10`}>
+                    <div className={`${iconBgClass} ${compact ? 'p-2.5 rounded-xl' : 'p-3 rounded-2xl'} ${iconTextClass}`}><Icon size={compact ? 18 : 22} strokeWidth={2.5}/></div>
                     {trend && <div className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">{trend}</div>}
                 </div>
                 <div className="relative z-10">
-                    <p className="text-[13px] font-bold text-slate-500 mb-1">{title}</p>
-                    <p className="text-3xl font-black text-slate-800 tracking-tight">{value} <span className="text-sm font-bold text-slate-400 ml-1">{unit}</span></p>
+                    <p className={`${compact ? 'text-xs' : 'text-[13px]'} font-bold text-slate-500 mb-1`}>{title}</p>
+                    <p className={`${compact ? 'text-2xl' : 'text-3xl'} font-black text-slate-800 tracking-tight`}>{value} <span className="text-sm font-bold text-slate-400 ml-1">{unit}</span></p>
                 </div>
                 <div className={`absolute -bottom-6 -right-6 opacity-[0.03] scale-150 ${iconTextClass}`}>
-                    <Icon size={100} />
+                    <Icon size={compact ? 80 : 100} />
                 </div>
             </div>
         );
@@ -352,15 +383,17 @@
             const loadData = async () => {
                 setIsLoading(true);
                 try {
-                    const { data: allSettingsQs } = await supabase.from('member_quarter_settings').select('quarter');
+                    // 優化：只抓取不重複的 quarter 列表，而不是把全部設定抓回來
+                    const { data: allSettingsQs } = await fetchAllData(() => supabase.from('member_quarter_settings').select('quarter'));
                     const [
                         { data: mData }, { data: pData }, { data: mpData }, { data: qsData }, { data: sysSettingsData } 
                     ] = await Promise.all([
-                        supabase.from('members').select('*').order('name'),
-                        supabase.from('positions').select('*').order('id'),
-                        supabase.from('member_positions').select('*').eq('quarter', viewQuarter),
-                        supabase.from('member_quarter_settings').select('*').eq('quarter', viewQuarter),
-                        supabase.from('member_quarter_settings').select('*').eq('quarter', 'SYSTEM')
+                        fetchAllData(() => supabase.from('members').select('*').order('name')),
+                        fetchAllData(() => supabase.from('positions').select('*').order('id')),
+                        // 優化：精準過濾，只抓取當前檢視季度的資料
+                        fetchAllData(() => supabase.from('member_positions').select('*').eq('quarter', viewQuarter)),
+                        fetchAllData(() => supabase.from('member_quarter_settings').select('*').eq('quarter', viewQuarter)),
+                        fetchAllData(() => supabase.from('member_quarter_settings').select('*').eq('quarter', 'SYSTEM'))
                     ]);
 
                     setMembers(mData || []);
@@ -428,8 +461,8 @@
             const executeCreateNextQuarter = async (sourceQ, targetQ) => {
                 setConfirmAction(null); setIsLoading(true);
                 try {
-                    const { data: oldSettings, error: err1 } = await supabase.from('member_quarter_settings').select('*').eq('quarter', sourceQ);
-                    const { data: oldPos, error: err2 } = await supabase.from('member_positions').select('*').eq('quarter', sourceQ);
+                    const { data: oldSettings, error: err1 } = await fetchAllData(() => supabase.from('member_quarter_settings').select('*').eq('quarter', sourceQ));
+                    const { data: oldPos, error: err2 } = await fetchAllData(() => supabase.from('member_positions').select('*').eq('quarter', sourceQ));
                     if (err1) throw err1; if (err2) throw err2;
                     if ((!oldSettings || oldSettings.length === 0) && (!oldPos || oldPos.length === 0)) throw new Error(`【${sourceQ}】目前沒有任何資料可供複製！`);
 
@@ -472,8 +505,8 @@
             const openDeleteQuarterModal = async () => {
                 setIsLoading(true);
                 try {
-                    const { data: allSettingsQs } = await supabase.from('member_quarter_settings').select('quarter');
-                    const { data: allPosQs } = await supabase.from('member_positions').select('quarter');
+                    const { data: allSettingsQs } = await fetchAllData(() => supabase.from('member_quarter_settings').select('quarter'));
+                    const { data: allPosQs } = await fetchAllData(() => supabase.from('member_positions').select('quarter'));
                     const combined = [...(allSettingsQs || []), ...(allPosQs || [])].map(d => d.quarter);
                     
                     const currentQ = getCurrentQuarter(); // 取得本季度
@@ -499,6 +532,22 @@
                     if (err1) throw err1; if (err2) throw err2;
                     if ((!delSettings || delSettings.length === 0) && (!delPos || delPos.length === 0)) throw new Error("未能刪除資料！請確認權限。");
                     
+                    // 新增：連同排班資料一起刪除
+                    for (const qStr of quartersToDelete) {
+                        const [y, q] = qStr.split('-Q').map(Number);
+                        const startMonth = (q - 1) * 3;
+                        const startDate = new Date(y, startMonth, 1);
+                        const endDate = new Date(y, startMonth + 3, 0);
+                        const format = (d) => {
+                            const yyyy = d.getFullYear();
+                            const mm = String(d.getMonth() + 1).padStart(2, '0');
+                            const dd = String(d.getDate()).padStart(2, '0');
+                            return `${yyyy}-${mm}-${dd}`;
+                        };
+                        const { error: err3 } = await supabase.from('schedules').delete().gte('service_date', format(startDate)).lte('service_date', format(endDate));
+                        if (err3) throw err3;
+                    }
+
                     const deletedNames = quartersToDelete.map(q => q.replace('-', '')).join('、');
                     showMessage('success', `${deletedNames}資料刪除成功`);
                     setIsDeleteQuarterModalOpen(false);
@@ -517,6 +566,25 @@
                 const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
                 if (newHolidayDate < todayStr) return showMessage('error', '日期逾期，無法新增');
 
+                setIsLoading(true);
+                try {
+                    const updatedHolidays = { ...customHolidays, [newHolidayDate]: newHolidayName.trim() };
+                    const holidaysArr = Object.entries(updatedHolidays).map(([d, n]) => `${d}|${n}`);
+                    const sysMem = members.find(m => m.name === 'SYSTEM_CUSTOM_HOLIDAYS_DB');
+                    if (sysMem) {
+                        const { error: upsertErr } = await supabase.from('member_quarter_settings').upsert({ member_id: sysMem.id, quarter: 'SYSTEM', unavailable_dates: holidaysArr }, { onConflict: 'member_id, quarter' });
+                        if (upsertErr) throw upsertErr;
+                    } else {
+                        const { data: newMem, error: insErr } = await supabase.from('members').insert({ name: 'SYSTEM_CUSTOM_HOLIDAYS_DB' }).select();
+                        if (insErr) throw insErr;
+                        await supabase.from('member_quarter_settings').insert({ member_id: newMem[0].id, quarter: 'SYSTEM', unavailable_dates: holidaysArr });
+                    }
+                    setCustomHolidays(updatedHolidays); setNewHolidayDate(''); setNewHolidayName(''); loadData();
+                    showMessage('success', '自訂節日新增成功');
+                } catch (error) { showMessage('error', '儲存失敗: ' + error.message); } finally { setIsLoading(false); }
+            };
+
+            const handleDeleteCustomHoliday = async (dateToDelete) => {
                 setIsLoading(true);
                 try {
                     const updatedHolidays = { ...customHolidays };
@@ -947,7 +1015,7 @@
                                     <h3 className="text-xl font-black text-slate-800 mb-3">{isDeleteQuarterModalOpen ? '刪除同工資料' : confirmAction?.title}</h3>
                                     {isDeleteQuarterModalOpen ? (
                                         <>
-                                            <p className="text-sm font-bold text-slate-500 mb-4">永久刪除，<span className="text-red-500">無法復原！</span></p>
+                                            <p className="text-sm font-bold text-slate-500 mb-4"><span className="text-red-500">同步刪除同工與排班資料，無法復原！</span></p>
                                             {detectedQuarters.length === 0 ? (
                                                 <div className="py-6 text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed border-slate-200">尚無可刪除的季度資料</div>
                                             ) : (
@@ -1013,6 +1081,7 @@
             
             const [activeSlot, setActiveSlot] = useState(null); 
             const [searchTerm, setSearchTerm] = useState('');
+            const [analysisSearchTerm, setAnalysisSearchTerm] = useState(''); // 新增：分析表專用搜尋狀態
             const [draggedItem, setDraggedItem] = useState(null);
             const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', currentName: '', currentDate: '', currentRole: '', newName: '', newDate: '', newRole: '', type: '', onConfirm: null });
             const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
@@ -1020,17 +1089,40 @@
 
             const [sortConfig, setSortConfig] = useState({ key: 'totalService', direction: 'desc' });
             const [selectedPersonalStats, setSelectedPersonalStats] = useState(null);
+            const [hasQuerySchedule, setHasQuerySchedule] = useState(true); // 新增：用來快速檢查編輯班表是否有資料
+
+            // 輔助函數：計算該季度的起始與結束日期，用於精準抓取 schedules 表
+            const getQuarterDateRange = (y, q) => {
+                const startMonth = (q - 1) * 3;
+                const startDate = new Date(y, startMonth, 1);
+                const endDate = new Date(y, startMonth + 3, 0); // 下個月的第0天等於這個月的最後一天
+                
+                // 格式化為 YYYY-MM-DD
+                const format = (d) => {
+                    const yyyy = d.getFullYear();
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    return `${yyyy}-${mm}-${dd}`;
+                };
+                
+                return { start: format(startDate), end: format(endDate) };
+            };
 
             useEffect(() => { 
                 const fetchInitialData = async () => {
                     setIsLoading(true);
                     try {
+                        const currentQuarterStr = `${year}-Q${quarter}`;
+                        const dateRange = getQuarterDateRange(year, quarter);
+
                         const [{ data: members }, { data: positions }, { data: memberPositions }, { data: schedules }, { data: quarterSettings }] = await Promise.all([
-                            supabase.from('members').select('*'),
-                            supabase.from('positions').select('*'),
-                            supabase.from('member_positions').select('*'),
-                            supabase.from('schedules').select('*'),
-                            supabase.from('member_quarter_settings').select('*')
+                            fetchAllData(() => supabase.from('members').select('*')),
+                            fetchAllData(() => supabase.from('positions').select('*')),
+                            // 優化：只抓取當前季度的崗位資格與設定
+                            fetchAllData(() => supabase.from('member_positions').select('*').eq('quarter', currentQuarterStr)),
+                            // 優化：只抓取這個季度的排班資料 (透過日期範圍過濾)
+                            fetchAllData(() => supabase.from('schedules').select('*').gte('service_date', dateRange.start).lte('service_date', dateRange.end)),
+                            fetchAllData(() => supabase.from('member_quarter_settings').select('*').in('quarter', [currentQuarterStr, 'SYSTEM']))
                         ]);
                         setDbData({ 
                             members: members || [], positions: positions || [], memberPositions: memberPositions || [], 
@@ -1040,7 +1132,7 @@
                     finally { setIsLoading(false); }
                 };
                 fetchInitialData(); 
-            }, []);
+            }, [year, quarter]); // 將 year 與 quarter 加入依賴，確保切換年份季度時重新抓取對應資料
 
             // 在切換大選單時，重置排班狀態，避免畫面錯亂
             useEffect(() => {
@@ -1053,6 +1145,22 @@
                     }
                 }
             }, [viewMode]);
+
+            // 新增：當切換查詢年份/季度時，快速檢查是否已有排班資料
+            useEffect(() => {
+                const checkScheduleExists = async () => {
+                    if (appMode !== 'query') return;
+                    const dateRange = getQuarterDateRange(queryYear, queryQuarter);
+                    try {
+                        // 利用 .limit(1) 達到極致效能的檢查
+                        const { data } = await supabase.from('schedules').select('id').gte('service_date', dateRange.start).lte('service_date', dateRange.end).limit(1);
+                        setHasQuerySchedule(data && data.length > 0);
+                    } catch (e) {
+                        setHasQuerySchedule(true);
+                    }
+                };
+                checkScheduleExists();
+            }, [queryYear, queryQuarter, appMode]);
 
             const currentQuarterStr = `${year}-Q${quarter}`;
 
@@ -1077,6 +1185,15 @@
 
             // --- 核心邏輯 ---
             const runAutoSchedule = () => {
+                // 新增防呆：檢查目標季度是否已經建立同工資料
+                const targetQuarterStr = `${year}-Q${quarter}`;
+                const hasQuarterData = dbData.memberQuarterSettings.some(s => s.quarter === targetQuarterStr);
+                
+                if (!hasQuarterData) {
+                    setErrorMsg(`⚠️ 請先至左側選單「同工資料」建立【${targetQuarterStr.replace('-','')}】的季度資料，再進行預排！`);
+                    return;
+                }
+
                 setIsLoading(true);
                 setTimeout(() => {
                     try {
@@ -1098,7 +1215,20 @@
                 setIsLoading(true);
                 try {
                     const qY = queryYear; const qQ = queryQuarter; setYear(qY); setQuarter(qQ);
-                    const [{ data: latestSchedules }] = await Promise.all([ supabase.from('schedules').select('*') ]);
+                    const dateRange = getQuarterDateRange(qY, qQ);
+                    
+                    // 優化：只抓取目標季度的排班表
+                    const [{ data: latestSchedules }] = await Promise.all([ 
+                        fetchAllData(() => supabase.from('schedules').select('*').gte('service_date', dateRange.start).lte('service_date', dateRange.end)) 
+                    ]);
+
+                    // 新增防呆：檢查是否有資料，若無則攔截進入編輯模式
+                    if (!latestSchedules || latestSchedules.length === 0) {
+                        setErrorMsg(`⚠️ 尚未建立 ${qY}Q${qQ} 排班資料，請至「預排作業」新增。`);
+                        setIsLoading(false);
+                        return;
+                    }
+
                     setDbData(prev => ({ ...prev, existingSchedules: latestSchedules || [] }));
 
                     const reconstructed = [];
@@ -1525,12 +1655,30 @@
                     else if (d.totalService >= avgService + stdDev) d.healthStatus = 'warning';
                     else d.healthStatus = 'healthy';
                 });
-                return { totalMembers, totalServices, avgService: avgService.toFixed(1), avgAttendance: avgAttendance.toFixed(1), stdDev: stdDev.toFixed(2), maxService, highRiskMembers, attentionMembers, multiRoleRatio, roleCounts };
+
+                // 計算天數與次數分布圖的數據
+                const attendanceDistObj = {};
+                const serviceDistObj = {};
+                dashboardData.forEach(d => {
+                    attendanceDistObj[d.attendance] = (attendanceDistObj[d.attendance] || 0) + 1;
+                    serviceDistObj[d.totalService] = (serviceDistObj[d.totalService] || 0) + 1;
+                });
+                const maxAttCount = Math.max(0, ...Object.values(attendanceDistObj));
+                const maxSrvCount = Math.max(0, ...Object.values(serviceDistObj));
+
+                return { totalMembers, totalServices, avgService: avgService.toFixed(1), avgAttendance: avgAttendance.toFixed(1), stdDev: stdDev.toFixed(2), maxService, highRiskMembers, attentionMembers, multiRoleRatio, roleCounts, attendanceDistObj, serviceDistObj, maxAttCount, maxSrvCount };
             }, [dashboardData]);
 
             const sortedDashboardData = useMemo(() => {
                 if (!dashboardData) return [];
                 let sortableItems = [...dashboardData];
+                
+                // 新增：姓名搜尋過濾邏輯
+                if (analysisSearchTerm) {
+                    const term = analysisSearchTerm.toLowerCase();
+                    sortableItems = sortableItems.filter(d => d.name.toLowerCase().includes(term));
+                }
+
                 sortableItems.sort((a, b) => {
                     let aValue = sortConfig.key === 'name' ? a.name : (sortConfig.key === 'totalService' ? a.totalService : (sortConfig.key === 'attendance' ? a.attendance : a.roles[sortConfig.key] || 0));
                     let bValue = sortConfig.key === 'name' ? b.name : (sortConfig.key === 'totalService' ? b.totalService : (sortConfig.key === 'attendance' ? b.attendance : b.roles[sortConfig.key] || 0));
@@ -1540,7 +1688,7 @@
                     return 0;
                 });
                 return sortableItems;
-            }, [dashboardData, sortConfig]);
+            }, [dashboardData, sortConfig, analysisSearchTerm]); // 依賴項加入 analysisSearchTerm
 
             const requestSort = (key) => {
                 let direction = 'desc'; if (sortConfig.key === key && sortConfig.direction === 'desc') direction = 'asc';
@@ -1551,15 +1699,64 @@
                 if (!dashboardStats) return null;
                 return (
                     <div className="h-full overflow-y-auto custom-scrollbar p-6 lg:p-8 animate-fade-in pb-20 bg-slate-50">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                            <StatCard icon={Users} title="排班總人數" value={dashboardStats.totalMembers} unit="人" iconBgClass="bg-indigo-50" iconTextClass="text-indigo-600" />
-                            <StatCard icon={Layers} title="平均服事次數" value={dashboardStats.avgService} unit="次/季" iconBgClass="bg-emerald-50" iconTextClass="text-emerald-600" />
-                            <StatCard icon={CalendarDays} title="平均出席天數" value={dashboardStats.avgAttendance} unit="天/季" iconBgClass="bg-sky-50" iconTextClass="text-sky-600" />
-                            <StatCard icon={TrendingUp} title="最高服事紀錄" value={dashboardStats.maxService} unit="次" iconBgClass="bg-rose-50" iconTextClass="text-rose-600" />
+                        <div className="flex flex-col xl:flex-row gap-6 mb-8">
+                            {/* 2x2 卡片 */}
+                            <div className="grid grid-cols-2 gap-4 xl:w-[400px] shrink-0">
+                                <StatCard compact icon={Users} title="排班總人數" value={dashboardStats.totalMembers} unit="人" iconBgClass="bg-indigo-50" iconTextClass="text-indigo-600" />
+                                <StatCard compact icon={TrendingUp} title="最高服事次數" value={dashboardStats.maxService} unit="次" iconBgClass="bg-rose-50" iconTextClass="text-rose-600" />
+                                <StatCard compact icon={Layers} title="平均服事次數" value={dashboardStats.avgService} unit="次/季" iconBgClass="bg-emerald-50" iconTextClass="text-emerald-600" />
+                                <StatCard compact icon={CalendarDays} title="平均出席天數" value={dashboardStats.avgAttendance} unit="天/季" iconBgClass="bg-sky-50" iconTextClass="text-sky-600" />
+                            </div>
+                            
+                            {/* 柱狀圖 */}
+                            <div className="flex-1 flex flex-col sm:flex-row gap-4 overflow-hidden">
+                                <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex-1 flex flex-col min-h-[160px]">
+                                    <h4 className="text-[13px] font-black text-slate-500 mb-3 flex items-center gap-1.5"><BarChart3 size={14} className="text-sky-500"/> 服事天數分布圖</h4>
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2.5 pr-2">
+                                        {Object.keys(dashboardStats.attendanceDistObj).map(Number).sort((a,b)=>a-b).map(k => {
+                                            const count = dashboardStats.attendanceDistObj[k];
+                                            const pct = dashboardStats.maxAttCount > 0 ? (count / dashboardStats.maxAttCount) * 100 : 0;
+                                            return (
+                                                <div key={k} className="flex items-center gap-2">
+                                                    <div className="w-10 text-right font-bold text-slate-500 text-[11px] shrink-0">{k} 天</div>
+                                                    <div className="flex-1 flex items-center h-5">
+                                                        <div className="h-full bg-sky-400 rounded-r-md transition-all" style={{ width: `${pct}%`, minWidth: count > 0 ? '4px' : '0' }}></div>
+                                                        <span className="ml-2 font-black text-slate-600 text-[11px]">{count} 人</span>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex-1 flex flex-col min-h-[160px]">
+                                    <h4 className="text-[13px] font-black text-slate-500 mb-3 flex items-center gap-1.5"><BarChart3 size={14} className="text-emerald-500"/> 服事次數分布圖</h4>
+                                    <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2.5 pr-2">
+                                        {Object.keys(dashboardStats.serviceDistObj).map(Number).sort((a,b)=>a-b).map(k => {
+                                            const count = dashboardStats.serviceDistObj[k];
+                                            const pct = dashboardStats.maxSrvCount > 0 ? (count / dashboardStats.maxSrvCount) * 100 : 0;
+                                            return (
+                                                <div key={k} className="flex items-center gap-2">
+                                                    <div className="w-10 text-right font-bold text-slate-500 text-[11px] shrink-0">{k} 次</div>
+                                                    <div className="flex-1 flex items-center h-5">
+                                                        <div className="h-full bg-emerald-400 rounded-r-md transition-all" style={{ width: `${pct}%`, minWidth: count > 0 ? '4px' : '0' }}></div>
+                                                        <span className="ml-2 font-black text-slate-600 text-[11px]">{count} 人</span>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                        
                         <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden mb-8 flex flex-col max-h-[600px]">
-                            <div className="p-6 lg:px-8 border-b border-slate-100 bg-slate-50 flex items-center justify-between sticky top-0">
-                                <h3 className="text-lg font-black text-slate-800">同工排班分析表</h3>
+                            <div className="p-6 lg:px-8 border-b border-slate-100 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0">
+                                <h3 className="text-lg font-black text-slate-800 flex items-center gap-2"><LayoutList className="text-indigo-500" size={20} /> 同工排班分析表</h3>
+                                <div className="relative w-full sm:w-64">
+                                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input type="text" placeholder="搜尋姓名..." value={analysisSearchTerm} onChange={e => setAnalysisSearchTerm(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-8 py-2 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-sm" />
+                                    {analysisSearchTerm && <button onClick={() => setAnalysisSearchTerm('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:bg-slate-200 rounded-full transition-all"><X size={14} /></button>}
+                                </div>
                             </div>
                             <div className="overflow-x-auto custom-scrollbar flex-1">
                                 <table className="w-full text-left border-collapse min-w-[800px]">
@@ -1637,6 +1834,11 @@
                                         <button onClick={runAutoSchedule} disabled={isLoading} className="w-full bg-slate-900 hover:bg-black disabled:bg-slate-300 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl">
                                             {isLoading ? <RefreshCw className="animate-spin" /> : <><Play size={20} fill="currentColor"/> 建立新班表</>}
                                         </button>
+                                        {!dbData.memberQuarterSettings.some(s => s.quarter === `${year}-Q${quarter}`) && !isLoading && (
+                                            <p className="text-rose-500 text-[13px] font-bold text-center mt-4 flex items-center justify-center gap-1.5 animate-pulse">
+                                                <AlertCircle size={16} /> 尚未建立 {year}Q{quarter} 同工資料，請至「同工資料」新增。
+                                            </p>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="animate-fade-in">
@@ -1655,6 +1857,11 @@
                                         <button onClick={runQuerySchedule} disabled={isLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl shadow-indigo-200">
                                             {isLoading ? <RefreshCw className="animate-spin" /> : <><Search size={20} strokeWidth={3}/> 開始編輯</>}
                                         </button>
+                                        {!hasQuerySchedule && !isLoading && (
+                                            <p className="text-rose-500 text-[13px] font-bold text-center mt-4 flex items-center justify-center gap-1.5 animate-pulse">
+                                                <AlertCircle size={16} /> 尚未建立 {queryYear}Q{queryQuarter} 排班資料，請至「預排作業」新增。
+                                            </p>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -1995,7 +2202,7 @@
         // 主應用框架 (合併選單)
         // ==========================================
         const MainApp = ({ session }) => {
-            const [currentMenu, setCurrentMenu] = useState('members'); // 'members' | 'scheduling' | 'governance'
+            const [currentMenu, setCurrentMenu] = useState('members'); // 'members' | 'scheduling' 
             
             const handleLogout = async () => {
                 await supabase.auth.signOut();
@@ -2018,10 +2225,6 @@
                                 <Calendar size={22} className={currentMenu === 'scheduling' ? 'text-white' : 'text-slate-500'}/>
                                 <span className="text-[10px] lg:text-sm lg:block mt-1 lg:mt-0">排班作業</span>
                             </button>
-                            <button onClick={() => setCurrentMenu('governance')} className={`w-full flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-1 lg:gap-3 px-0 lg:px-4 py-3 lg:py-3.5 rounded-2xl font-bold transition-all ${currentMenu === 'governance' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'hover:bg-slate-800 hover:text-white text-slate-400'}`}>
-                                <Database size={22} className={currentMenu === 'governance' ? 'text-white' : 'text-slate-500'}/>
-                                <span className="text-[10px] lg:text-sm lg:block mt-1 lg:mt-0">數據洞察</span>
-                            </button>
                         </nav>
                         
                         {/* 左下角登出按鈕 */}
@@ -2037,7 +2240,6 @@
                     <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-100 z-10">
                         {currentMenu === 'members' && <MemberDataCenter session={session} />}
                         {currentMenu === 'scheduling' && <SchedulingAndGovernance viewMode="scheduling" />}
-                        {currentMenu === 'governance' && <SchedulingAndGovernance viewMode="governance" />}
                     </main>
                 </div>
             );
