@@ -517,9 +517,13 @@ const ScheduleEngine = {
 
          unassignedMembers.sort((a, b) => (state.totalUsage[a.id] || 0) - (state.totalUsage[b.id] || 0));
 
+         // 【新增機制】動態記錄目前已經成功配對上場的家人數量
+         let currentAssignedCount = assignedMembers.length;
+
          unassignedMembers.forEach(unM => {
             let assigned = false;
             
+            // 1. 溫和地尋找「同堂」的現成空缺
             const targetSlots = context.availableSlots.filter(s => s.session === targetSession && s.needed > 0);
             for (let s of targetSlots) {
                if (this._canAssign(unM, s, state, context, 0, true)) {
@@ -529,6 +533,7 @@ const ScheduleEngine = {
                }
             }
 
+            // 2. 溫和地尋找「跨堂」的現成空缺
             if (!assigned) {
                 const otherSlots = context.availableSlots.filter(s => s.session !== targetSession && s.needed > 0);
                 for (let s of otherSlots) {
@@ -540,8 +545,22 @@ const ScheduleEngine = {
                 }
             }
 
+            // 若成功補入空缺，將安全計數器 +1
+            if (assigned) {
+                currentAssignedCount++;
+            }
+
+            // 3. 【全新安全煞車】如果找不到現成空缺了...
             if (!assigned) {
-                this._forceSwapForFamily(unM, assignedMembers[0], state, context, members);
+                if (currentAssignedCount >= 2) {
+                    // 已經有 2 個人(含)以上配對成功(不落單了)
+                    // 不啟動補救踢人機制，直接放棄幫這個剩下的家人搶位子！
+                    return; 
+                } else {
+                    // 只有 1 人上場，會落單，才啟動強制踢人
+                    this._forceSwapForFamily(unM, assignedMembers[0], state, context, members);
+                    currentAssignedCount++; // 假設踢人成功，人數+1
+                }
             }
          });
       }
