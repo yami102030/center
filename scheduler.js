@@ -4,7 +4,7 @@
  * 1. L=2 新朋友禁排邏輯 (每月 8-14 號)
  * 2. 嚴格的分數排序演算法 ([權重分, 歷史次數, 技能數量, 隨機數])
  * 3. 執行流程：執事 -> 跨堂預排 -> 家庭預排 -> 單堂填充 -> 補位 -> 最終 Refill
- * 4. FA 絕對同日同崗位，FB 絕對同日異崗位
+ * 4. FA 絕對同日同崗位，FB 同堂 (同崗位或異崗位皆可)
  * 5. FA/FB 終極防落單替換機制 (依服事次數踢人)
  * 6. 完美平衡：配對預查機制 (Lookahead)，兼顧配對與次數平均。
  * 7. 【全新大升級】技能稀缺性保護與「弱者錨點」機制，保證多技能的高手優先被分配到高階崗位，不被家庭綁定浪費！
@@ -209,9 +209,8 @@ const ScheduleEngine = {
                 
                 if (myGroupId.startsWith('FA')) {
                     if (!familyRoles.has(roleName)) return false;
-                } else if (myGroupId.startsWith('FB')) {
-                    if (familyRoles.has(roleName)) return false;
-                }
+                } 
+                // FB 放寬規則：同崗或異崗皆可，因此移除了原本的阻擋邏輯！
             }
         }
     }
@@ -220,11 +219,25 @@ const ScheduleEngine = {
   },
 
   _getScore(m, slot, state, context) {
-    let weight = 0;
-
-    if (['執事輪值', '司會'].includes(slot.roleName)) {
-       const currentUsage = state.roleUsage[m.id][slot.posId] || 0;
-       if (currentUsage === 0) weight -= 20000;
+    const myGroupId = state.memberGroups[m.id];
+    if (myGroupId && (myGroupId.startsWith('FA') || myGroupId.startsWith('FB'))) {
+       const myShiftsCount = (context.dailyAssignments[m.id] || []).length;
+       if (myShiftsCount === 0) {
+           const assignedFamilyIds = Object.keys(context.dailyAssignments).filter(
+               assignedId => assignedId !== m.id && state.memberGroups[assignedId] === myGroupId
+           );
+           
+           if (assignedFamilyIds.length > 0) {
+               const familyRoles = new Set();
+               assignedFamilyIds.forEach(fid => context.dailyAssignments[fid].forEach(r => familyRoles.add(r)));
+               
+               if (myGroupId.startsWith('FA') && familyRoles.has(slot.roleName)) {
+                   weight -= 15000; 
+               } else if (myGroupId.startsWith('FB')) {
+                   weight -= 15000; // FB 不限制崗位，只要能跟家人在同一天排班，就給予最高拉攏獎勵！
+               }
+           }
+       }
     }
 
     const dayRoles = context.dailyAssignments[m.id] || [];
@@ -358,7 +371,7 @@ const ScheduleEngine = {
               // 因此多技能高手在這裡會自然被優先塞進高階稀缺崗位
               for (let tRole of roleOrder) {
                   if (isFA && !familyRoles.has(tRole)) continue;
-                  if (isFB && familyRoles.has(tRole)) continue;
+                  // FB 規則放寬：同崗位或異崗位都可以，因此不再 continue 阻擋
 
                   const slotN = context.availableSlots.find(s => s.session === tSess && s.roleName === tRole);
                   if (!slotN) continue;
