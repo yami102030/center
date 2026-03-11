@@ -219,6 +219,14 @@ const ScheduleEngine = {
   },
 
   _getScore(m, slot, state, context) {
+    let weight = 0;
+
+    // 【修復】加回遺失的領袖層優先邏輯
+    if (['執事輪值', '司會'].includes(slot.roleName)) {
+       const currentUsage = state.roleUsage[m.id]?.[slot.posId] || 0;
+       if (currentUsage === 0) weight -= 20000;
+    }
+
     const myGroupId = state.memberGroups[m.id];
     if (myGroupId && (myGroupId.startsWith('FA') || myGroupId.startsWith('FB'))) {
        const myShiftsCount = (context.dailyAssignments[m.id] || []).length;
