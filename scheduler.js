@@ -53,6 +53,12 @@ const ScheduleEngine = {
             if (qs) {
                 if (qs.newcomer_rule !== undefined && qs.newcomer_rule !== null) m.newcomer_rule = qs.newcomer_rule;
                 if (qs.dual_service_pref !== undefined && qs.dual_service_pref !== null) m.dual_service_pref = qs.dual_service_pref;
+                
+                // 【新增：一季一次防呆】確保狀態同步，並強制解除跨堂偏好
+                if (qs.availability_status) m.availability_status = qs.availability_status;
+                if (m.availability_status === '一季一次') {
+                    m.dual_service_pref = 0; // 強制設為單堂，防止原子綁定給他塞兩堂
+                }
             }
         }
     });
@@ -131,6 +137,12 @@ const ScheduleEngine = {
     const { roleName, session, posId } = slot;
     
     if (['暫停服事', '安息季'].includes(m.availability_status)) return false;
+    
+    // 【新增：一季一次硬限制】只要本季總服事次數達到 1 次，就絕對不再排班
+    if (m.availability_status === '一季一次' && (state.totalUsage[m.id] || 0) >= 1) {
+        return false;
+    }
+
     if (Array.isArray(m.unavailable_dates) && m.unavailable_dates.includes(context.dateStr)) return false;
     if (!state.memberSkills[m.id].has(posId)) return false;
 
