@@ -32,6 +32,12 @@
         @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
         .animate-pop { animation: pop 0.35s ease-out; }
         @media (prefers-reduced-motion: reduce) { .animate-pop { animation: none; } }
+        /* 禱告成功後的澆水動畫與鼓勵訊息（只在資料庫確認成功後才會出現） */
+        @keyframes waterDrop { 0% { transform: translateY(-24px) scale(.8); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(var(--fall, 120px)) scale(1); opacity: 0; } }
+        .water-drop { position: absolute; width: 10px; height: 14px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: #38bdf8; opacity: 0; animation: waterDrop 1.1s ease-in forwards; }
+        @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+        .prayer-toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 70; max-width: min(92vw, 420px); padding: 12px 18px; border-radius: 14px; background: #18181b; color: #fff; font-size: 14px; font-weight: 700; line-height: 1.5; text-align: center; box-shadow: 0 10px 25px -5px rgba(0,0,0,.3); animation: toastIn .3s ease-out both; }
+        @media (prefers-reduced-motion: reduce) { .water-drop { display: none; } .prayer-toast { animation: none; } }
         input, textarea, select { font-size: 16px !important; }
     </style>
 </head>
@@ -470,14 +476,48 @@
             </svg>
         );
 
+        // 禱告成功後的回饋：幾滴水珠落下＋一則鼓勵訊息。只有資料庫確認「新的有效回應」才會呼叫，不寫入任何資料。
+        const THANKS_MESSAGE = '感謝你一同守望，願我們在禱告中一同成長';
+        let toastTimer = null;
+        const celebratePrayer = (originEl) => {
+            try {
+                const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                if (!reduce && originEl) {
+                    const rect = originEl.getBoundingClientRect();
+                    const layer = document.createElement('div');
+                    layer.setAttribute('aria-hidden', 'true');
+                    layer.style.cssText = `position:fixed;left:${rect.left + rect.width / 2 - 20}px;top:${Math.max(0, rect.top - 70)}px;width:40px;height:90px;pointer-events:none;z-index:65;`;
+                    for (let i = 0; i < 5; i++) {
+                        const d = document.createElement('span');
+                        d.className = 'water-drop';
+                        d.style.left = `${4 + i * 7}px`;
+                        d.style.animationDelay = `${i * 90}ms`;
+                        d.style.setProperty('--fall', `${60 + (i % 3) * 14}px`);
+                        layer.appendChild(d);
+                    }
+                    document.body.appendChild(layer);
+                    setTimeout(() => layer.remove(), 1800);
+                }
+                document.querySelectorAll('.prayer-toast').forEach(t => t.remove());
+                if (toastTimer) clearTimeout(toastTimer);
+                const toast = document.createElement('div');
+                toast.className = 'prayer-toast';
+                toast.setAttribute('role', 'status');
+                toast.textContent = THANKS_MESSAGE;
+                document.body.appendChild(toast);
+                toastTimer = setTimeout(() => toast.remove(), 3500);
+            } catch (e) { /* 動畫失敗不影響禱告紀錄 */ }
+        };
+
         // 像 IG 的愛心：點圖示立即變色並加一；按過就不能取消。失敗時會自動還原並由卡片顯示提示。
         const PrayButton = ({ postId, count, responded, onResponded, onError }) => {
             const [local, setLocal] = useState({ count, responded });
             const [popping, setPopping] = useState(false);
             useEffect(() => { setLocal({ count, responded }); }, [count, responded]);
 
-            const click = async () => {
+            const click = async (e) => {
                 if (local.responded) return;
+                const btn = e && e.currentTarget;
                 const before = local;
                 setLocal({ count: before.count + 1, responded: true });
                 setPopping(true); setTimeout(() => setPopping(false), 400);
@@ -487,6 +527,8 @@
                     const n = Number(r?.response_count ?? before.count + 1);
                     setLocal({ count: n, responded: true });
                     onResponded(n);
+                    // 只有資料庫確認「這是新的有效回應」才播放澆水動畫；重複回應（already_responded）不播
+                    if (r && r.already_responded === false) celebratePrayer(btn);
                 } catch (err) {
                     setLocal(before);
                     if (onError) onError(err.message || '暫時無法送出，稍後再試');
