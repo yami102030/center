@@ -31,8 +31,8 @@
   }
   .sub{ color:var(--sub); }
   .brand{ display:inline-block; max-width:100%; }
-  .tagline{ width:0; min-width:100%; white-space:nowrap; font-size:1.0625rem; text-align:justify; text-align-last:justify; }
-  @media (min-width:640px){ .tagline{ font-size:1.25rem; } }
+  .tagline{ width:0; min-width:100%; white-space:nowrap; font-size:.9375rem; text-align:center; letter-spacing:.02em; }
+  @media (min-width:640px){ .tagline{ font-size:1.0625rem; } }
   .entry-icon{ color:#8806ce; transition: transform .2s ease; }
   .entry:hover .entry-icon, .entry:focus-visible .entry-icon{ transform: translateY(-3px); }
   .entry:active .entry-icon{ transform: scale(.92); }
@@ -63,7 +63,7 @@
   <main class="w-full max-w-3xl">
 
     <div class="text-center mb-12">
-      <!-- 標語寬度會跟標題一樣寬，不會比 TBC Together 更長 -->
+      <!-- 標語寬度要比 TBC Together 窄 -->
       <div class="brand">
         <h1 class="text-4xl sm:text-5xl font-black tracking-tight">TBC Together</h1>
         <p id="tagline" class="tagline mt-3 font-bold sub">一起禱告、一起服事、一起成長</p>
@@ -206,13 +206,14 @@
 
   <script>
   (function () {
-    // 標語若比標題還寬（字型不同時可能發生），就自動縮小到剛好放得下
+    // 標語寬度最多為標題的 85%，若超過就自動縮小
     (function fitTagline(){
       var t = document.getElementById('tagline'); if (!t) return;
       var fit = function(){
         t.style.fontSize = '';
         var size = parseFloat(getComputedStyle(t).fontSize);
-        while (t.scrollWidth > t.clientWidth && size > 10) { size -= 0.5; t.style.fontSize = size + 'px'; }
+        var textW = function(){ var r = document.createRange(); r.selectNodeContents(t); return r.getBoundingClientRect().width; };
+        while (textW() > t.clientWidth * 0.85 && size > 10) { size -= 0.5; t.style.fontSize = size + 'px'; }
       };
       fit();
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
