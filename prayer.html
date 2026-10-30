@@ -48,8 +48,8 @@
         // 資料安全不靠這把金鑰，而是靠資料庫裡的警衛規則與權限窗口。
         // 因為與 manager.html 同網站、同專案，登入狀態會自動共用。
         // ==========================================
-        const SUPABASE_URL = "https://jcepavwocdujoeoqxvsd.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_Tj2n8e3yY1HyvaFzXRyO_w_PWrVFB7E";
+        const SUPABASE_URL = "https://jtjgqrqbewbgxscytkod.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_TcixlGOMSLBSZNoMNOp6Ng_B-N4Tw1K";
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
         const VIRTUAL_DOMAIN = "@tbc.gmail.com";
         const formatEmailForAuth = (acc) => { const t = (acc || '').trim(); return t.includes('@') ? t : `${t}${VIRTUAL_DOMAIN}`; };
@@ -1504,7 +1504,6 @@
 
             const menuItems = [
                 { id: 'index', label: '回首頁', icon: <HouseIcon size={20} />, onClick: closeThen(() => { window.location.href = './index.html'; }) },
-                { id: 'home', label: '我的禱告', icon: <HandHeartIcon size={20} />, active: route.name === 'home', onClick: closeThen(goHome) },
                 { id: 'serve', label: '我的服事', icon: <ClockIcon size={20} />, onClick: closeThen(() => { window.location.href = './search.html'; }) },
                 { id: 'settings', label: '個人設定', icon: <UsersIcon size={20} />, onClick: closeThen(() => { window.location.href = './manager.html'; }) },
                 session
@@ -1549,7 +1548,7 @@
                                         <BellIcon size={24} />
                                         {session && unread > 0 && <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-xs font-bold tabular-nums">{unread > 99 ? '99+' : unread}</span>}
                                     </button>
-                                    <button onClick={() => requireLogin('#/mine')} aria-label="我的貼文" title="我的貼文" className={`${iconBtn} ${route.name === 'mine' || route.name === 'edit' ? 'bg-zinc-100' : ''}`}><HandHeartIcon size={24} /></button>
+                                    <button onClick={() => requireLogin('#/mine')} aria-label="我的禱告" title="我的禱告" className={`${iconBtn} ${route.name === 'mine' || route.name === 'edit' ? 'bg-zinc-100' : ''}`}><HandHeartIcon size={24} /></button>
                                     {isReviewer && (
                                         <button onClick={() => go('#/review')} aria-label={pending > 0 ? `貼文審核，${pending} 則待審查` : '貼文審核'} title="貼文審核" className={`${iconBtn} ${route.name === 'review' ? 'bg-zinc-100' : ''}`}>
                                             <ClipboardCheckIcon size={24} />
