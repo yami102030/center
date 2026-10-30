@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>TBC Serve</title>
+<title>TBC Together</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -60,7 +60,7 @@
   <main class="w-full max-w-3xl">
 
     <div class="text-center mb-12">
-      <h1 class="text-4xl sm:text-5xl font-black tracking-tight">TBC Serve</h1>
+      <h1 class="text-4xl sm:text-5xl font-black tracking-tight">TBC Together</h1>
       <p class="mt-3 text-lg font-bold sub">一起禱告、一起服事、一起成長</p>
     </div>
 
@@ -168,7 +168,7 @@
         </div>
 
         <div class="mt-4 text-center" aria-live="polite">
-          <p class="text-sm font-bold sub">全教會累積禱告回應</p>
+          <p class="text-sm font-bold sub">全教會禱告累計</p>
           <p class="mt-1 font-black tracking-tight leading-none">
             <span id="garden-total" class="text-5xl sm:text-6xl tabular-nums">—</span>
             <span class="text-lg font-bold sub ml-1">次</span>
@@ -182,11 +182,9 @@
           <div class="garden-track h-3 rounded-full overflow-hidden" role="progressbar" id="garden-bar" aria-label="花園成長進度" aria-valuemin="0" aria-valuemax="100">
             <div id="garden-fill" class="garden-fill h-full rounded-full" style="width:0%"></div>
           </div>
-          <p id="garden-next" class="mt-2 text-sm font-semibold text-center sub">&nbsp;</p>
         </div>
 
         <p id="garden-banner" class="hidden mt-5 mx-auto max-w-md text-center text-sm font-bold rounded-xl px-4 py-3 bg-emerald-100 text-emerald-800"></p>
-        <p id="garden-note" class="mt-5 text-center text-base font-bold">每一次禱告，都是一滴滋養生命的水。</p>
 
         <div id="garden-error" class="hidden mt-5 text-center" role="alert">
           <p class="text-sm font-bold text-red-600">暫時無法讀取禱告回應次數，請稍後再試。</p>
@@ -223,7 +221,7 @@
     var $ = function (id) { return document.getElementById(id); };
     var els = {
       total: $('garden-total'), stageName: $('garden-stage-name'), bar: $('garden-bar'), fill: $('garden-fill'),
-      next: $('garden-next'), note: $('garden-note'), banner: $('garden-banner'), error: $('garden-error'),
+      banner: $('garden-banner'), error: $('garden-error'),
       retry: $('garden-retry'), plant: $('plant')
     };
     var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -271,10 +269,6 @@
       els.fill.style.width = pct.toFixed(1) + '%';
       els.bar.setAttribute('aria-valuenow', String(Math.round(pct)));
       els.bar.setAttribute('aria-valuetext', next ? ('已完成 ' + Math.round(pct) + '%') : '持續成長中');
-      els.next.textContent = next
-        ? ('下一個里程碑：' + next.name + '（' + formatNum(next.min) + ' 次），還差 ' + formatNum(next.min - total) + ' 次')
-        : '持續成長中';
-      els.note.textContent = cur.note;
       els.error.classList.add('hidden');
 
       // 達成新階段時，顯示簡短鼓勵訊息（只在比上次來訪更高的階段才顯示）
@@ -299,7 +293,6 @@
       els.fill.style.width = '0%';
       els.bar.removeAttribute('aria-valuenow');
       els.bar.setAttribute('aria-valuetext', '無法讀取');
-      els.next.innerHTML = '&nbsp;';
       els.banner.classList.add('hidden');
       els.error.classList.remove('hidden');
     }
