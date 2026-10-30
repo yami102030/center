@@ -185,7 +185,7 @@
         </div>
 
         <div class="mt-5 max-w-md mx-auto">
-          <div class="garden-track h-3 rounded-full overflow-hidden" role="progressbar" id="garden-bar" aria-label="花園成長進度" aria-valuemin="0" aria-valuemax="100">
+          <div class="garden-track h-3 rounded-full overflow-hidden" role="progressbar" id="garden-bar" aria-label="成長進度" aria-valuemin="0" aria-valuemax="100">
             <div id="garden-fill" class="garden-fill h-full rounded-full" style="width:0%"></div>
           </div>
         </div>
@@ -233,8 +233,8 @@
       STAGES: [
         { id: 'seed',   name: '播種', min: 0,    note: '每一次禱告，都是一滴滋養生命的水。' },
         { id: 'sprout', name: '發芽', min: 100,  note: '嫩芽探出頭了，謝謝大家一同守望。' },
-        { id: 'grow',   name: '成長', min: 500,  note: '花園越長越茂盛，願我們在禱告中一同成長。' },
-        { id: 'bloom',  name: '開花', min: 1000, note: '花開了！感謝神，也感謝每一位一同禱告的你。' }
+        { id: 'grow',   name: '成長', min: 500,  note: '越長越茂盛，願我們在禱告中一同成長。' },
+        { id: 'bloom',  name: '開花', min: 1000, note: '花開了！感謝神，也感謝一同禱告的你。' }
       ]
     };
 
@@ -297,7 +297,7 @@
       var seenIdx = -1;
       for (var i = 0; i < GARDEN.STAGES.length; i++) { if (GARDEN.STAGES[i].id === seen) seenIdx = i; }
       if (seenIdx >= 0 && idx > seenIdx) {
-        els.banner.textContent = '成長階段：' + cur.name + '！一同守望，讓愛持續綻放';
+        els.banner.textContent = cur.name + '！一同守望，讓愛持續綻放';
         els.banner.classList.remove('hidden');
       } else {
         els.banner.classList.add('hidden');
