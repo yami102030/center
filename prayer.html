@@ -46,13 +46,28 @@
         // ==========================================
         // 連線設定（與 manager.html 相同的公開金鑰）
         // 資料安全不靠這把金鑰，而是靠資料庫裡的警衛規則與權限窗口。
-        // 因為與 manager.html 同網站、同專案，登入狀態會自動共用。
+        // 與 manager.html、search.html 連同一個專案（jcepavwocdujoeoqxvsd），登入狀態會自動共用。
         // ==========================================
         const SUPABASE_URL = "https://jcepavwocdujoeoqxvsd.supabase.co";
         const SUPABASE_KEY = "sb_publishable_Tj2n8e3yY1HyvaFzXRyO_w_PWrVFB7E";
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
         const VIRTUAL_DOMAIN = "@tbc.gmail.com";
         const formatEmailForAuth = (acc) => { const t = (acc || '').trim(); return t.includes('@') ? t : `${t}${VIRTUAL_DOMAIN}`; };
+        const extractAccountFromEmail = (email) => { if (!email) return ''; return email.endsWith(VIRTUAL_DOMAIN) ? email.replace(VIRTUAL_DOMAIN, '') : email; };
+
+        // 與「我的服事」(search.html)、「個人設定」(manager.html) 共用的登入姓名：寫入同一個 tbc_user，到我的服事就不用再登入
+        const setSharedUser = (name) => {
+            if (!name) return;
+            try { localStorage.setItem('tbc_user', name); } catch (e) {}
+            try {
+                const d = new Date(); d.setTime(d.getTime() + 30 * 24 * 60 * 60 * 1000);
+                document.cookie = `tbc_user=${encodeURIComponent(name)}; expires=${d.toUTCString()}; path=/`;
+            } catch (e) {}
+        };
+        const clearSharedUser = () => {
+            try { localStorage.removeItem('tbc_user'); } catch (e) {}
+            try { document.cookie = 'tbc_user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'; } catch (e) {}
+        };
 
         const CATEGORIES = [
             { id: 'all', label: '全部' },
@@ -1458,6 +1473,23 @@
                 return () => subscription.unsubscribe();
             }, []);
 
+            // 登入後，依帳號（電話或 email）比對 members 表找出本人姓名，寫入共用的 tbc_user（做法同 manager.html）
+            useEffect(() => {
+                if (!session?.user?.email) return;
+                const emailLower = session.user.email.trim().toLowerCase();
+                const accountLower = extractAccountFromEmail(session.user.email).trim().toLowerCase();
+                let alive = true;
+                supabase.from('members').select('name, email').then(({ data, error }) => {
+                    if (!alive || error) { if (error) console.error('讀取本人姓名失敗:', error); return; }
+                    const mine = (data || []).find(m => {
+                        const me = (m.email || '').trim().toLowerCase();
+                        return me === emailLower || me === accountLower;
+                    });
+                    if (mine?.name) setSharedUser(mine.name);
+                });
+                return () => { alive = false; };
+            }, [session?.user?.email]);
+
             // 登入後讀自己的角色（只是決定要不要顯示審查入口；真正權限在資料庫）
             useEffect(() => {
                 setRole(null); setPending(0);
@@ -1496,7 +1528,7 @@
                 return () => clearTimeout(t);
             }, [flash]);
 
-            const logout = async () => { setMenuOpen(false); clearDraft(); await supabase.auth.signOut(); go('#'); };
+            const logout = async () => { setMenuOpen(false); clearDraft(); clearSharedUser(); await supabase.auth.signOut(); go('#'); };
             const goHome = () => go('#');
             const goMine = () => go('#/mine');
             const requireLogin = (hash) => { if (!session) setShowLogin(true); else go(hash); };
