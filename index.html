@@ -30,6 +30,9 @@
     padding-bottom:env(safe-area-inset-bottom,0px);
   }
   .sub{ color:var(--sub); }
+  .brand{ display:inline-block; max-width:100%; }
+  .tagline{ width:0; min-width:100%; white-space:nowrap; font-size:1.0625rem; text-align:justify; text-align-last:justify; }
+  @media (min-width:640px){ .tagline{ font-size:1.25rem; } }
   .entry-icon{ color:#8806ce; transition: transform .2s ease; }
   .entry:hover .entry-icon, .entry:focus-visible .entry-icon{ transform: translateY(-3px); }
   .entry:active .entry-icon{ transform: scale(.92); }
@@ -60,8 +63,11 @@
   <main class="w-full max-w-3xl">
 
     <div class="text-center mb-12">
-      <h1 class="text-4xl sm:text-5xl font-black tracking-tight">TBC Together</h1>
-      <p class="mt-3 text-lg font-bold sub">一起禱告、一起服事、一起成長</p>
+      <!-- 標語寬度會跟標題一樣寬，不會比 TBC Together 更長 -->
+      <div class="brand">
+        <h1 class="text-4xl sm:text-5xl font-black tracking-tight">TBC Together</h1>
+        <p id="tagline" class="tagline mt-3 font-bold sub">一起禱告、一起服事、一起成長</p>
+      </div>
     </div>
 
     <!-- 入口圖示：固定三欄，手機上也維持同一排；之後增加入口時，複製一個 <a class="entry ..."> 並把 grid-cols-3 改成對應數字 -->
@@ -200,6 +206,19 @@
 
   <script>
   (function () {
+    // 標語若比標題還寬（字型不同時可能發生），就自動縮小到剛好放得下
+    (function fitTagline(){
+      var t = document.getElementById('tagline'); if (!t) return;
+      var fit = function(){
+        t.style.fontSize = '';
+        var size = parseFloat(getComputedStyle(t).fontSize);
+        while (t.scrollWidth > t.clientWidth && size > 10) { size -= 0.5; t.style.fontSize = size + 'px'; }
+      };
+      fit();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+      window.addEventListener('resize', fit);
+    })();
+
     // ==========================================
     // 守望花園設定：所有數字與文字都集中在這裡，要調整只改這一處
     // ==========================================
