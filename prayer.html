@@ -1504,8 +1504,9 @@
 
             const menuItems = [
                 { id: 'index', label: '回首頁', icon: <HouseIcon size={20} />, onClick: closeThen(() => { window.location.href = './index.html'; }) },
-                { id: 'home', label: '禱告牆', icon: <SproutIcon size={20} />, active: route.name === 'home', onClick: closeThen(goHome) },
-                ...(session ? [{ id: 'mine', label: '我的禱告', icon: <UserIcon size={20} />, active: route.name === 'mine' || route.name === 'edit', onClick: closeThen(goMine) }] : []),
+                { id: 'home', label: '我的禱告', icon: <HandHeartIcon size={20} />, active: route.name === 'home', onClick: closeThen(goHome) },
+                { id: 'serve', label: '我的服事', icon: <ClockIcon size={20} />, onClick: closeThen(() => { window.location.href = './search.html'; }) },
+                { id: 'settings', label: '個人設定', icon: <UsersIcon size={20} />, onClick: closeThen(() => { window.location.href = './manager.html'; }) },
                 session
                     ? { id: 'out', label: '登出', icon: <LogOutIcon size={20} />, onClick: logout }
                     : { id: 'in', label: '登入', icon: <LogInIcon size={20} />, onClick: closeThen(() => setShowLogin(true)) },
@@ -1548,6 +1549,7 @@
                                         <BellIcon size={24} />
                                         {session && unread > 0 && <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-xs font-bold tabular-nums">{unread > 99 ? '99+' : unread}</span>}
                                     </button>
+                                    <button onClick={() => requireLogin('#/mine')} aria-label="我的貼文" title="我的貼文" className={`${iconBtn} ${route.name === 'mine' || route.name === 'edit' ? 'bg-zinc-100' : ''}`}><HandHeartIcon size={24} /></button>
                                     {isReviewer && (
                                         <button onClick={() => go('#/review')} aria-label={pending > 0 ? `貼文審核，${pending} 則待審查` : '貼文審核'} title="貼文審核" className={`${iconBtn} ${route.name === 'review' ? 'bg-zinc-100' : ''}`}>
                                             <ClipboardCheckIcon size={24} />

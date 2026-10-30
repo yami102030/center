@@ -89,7 +89,7 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { Activity, LogOut, AlertCircle, User, Lock, Users, Calendar, ArrowRight, ShieldCheck, Eye, EyeOff, BarChart3, Menu, X, Home, Check } from 'lucide-react';
+        import { Activity, LogOut, AlertCircle, User, Lock, Users, Calendar, ArrowRight, ShieldCheck, Eye, EyeOff, BarChart3, Menu, X, Home, Check, HandHeart } from 'lucide-react';
         import { createClient } from '@supabase/supabase-js';
 
         // ==========================================
@@ -247,6 +247,9 @@
                             <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-fade-in">
                                 <a href="./index.html" className={`${itemCls} hover:bg-emerald-50 hover:text-emerald-600`}>
                                     <Home size={18} /> 回首頁
+                                </a>
+                                <a href="./prayer.html" className={`${itemCls} hover:bg-rose-50 hover:text-rose-600 border-t border-slate-50`}>
+                                    <HandHeart size={18} /> 我的禱告
                                 </a>
                                 <a href="./search.html" className={`${itemCls} hover:bg-indigo-50 hover:text-indigo-600 border-t border-slate-50`}>
                                     <Calendar size={18} /> 我的服事
