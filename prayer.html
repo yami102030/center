@@ -48,8 +48,8 @@
         // 資料安全不靠這把金鑰，而是靠資料庫裡的警衛規則與權限窗口。
         // 因為與 manager.html 同網站、同專案，登入狀態會自動共用。
         // ==========================================
-        const SUPABASE_URL = "https://jtjgqrqbewbgxscytkod.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_TcixlGOMSLBSZNoMNOp6Ng_B-N4Tw1K";
+        const SUPABASE_URL = "https://jcepavwocdujoeoqxvsd.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_Tj2n8e3yY1HyvaFzXRyO_w_PWrVFB7E";
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
         const VIRTUAL_DOMAIN = "@tbc.gmail.com";
         const formatEmailForAuth = (acc) => { const t = (acc || '').trim(); return t.includes('@') ? t : `${t}${VIRTUAL_DOMAIN}`; };
