@@ -46,7 +46,7 @@
         @media (prefers-reduced-motion: reduce) { .drop-fill { transition: none; } }
         /* 禱告成功後的鼓勵訊息（只在資料庫確認成功後才會出現） */
         @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
-        .prayer-toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 70; max-width: min(92vw, 420px); padding: 12px 18px; border-radius: 8px; background: #262626; color: #fff; font-size: 14px; font-weight: 700; line-height: 1.5; text-align: center; box-shadow: 0 10px 25px -5px rgba(0,0,0,.3); animation: toastIn .3s ease-out both; }
+        .prayer-toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 70; width: max-content; max-width: min(92vw, 420px); white-space: nowrap; padding: 12px 18px; border-radius: 8px; background: #262626; color: #fff; font-size: 14px; font-weight: 700; line-height: 1.5; text-align: center; box-shadow: 0 10px 25px -5px rgba(0,0,0,.3); animation: toastIn .3s ease-out both; }
         @media (prefers-reduced-motion: reduce) { .prayer-toast { animation: none; } }
         input, textarea, select { font-size: 16px !important; }
     </style>
@@ -308,7 +308,7 @@
         const CategoryAvatar = ({ id }) => {
             const I = CATEGORY_ICON[id] || UserIcon;
             return (
-                <span className="w-10 h-10 shrink-0 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center" title={categoryLabel(id)} role="img" aria-label={`分類：${categoryLabel(id)}`}>
+                <span className="w-10 h-10 shrink-0 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center" title={categoryLabel(id)} role="img" aria-label={`分類：${categoryLabel(id)}`}>
                     <I size={20} />
                 </span>
             );
