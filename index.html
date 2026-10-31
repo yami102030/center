@@ -173,15 +173,16 @@
       SUPABASE_URL: "https://jcepavwocdujoeoqxvsd.supabase.co",
       SUPABASE_KEY: "sb_publishable_Tj2n8e3yY1HyvaFzXRyO_w_PWrVFB7E",
       RPC_NAME: "get_prayer_total",   // 資料庫函式：只回傳「已核准且公開」貼文的回應總數
+      BANNER: '讓我們繼續用禱告灌溉，期待美好的花朵綻放',   // 進入新階段時顯示
       TIMEOUT_MS: 8000,
       REFRESH_AFTER_MS: 60000,        // 回到分頁時，超過這個時間才重新讀取
       // 階段：min 是該階段起算的次數（依小到大排列）
       STAGES: [
-        { id: 'seed',   name: '播種', min: 0 },
-        { id: 'sprout', name: '發芽', min: 100 },
-        { id: 'grow',   name: '成長', min: 500 },
-        { id: 'bloom',  name: '開花', min: 1000 },
-        { id: 'garden', name: '花園', min: 2000, full: 3000 }   // full：花園完全長成的次數
+        { id: 'seed',   name: '種子睡著了', label: '種子睡著了', min: 0 },
+        { id: 'sprout', name: '小芽冒出來', label: '小芽冒出來', min: 100 },
+        { id: 'grow',   name: '小苗長大了', label: '小苗長大了', min: 500 },
+        { id: 'bloom',  name: '花兒開了', label: '花兒開了', min: 1000 },
+        { id: 'garden', name: '生命豐盛成長', label: '生命豐盛成長', min: 2000, full: 3000 }   // full：花園完全長成的次數
       ]
     };
 
@@ -530,9 +531,9 @@
       pct = Math.max(0, Math.min(100, pct));
 
       growTo(idx + frac);
-      els.plant.setAttribute('aria-label', '守望花園：目前階段 ' + cur.name);
+      els.plant.setAttribute('aria-label', '守望花園：' + cur.label);
       animateNumber(total);
-      els.stageName.textContent = '目前階段：' + cur.name;
+      els.stageName.textContent = cur.label;
       els.fill.style.width = pct.toFixed(1) + '%';
       els.bar.setAttribute('aria-valuenow', String(Math.round(pct)));
       els.bar.setAttribute('aria-valuetext', next ? ('已完成 ' + Math.round(pct) + '%') : '持續成長中');
@@ -544,7 +545,7 @@
       var seenIdx = -1;
       for (var i = 0; i < GARDEN.STAGES.length; i++) { if (GARDEN.STAGES[i].id === seen) seenIdx = i; }
       if (seenIdx >= 0 && idx > seenIdx) {
-        els.banner.textContent = '花園進入新的階段：' + cur.name + '！謝謝大家一同守望。';
+        els.banner.textContent = GARDEN.BANNER;
         els.banner.classList.remove('hidden');
       } else {
         els.banner.classList.add('hidden');
