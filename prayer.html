@@ -1044,7 +1044,7 @@
             const shown = tab === 'all' ? posts : posts.filter(p => p.review_status === tab);
 
             return (
-                <PageShell>
+                <PageShell back={<BackButton onClick={goHome} label="返回禱告牆" />}>
                     <div className="flex items-end justify-between gap-4 mb-6">
                         <h2 className="text-2xl font-semibold text-zinc-900">我的禱告</h2>
                     </div>
@@ -1368,7 +1368,7 @@
             const onChanged = async () => { if (searching) await runSearch(keyword, true); else await load(true); refreshPending(); };
 
             return (
-                <PageShell>
+                <PageShell back={<BackButton onClick={goHome} label="返回禱告牆" />}>
                     <h2 className="text-2xl font-semibold text-zinc-900 mb-4">貼文審核</h2>
                     <div role="search" className="relative mb-5">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"><SearchIcon size={20} /></span>
@@ -1435,7 +1435,7 @@
             if (!session) return <PageShell back={<BackButton onClick={goHome} label="返回禱告牆" />}><NeedLogin onLogin={onLogin} /></PageShell>;
 
             return (
-                <PageShell>
+                <PageShell back={<BackButton onClick={goHome} label="返回禱告牆" />}>
                     <h2 className="text-2xl font-semibold text-zinc-900 mb-6">通知</h2>
 
                     {status === 'loading' && <Skeletons />}
