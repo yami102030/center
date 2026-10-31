@@ -542,7 +542,7 @@
             return (
                 <div className="flex items-center gap-1.5">
                     <button type="button" onClick={click} aria-pressed={local.responded} aria-label={label} title={local.responded ? '已禱告' : '一起禱告'}
-                        className={`-ml-2.5 p-2.5 rounded-full transition-colors duration-150 ${focusRing} ${popping ? 'animate-pop' : ''} ${local.responded ? 'text-sky-500 cursor-default' : 'text-zinc-400 hover:text-sky-500 hover:bg-sky-50 active:bg-sky-100'}`}>
+                        className={`-ml-2.5 p-2.5 rounded-full transition-colors duration-150 ${focusRing} ${popping ? 'animate-pop' : ''} ${local.responded ? 'text-blue-500 cursor-default' : 'text-zinc-400 hover:text-blue-500 hover:bg-blue-50 active:bg-blue-100'}`}>
                         <PrayIcon filled={local.responded} />
                     </button>
                     <span className={`text-sm tabular-nums font-medium ${local.responded ? 'text-zinc-900' : 'text-zinc-500'}`}>{local.count}</span>
