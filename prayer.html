@@ -732,9 +732,10 @@
             const reqId = useRef(0);
             const [dateFrom, setDateFrom] = useState('');
             const [dateTo, setDateTo] = useState('');
+            const [showAll, setShowAll] = useState(false);   // 按下「全部」：直接列出所有貼文
             const keyword = draft.trim();
             const rangeBad = dateFrom !== '' && dateTo !== '' && dateFrom > dateTo;
-            const active = keyword !== '' || category !== 'all' || dateFrom !== '' || dateTo !== '';
+            const active = keyword !== '' || category !== 'all' || dateFrom !== '' || dateTo !== '' || showAll;
 
             const run = useCallback(async (kw, cat, from, to) => {
                 const mine = ++reqId.current;
@@ -786,7 +787,7 @@
                     {showFilter && (
                         <div className="flex overflow-x-auto no-scrollbar gap-2 mt-4" role="group" aria-label="分類">
                             {CATEGORIES.map(c => (
-                                <button key={c.id} type="button" onClick={() => setCategory(c.id)} aria-pressed={category === c.id} className={chipCls(category === c.id)}>{c.label}</button>
+                                <button key={c.id} type="button" onClick={() => { setCategory(c.id); setShowAll(c.id === 'all'); }} aria-pressed={category === c.id} className={chipCls(category === c.id)}>{c.label}</button>
                             ))}
                         </div>
                     )}
