@@ -545,7 +545,7 @@ const TeamInsights = ({ session, goBack, goToMembers, goToSchedule, supabase, ut
                         <button onClick={() => { goToSchedule(); setIsMobileNavOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-xl font-normal text-sm transition-all text-left group">
                             <Calendar size={18} className="text-slate-400 group-hover:text-violet-400 transition-colors" /><span>排班作業中心</span>
                         </button>
-                        <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-medium text-sm shadow-button">
+                        <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-indigo-700 to-indigo-500 text-white rounded-xl font-medium text-sm shadow-button">
                             <BarChart3 size={18} /><span>人力洞察中心</span>
                         </div>
                     </nav>
@@ -610,7 +610,7 @@ const TeamInsights = ({ session, goBack, goToMembers, goToSchedule, supabase, ut
                                                 {matrixStats.map((row) => {
                                                     const isSelected = viewQuarter === row.quarter;
                                                     return (
-                                                        <tr key={row.quarter} onClick={() => setViewQuarter(row.quarter)} className={`cursor-pointer transition-all duration-150 ${isSelected ? 'bg-indigo-50/60 shadow-[inset_3px_0_0_rgba(136,6,206,1)]' : 'hover:bg-slate-50 bg-white'}`}>
+                                                        <tr key={row.quarter} onClick={() => setViewQuarter(row.quarter)} className={`cursor-pointer transition-all duration-150 ${isSelected ? 'bg-indigo-50/60 shadow-[inset_3px_0_0_rgba(79,70,229,1)]' : 'hover:bg-slate-50 bg-white'}`}>
                                                             <td className={`py-3 px-4 font-extrabold text-[13px] border-b border-slate-100/50 shadow-[1px_0_0_rgba(226,232,240,1)] sticky left-0 z-10 ${isSelected ? 'text-indigo-700 bg-indigo-50/60' : 'text-slate-600 bg-inherit'}`}>
                                                                 {row.quarter.replace('-', '')}
                                                             </td>

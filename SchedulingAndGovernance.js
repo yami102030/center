@@ -707,7 +707,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
             ctx.fillText(date.replace(/-/g, '/'), x + w / 2, y + 118);
 
             // 角色 (堂別 ‧ 崗位)
-            ctx.fillStyle = '#8806ce'; // Indigo color for role
+            ctx.fillStyle = '#4f46e5'; // Indigo color for role
             ctx.font = 'bold 15px "Microsoft JhengHei", sans-serif'; // 字級加大
             ctx.textBaseline = 'alphabetic';
             ctx.fillText(role.replace('‧', ' • '), x + w / 2, y + 160);
@@ -1390,7 +1390,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
                             return (
                                 <div key={role} className="flex items-center gap-4">
                                     <div className="w-24 text-right font-medium text-slate-700 text-sm">{role}</div>
-                                    <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden flex items-center"><div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-1000 shadow-sm" style={{ width: `${pct}%` }}></div></div>
+                                    <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden flex items-center"><div className="h-full bg-gradient-to-r from-indigo-600 to-indigo-400 rounded-full transition-all duration-1000 shadow-sm" style={{ width: `${pct}%` }}></div></div>
                                     <div className="w-20 text-sm font-normal text-slate-500">{count} 次 <span className="text-[10px] opacity-60">({pct}%)</span></div>
                                 </div>
                             );
@@ -1434,7 +1434,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
                             {/* --- 無所不在的崗位設定面板 --- */}
                             {renderPositionSettingsPanel()}
 
-                            <button onClick={runQuerySchedule} disabled={isLoading} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:opacity-95 disabled:from-indigo-300 disabled:to-violet-300 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-button hover:-translate-y-0.5">{isLoading ? <RefreshCw className="animate-spin" /> : <><Search size={20} strokeWidth={3}/> 開始編輯</>}</button>
+                            <button onClick={runQuerySchedule} disabled={isLoading} className="w-full bg-gradient-to-r from-indigo-700 to-indigo-500 hover:opacity-95 disabled:from-indigo-300 disabled:to-indigo-200 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-button hover:-translate-y-0.5">{isLoading ? <RefreshCw className="animate-spin" /> : <><Search size={20} strokeWidth={3}/> 開始編輯</>}</button>
                             {!hasQuerySchedule && !isLoading && (
                                 <p className="text-rose-500 text-[13px] font-medium text-center mt-4 flex items-center justify-center gap-1.5 animate-pulse"><AlertCircle size={16} /> 尚未建立 {queryYear}Q{queryQuarter} 排班資料，請至「預排作業」新增。</p>
                             )}
@@ -1450,7 +1450,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
         return (
             <div className="w-full lg:w-[400px] xl:w-[450px] shrink-0 bg-white border-l border-slate-200 overflow-hidden h-full flex flex-col shadow-soft z-20 animate-panel-right relative">
                 <div className="bg-slate-900 px-5 py-4 rounded-b-[1.25rem] shadow-sm border-b border-slate-800 relative z-20 shrink-0 overflow-hidden">
-                    <div className="absolute top-[-20%] right-[-10%] w-40 h-40 rounded-full bg-violet-600/30 blur-3xl pointer-events-none"></div>
+                    <div className="absolute top-[-20%] right-[-10%] w-40 h-40 rounded-full bg-indigo-600/30 blur-3xl pointer-events-none"></div>
                     <button onClick={() => { setActiveSlot(null); setSearchTerm(''); setGlobalSearchTerm(''); }} className="absolute right-4 top-4 z-50 p-1.5 rounded-lg text-slate-300 transition-colors duration-75 hover:bg-white/20 hover:text-white cursor-pointer active:scale-95"><X size={18}/></button>
                     
                     <div className="flex items-center gap-2.5 relative z-10 pr-6">
@@ -1461,7 +1461,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
                             <div className="flex flex-wrap items-center gap-2">
                                 <p className="text-[18px] font-bold text-white leading-none">{activeSlot.service_date}</p>
                                 <div className="flex items-center gap-1.5">
-                                    <span className={`px-3 py-1 rounded-md text-[15px] font-semibold tracking-wide leading-none ${activeSlot.is_empty ? 'bg-rose-500 text-white animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-gradient-to-r from-indigo-500 to-violet-500 text-white'}`}>
+                                    <span className={`px-3 py-1 rounded-md text-[15px] font-semibold tracking-wide leading-none ${activeSlot.is_empty ? 'bg-rose-500 text-white animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'bg-gradient-to-r from-indigo-600 to-indigo-400 text-white'}`}>
                                         {activeSlot._memberName}
                                     </span>
                                     
@@ -1766,7 +1766,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
                     <nav className="p-4 space-y-1.5">
                         <button onClick={() => { setIsSidebarOpen(false); goBack(); }} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-xl font-normal text-sm transition-all text-left group"><Home size={18} className="text-slate-400 group-hover:text-indigo-400 transition-colors" /><span>Home</span></button>
                         <button onClick={() => { setIsSidebarOpen(false); goToMembers(); }} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-xl font-normal text-sm transition-all text-left group"><Users size={18} className="text-slate-400 group-hover:text-violet-400 transition-colors" /><span>同工資料中心</span></button>
-                        <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-medium text-sm shadow-button"><Calendar size={18} /><span>排班作業中心</span></div>
+                        <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-indigo-700 to-indigo-500 text-white rounded-xl font-medium text-sm shadow-button"><Calendar size={18} /><span>排班作業中心</span></div>
                         <button onClick={() => { setIsSidebarOpen(false); goToInsights(); }} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-xl font-normal text-sm transition-all text-left group">
                             <BarChart3 size={18} className="text-slate-400 group-hover:text-sky-400 transition-colors" />
                             <span>人力洞察中心</span>
@@ -1891,7 +1891,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
                                     </button>
                                     <div className="w-px h-6 bg-slate-200 mx-2 self-center shrink-0"></div>
                                     <button onClick={exportToCSV} className="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 whitespace-nowrap text-emerald-600 hover:bg-white hover:shadow-sm flex items-center gap-1.5 shrink-0"><Download size={16} /> 匯出 CSV</button>
-                                    <button onClick={handlePublishClick} disabled={isSaving} className="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 whitespace-nowrap bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-button hover:-translate-y-0.5 flex items-center gap-1.5 shrink-0 disabled:from-indigo-400 disabled:to-violet-400">{isSaving ? <RefreshCw className="animate-spin" size={16} /> : <><Save size={16}/> 發布班表</>}</button>
+                                    <button onClick={handlePublishClick} disabled={isSaving} className="px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 whitespace-nowrap bg-gradient-to-r from-indigo-700 to-indigo-500 text-white shadow-button hover:-translate-y-0.5 flex items-center gap-1.5 shrink-0 disabled:from-indigo-400 disabled:to-indigo-300">{isSaving ? <RefreshCw className="animate-spin" size={16} /> : <><Save size={16}/> 發布班表</>}</button>
                                 </div>
 
                                 {/* 手機版「⋯」選單：改成從螢幕底部滑出的操作面板，不依附在按鈕旁邊，避免被上層容器裁切或跑位 */}
@@ -1931,7 +1931,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
                                 <button
                                     onClick={() => { setShowMobileActionsMenu(false); handlePublishClick(); }}
                                     disabled={isSaving}
-                                    className="w-full flex items-center gap-3 px-5 py-3.5 text-[15px] font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-600 text-left disabled:opacity-60 border-t border-slate-100"
+                                    className="w-full flex items-center gap-3 px-5 py-3.5 text-[15px] font-semibold text-white bg-gradient-to-r from-indigo-700 to-indigo-500 text-left disabled:opacity-60 border-t border-slate-100"
                                 >{isSaving ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18}/>} 發布班表</button>
                                 <button
                                     onClick={() => setShowMobileActionsMenu(false)}
@@ -2032,7 +2032,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
 
                             <div className="flex gap-3">
                                 <button onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })} className="flex-1 py-3 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition-colors text-sm">取消</button>
-                                <button onClick={confirmDialog.onConfirm} className={`flex-1 py-3 px-4 font-medium text-white rounded-lg transition-all duration-200 shadow-button hover:-translate-y-0.5 active:scale-95 text-sm ${confirmDialog.type === 'override' ? 'bg-gradient-to-r from-orange-500 to-red-500' : confirmDialog.type === 'swap' ? 'bg-gradient-to-r from-indigo-600 to-violet-600' : 'bg-gradient-to-r from-orange-500 to-amber-500'}`}>確認</button>
+                                <button onClick={confirmDialog.onConfirm} className={`flex-1 py-3 px-4 font-medium text-white rounded-lg transition-all duration-200 shadow-button hover:-translate-y-0.5 active:scale-95 text-sm ${confirmDialog.type === 'override' ? 'bg-gradient-to-r from-orange-500 to-red-500' : confirmDialog.type === 'swap' ? 'bg-gradient-to-r from-indigo-700 to-indigo-500' : 'bg-gradient-to-r from-orange-500 to-amber-500'}`}>確認</button>
                             </div>
                         </div>
                     </div>
@@ -2063,7 +2063,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
                             </div>
                             <div className="flex gap-3">
                                 <button onClick={() => setPublishConfirmOpen(false)} className="flex-1 py-3 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition-colors">取消返回</button>
-                                <button onClick={executePublish} className="flex-1 py-3 px-4 font-medium text-white bg-gradient-to-r from-indigo-600 to-violet-600 rounded-lg transition-all duration-200 shadow-button hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2"><Save size={18} /> 確認發布</button>
+                                <button onClick={executePublish} className="flex-1 py-3 px-4 font-medium text-white bg-gradient-to-r from-indigo-700 to-indigo-500 rounded-lg transition-all duration-200 shadow-button hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2"><Save size={18} /> 確認發布</button>
                             </div>
                         </div>
                     </div>
@@ -2278,7 +2278,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
 
                             <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3 rounded-b-2xl shrink-0">
                                 <button onClick={() => setQuickEditData(null)} className="flex-1 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition-colors">取消</button>
-                                <button onClick={handleQuickEditSave} disabled={isQuickEditSaving} className="flex-[2] py-2.5 font-medium text-white bg-gradient-to-r from-indigo-600 to-violet-600 rounded-lg shadow-button hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                                <button onClick={handleQuickEditSave} disabled={isQuickEditSaving} className="flex-[2] py-2.5 font-medium text-white bg-gradient-to-r from-indigo-700 to-indigo-500 rounded-lg shadow-button hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                                     {isQuickEditSaving ? <RefreshCw className="animate-spin" size={18} /> : <Save size={18}/>}
                                     儲存變更
                                 </button>
