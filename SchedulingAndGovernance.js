@@ -707,7 +707,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
             ctx.fillText(date.replace(/-/g, '/'), x + w / 2, y + 118);
 
             // 角色 (堂別 ‧ 崗位)
-            ctx.fillStyle = '#4f46e5'; // Indigo color for role
+            ctx.fillStyle = '#8806ce'; // Indigo color for role
             ctx.font = 'bold 15px "Microsoft JhengHei", sans-serif'; // 字級加大
             ctx.textBaseline = 'alphabetic';
             ctx.fillText(role.replace('‧', ' • '), x + w / 2, y + 160);
@@ -1762,7 +1762,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
             {/* 導覽列：手機版預設收在畫面外（off-canvas），點漢堡選單才滑出；桌機（lg 以上）固定顯示，不佔用手機的畫面空間 */}
             <div className={`fixed inset-y-0 left-0 w-64 bg-slate-900 flex flex-col justify-between shrink-0 border-r border-slate-800 z-40 transform transition-transform duration-200 ease-out lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex flex-col">
-                    <div className="p-6 border-b border-slate-800 flex items-center gap-3 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-500/10 to-transparent pointer-events-none"></div><span className="text-white font-bold text-base tracking-wider relative z-10">TBC Serve Manager</span></div>
+                    <div className="p-6 border-b border-slate-800 flex items-center gap-3 relative overflow-hidden"><div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-500/10 to-transparent pointer-events-none"></div><span className="text-white font-bold text-base tracking-wider latin-tight relative z-10">TBC Serve Manager</span></div>
                     <nav className="p-4 space-y-1.5">
                         <button onClick={() => { setIsSidebarOpen(false); goBack(); }} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-xl font-normal text-sm transition-all text-left group"><Home size={18} className="text-slate-400 group-hover:text-indigo-400 transition-colors" /><span>Home</span></button>
                         <button onClick={() => { setIsSidebarOpen(false); goToMembers(); }} className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-xl font-normal text-sm transition-all text-left group"><Users size={18} className="text-slate-400 group-hover:text-violet-400 transition-colors" /><span>同工資料中心</span></button>

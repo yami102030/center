@@ -603,7 +603,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                 `}>
                     <div className="flex flex-col">
                         <div className="p-6 border-b border-slate-800 flex items-center justify-between gap-3">
-                            <span className="text-white font-bold text-base tracking-wider">TBC Serve Manager</span>
+                            <span className="text-white font-bold text-base tracking-wider latin-tight">TBC Serve Manager</span>
                             <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white">
                                 <X size={20} />
                             </button>

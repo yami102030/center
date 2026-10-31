@@ -530,7 +530,7 @@ const TeamInsights = ({ session, goBack, goToMembers, goToSchedule, supabase, ut
                 <div className="flex flex-col">
                     <div className="p-6 border-b border-slate-800 flex items-center justify-between gap-3 relative overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-500/10 to-transparent pointer-events-none"></div>
-                        <span className="text-white font-bold text-base tracking-wider relative z-10">TBC Serve Manager</span>
+                        <span className="text-white font-bold text-base tracking-wider latin-tight relative z-10">TBC Serve Manager</span>
                         <button onClick={() => setIsMobileNavOpen(false)} className="relative z-10 p-1 text-slate-400 hover:text-white md:hidden">
                             <X size={20} />
                         </button>
@@ -610,7 +610,7 @@ const TeamInsights = ({ session, goBack, goToMembers, goToSchedule, supabase, ut
                                                 {matrixStats.map((row) => {
                                                     const isSelected = viewQuarter === row.quarter;
                                                     return (
-                                                        <tr key={row.quarter} onClick={() => setViewQuarter(row.quarter)} className={`cursor-pointer transition-all duration-150 ${isSelected ? 'bg-indigo-50/60 shadow-[inset_3px_0_0_rgba(79,70,229,1)]' : 'hover:bg-slate-50 bg-white'}`}>
+                                                        <tr key={row.quarter} onClick={() => setViewQuarter(row.quarter)} className={`cursor-pointer transition-all duration-150 ${isSelected ? 'bg-indigo-50/60 shadow-[inset_3px_0_0_rgba(136,6,206,1)]' : 'hover:bg-slate-50 bg-white'}`}>
                                                             <td className={`py-3 px-4 font-extrabold text-[13px] border-b border-slate-100/50 shadow-[1px_0_0_rgba(226,232,240,1)] sticky left-0 z-10 ${isSelected ? 'text-indigo-700 bg-indigo-50/60' : 'text-slate-600 bg-inherit'}`}>
                                                                 {row.quarter.replace('-', '')}
                                                             </td>
