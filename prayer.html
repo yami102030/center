@@ -499,14 +499,15 @@
         // 禱告成功後的鼓勵訊息。只有資料庫確認「新的有效回應」才會呼叫，不寫入任何資料。
         const THANKS_MESSAGE = '謝謝你的禱告與陪伴';
         let toastTimer = null;
-        const showThanks = () => {
+        const showThanks = () => showToast(THANKS_MESSAGE);
+        const showToast = (message) => {
             try {
                 document.querySelectorAll('.prayer-toast').forEach(t => t.remove());
                 if (toastTimer) clearTimeout(toastTimer);
                 const toast = document.createElement('div');
                 toast.className = 'prayer-toast';
                 toast.setAttribute('role', 'status');
-                toast.textContent = THANKS_MESSAGE;
+                toast.textContent = message;
                 document.body.appendChild(toast);
                 toastTimer = setTimeout(() => toast.remove(), 3500);
             } catch (e) { /* 訊息顯示失敗不影響禱告紀錄 */ }
@@ -625,9 +626,9 @@
                 return () => window.removeEventListener('keydown', onKey);
             }, [busy, onCancel]);
             return (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 animate-fade-in" onClick={() => { if (!busy) onCancel(); }}>
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={() => { if (!busy) onCancel(); }}>
                     <div role="alertdialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}
-                        className="w-full max-w-xs bg-white rounded-lg shadow-xl border border-zinc-100 p-6 flex flex-col gap-5">
+                        className="w-full max-w-xs bg-white rounded-lg shadow-xl border border-zinc-200 p-6 flex flex-col gap-5">
                         <h3 className="text-lg font-semibold text-zinc-900 text-center">{title}</h3>
                         <InlineError message={error} />
                         <div className="grid grid-cols-2 gap-3">
@@ -1131,10 +1132,14 @@
             const [draft, setDraft] = useState({ content: post.content });
             const [confirmDel, setConfirmDel] = useState(false);
             const [deleting, setDeleting] = useState(false);
-            const doDelete = async () => {
-                setDeleting(true); setError('');
-                try { await api.deletePost(post.id); (onDeleted || onRemove)(post.id); onChanged(); }
-                catch (err) { setError(err.message || '刪除失敗，稍後再試'); setDeleting(false); }
+            // 先讓卡片立刻消失（畫面馬上有反應），資料庫在背景刪除；
+            // 不論成功或失敗，最後都重新整理清單（失敗時貼文會自動回來並提示）
+            const doDelete = () => {
+                setConfirmDel(false);
+                (onDeleted || onRemove)(post.id);
+                api.deletePost(post.id)
+                    .catch((err) => { showToast(err.message || '刪除失敗，貼文已還原'); })
+                    .finally(() => { onChanged(); });
             };
 
             // 核准或退回：成功後這張卡片立刻從「待審查」消失，再到背景更新清單
