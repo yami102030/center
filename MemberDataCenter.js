@@ -601,9 +601,9 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                 <div data-sb={sbCollapsed ? 'collapsed' : 'open'} className={`tbc-sb tbc-sb-md ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-all duration-300 ease-in-out absolute md:relative inset-y-0 left-0 w-64 flex flex-col justify-between shrink-0 z-50 md:z-30 h-full`}>
                 <div className="flex flex-col">
                     <div className="tbc-sb-head">
-                        <img src={window.TBC_LOGO} alt="" className="tbc-sb-logo" />
+                        <button onClick={sbCollapsed ? toggleSb : undefined} className="tbc-sb-logobtn" title={sbCollapsed ? '開啟側邊欄' : undefined}><img src={window.TBC_LOGO} alt="" className="tbc-sb-logo" /><span className="tbc-sb-open"><PanelLeft size={20} /></span></button>
                         <span className="tbc-sb-label tbc-sb-title latin-tight">TBC Serve Manager</span>
-                        <button onClick={toggleSb} className="hidden md:flex tbc-sb-toggle" title="收合／展開側邊欄"><PanelLeft size={18} /></button>
+                        <button onClick={toggleSb} className="hidden md:flex tbc-sb-toggle" title="隱藏側邊欄"><PanelLeft size={18} /></button>
                         <button onClick={() => setIsMobileMenuOpen(false)} className="flex md:hidden tbc-sb-toggle"><X size={20} /></button>
                     </div>
                     <nav className="tbc-sb-nav">

@@ -98,7 +98,9 @@
         /* ===== 側邊欄：比照 ChatGPT 的淺色、可收合設計 ===== */
         body .tbc-sb { background: #f9f9f9; border-right: 1px solid #e5e5e5; color: #262626; }
         body .tbc-sb-head { display: flex; align-items: center; gap: 10px; padding: 16px 14px; }
+        body .tbc-sb-logobtn { position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; cursor: default; }
         body .tbc-sb-logo { height: 30px; width: auto; flex-shrink: 0; }
+        body .tbc-sb-open { display: none; align-items: center; justify-content: center; color: #595959; }
         body .tbc-sb-title { flex: 1; font-size: 16px; font-weight: 600; color: #262626; white-space: nowrap; overflow: hidden; }
         body .tbc-sb-toggle { width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 8px; color: #595959; flex-shrink: 0; transition: background .15s; }
         body .tbc-sb-toggle:hover { background: #ececec; color: #262626; }
@@ -114,13 +116,23 @@
         @media (min-width: 768px) {
             body .tbc-sb-md[data-sb="collapsed"] { width: 68px; }
             body .tbc-sb-md[data-sb="collapsed"] .tbc-sb-label { display: none; }
-            body .tbc-sb-md[data-sb="collapsed"] .tbc-sb-head { flex-direction: column; padding: 16px 0 8px; }
+            body .tbc-sb-md[data-sb="collapsed"] .tbc-sb-head { justify-content: center; padding: 16px 0 8px; }
+            body .tbc-sb-md[data-sb="collapsed"] button.tbc-sb-toggle { display: none; }
+            body .tbc-sb-md[data-sb="collapsed"] .tbc-sb-logobtn { cursor: pointer; }
+            body .tbc-sb-md[data-sb="collapsed"] .tbc-sb-logobtn:hover { background: #ececec; }
+            body .tbc-sb-md[data-sb="collapsed"] .tbc-sb-logobtn:hover .tbc-sb-logo { display: none; }
+            body .tbc-sb-md[data-sb="collapsed"] .tbc-sb-logobtn:hover .tbc-sb-open { display: flex; }
             body .tbc-sb-md[data-sb="collapsed"] .tbc-sb-item { justify-content: center; padding: 10px 0; }
         }
         @media (min-width: 1024px) {
             body .tbc-sb-lg[data-sb="collapsed"] { width: 68px; }
             body .tbc-sb-lg[data-sb="collapsed"] .tbc-sb-label { display: none; }
-            body .tbc-sb-lg[data-sb="collapsed"] .tbc-sb-head { flex-direction: column; padding: 16px 0 8px; }
+            body .tbc-sb-lg[data-sb="collapsed"] .tbc-sb-head { justify-content: center; padding: 16px 0 8px; }
+            body .tbc-sb-lg[data-sb="collapsed"] button.tbc-sb-toggle { display: none; }
+            body .tbc-sb-lg[data-sb="collapsed"] .tbc-sb-logobtn { cursor: pointer; }
+            body .tbc-sb-lg[data-sb="collapsed"] .tbc-sb-logobtn:hover { background: #ececec; }
+            body .tbc-sb-lg[data-sb="collapsed"] .tbc-sb-logobtn:hover .tbc-sb-logo { display: none; }
+            body .tbc-sb-lg[data-sb="collapsed"] .tbc-sb-logobtn:hover .tbc-sb-open { display: flex; }
             body .tbc-sb-lg[data-sb="collapsed"] .tbc-sb-item { justify-content: center; padding: 10px 0; }
         }
     </style>
