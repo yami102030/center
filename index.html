@@ -59,17 +59,24 @@
   .garden-glow{ background:radial-gradient(closest-side, rgba(193,126,230,.28), rgba(193,126,230,.10) 70%, transparent); }
   .stage-pill{ background:var(--primary-tint); color:var(--primary-ink); }
   .banner-soft{ background:var(--primary-tint); color:var(--primary-ink); }
-  /* 枝葉擺動：每一株的幅度、速度、起點都不同，所以不會同步 */
-  .sway{ animation:sway 5s ease-in-out infinite alternate; }
-  @keyframes sway{ from{ transform:rotate(calc(var(--amp,1.5deg) * -1)); } to{ transform:rotate(var(--amp,1.5deg)); } }
-  .seed-glow{ animation:glow 3.2s ease-in-out infinite; transform-origin:160px 199px; }
-  @keyframes glow{ 50%{ transform:scale(1.25); } }
-  .mote{ animation:mote 7s ease-in-out infinite; }
-  @keyframes mote{ 0%{ transform:translate(0,6px); opacity:0; } 30%{ opacity:.9; } 70%{ opacity:.7; } 100%{ transform:translate(6px,-22px); opacity:0; } }
+  /* 擺動：幅度小、速度慢，每一株的幅度、速度、起點都不同，所以不會同步 */
+  .sway{ animation:sway 9s ease-in-out infinite alternate; }
+  @keyframes sway{ from{ transform:rotate(calc(var(--amp,1deg) * -1)); } to{ transform:rotate(var(--amp,1deg)); } }
+  /* 種子外的細環：像呼吸一樣慢慢放大縮小 */
+  .seed-ring{ animation:breathe 6s ease-in-out infinite; transform-origin:160px 195px; }
+  @keyframes breathe{ 50%{ transform:scale(1.35); } }
+  /* 光點：非常緩慢地飄起 */
+  .mote{ animation:mote 12s ease-in-out infinite; }
+  @keyframes mote{ 0%{ transform:translate(0,8px); opacity:0; } 30%{ opacity:.8; } 70%{ opacity:.6; } 100%{ transform:translate(4px,-26px); opacity:0; } }
+  /* 地平線：跟著深淺色模式變色的細線 */
+  .g-horizon{ stroke:var(--sub); opacity:.5; }
+  /* 深色模式：背景半圓再淡一點，才不會比花還搶眼 */
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .g-suns{ opacity:.55; } }
+  :root[data-theme="dark"] .g-suns{ opacity:.55; }
   .garden-skeleton{ animation:pulse 1.4s ease-in-out infinite; }
   @keyframes pulse{ 50%{ opacity:.45; } }
   @media (prefers-reduced-motion: reduce){
-    .sway, .seed-glow, .mote, .garden-skeleton{ animation:none; }
+    .sway, .seed-ring, .mote, .garden-skeleton{ animation:none; }
     .garden-fill{ transition:none; }
   }
 </style>
@@ -202,8 +209,9 @@
     };
 
     // ==========================================
-    // 花園場景：用「成長進度 p」一次畫出整個畫面
-    // p 的意思：0–1 播種、1–2 發芽、2–3 成長、3–4 開花、4–5 花園蔓延
+    // 花園場景（簡潔抽象風）：用「成長進度 p」一次畫出整個畫面
+    // p 的意思：0–1 種子、1–2 發芽、2–3 成長、3–4 開花、4–5 花園蔓延
+    // 畫面只用四種東西：一條地平線、細線（莖）、半透明的圓（花）、柔和的半圓色塊（背景）
     // 每個元素有自己的開始時間與緩動，所以不會同時出現、也不會機械式排列
     // ==========================================
     function buildScene(svg) {
@@ -227,8 +235,9 @@
       }
       function rr(a, b) { return a + (b - a) * rnd(); }
       function r1(n) { return Math.round(n * 10) / 10; }
+      function r2(n) { return Math.round(n * 100) / 100; }
 
-      var GROUND_Y = 200;
+      var GROUND_Y = 200;   // 地平線的高度
 
       // ---- 莖：用曲線取樣，之後可以問「長到 f 的位置在哪、朝向哪裡」----
       function Stem(x, h, lean, bend) {
@@ -258,62 +267,91 @@
         };
       }
 
+      // ---- 葉：一片簡單的橄欖形（兩條弧線）----
       function Leaf(parent, color) {
         var g = mk('g', {}, parent);
-        mk('path', { d: 'M0 0C-7 -5 -9 -17 0 -27C9 -17 7 -5 0 0Z', fill: color }, g);
-        mk('path', { d: 'M0 -3L0 -21', stroke: 'rgba(255,255,255,.28)', 'stroke-width': 0.8, 'stroke-linecap': 'round', fill: 'none' }, g);
+        mk('path', { d: 'M0 0C-6 -6 -6 -17 0 -24C6 -17 6 -6 0 0Z', fill: color, opacity: 0.85 }, g);
         return g;
       }
 
-      // ---- 花朵（含苞 → 花瓣一片一片展開）----
-      function Head(parent, R, pal) {
+      // ---- 花：三種幾何造型 ----
+      //  petals：一圈半透明的圓，重疊處顏色自然加深
+      //  fan   ：由大到小疊起來的半圓（像日出）
+      //  orb   ：由內向外擴開的同心圓
+      var CENTER = '#f8d77f';
+      function Head(parent, R, pal, type, n, double) {
         var g = mk('g', {}, parent);
-        mk('ellipse', { cx: 0, cy: 0, rx: R * 0.2, ry: R * 0.13, fill: '#7aa96f' }, g);
-        var petals = [];
-        function petalPath(h) {
-          var w = h * 0.34;
-          return 'M0 0C' + r1(-w) + ' ' + r1(-h * 0.25) + ' ' + r1(-w * 1.05) + ' ' + r1(-h * 0.8) + ' 0 ' + r1(-h) +
-                 'C' + r1(w * 1.05) + ' ' + r1(-h * 0.8) + ' ' + r1(w) + ' ' + r1(-h * 0.25) + ' 0 0Z';
+        var parts = [], center = null, i;
+
+        if (type === 'petals') {
+          var rings = double
+            ? [{ n: n, d: 0.52, r: 0.5,  off: 0,       cols: [pal[1], pal[2]], op: 0.55 },
+               { n: n, d: 0.26, r: 0.27, off: 180 / n, cols: [pal[0], pal[0]], op: 0.6 }]
+            : [{ n: n, d: 0.52, r: 0.5,  off: 0,       cols: [pal[1], pal[2]], op: 0.6 }];
+          rings.forEach(function (rg, ri) {
+            for (var k = 0; k < rg.n; k++) {
+              parts.push({
+                el: mk('circle', { cx: 0, cy: 0, r: 1, fill: rg.cols[k % 2], opacity: rg.op }, g),
+                ang: (rg.off + k * 360 / rg.n) * Math.PI / 180,
+                d: R * rg.d, r: R * rg.r, str: ri * 0.12 + (k / rg.n) * 0.18
+              });
+            }
+          });
+          center = mk('circle', { cx: 0, cy: 0, r: r1(R * 0.15), fill: CENTER }, g);
+        } else if (type === 'fan') {
+          [[1, pal[2]], [0.66, pal[1]], [0.34, pal[0]]].forEach(function (f, k) {
+            var rad = r1(R * f[0]);
+            parts.push({ el: mk('path', { d: 'M' + (-rad) + ' 0A' + rad + ' ' + rad + ' 0 0 1 ' + rad + ' 0Z', fill: f[1] }, g), str: k * 0.12 });
+          });
+        } else {   // orb
+          [[1, pal[2], 0.6, 0], [0.62, pal[1], 0.85, 0], [0.3, pal[0], 1, 1.5]].forEach(function (f, k) {
+            parts.push({ el: mk('circle', { cx: 0, cy: 0, r: r1(R * f[0]), fill: f[1], opacity: f[2] }, g), rad: R * f[0], str: (2 - k) * 0.14, bud: f[3] });
+          });
         }
-        function layer(n, spread, offset, len, c1, c2) {
-          for (var i = 0; i < n; i++) {
-            var norm = n === 1 ? 0 : (i / (n - 1)) * 2 - 1;
-            var ang = norm * spread + offset + rr(-5, 5);
-            var h = R * len * rr(0.92, 1.08);
-            var el = mk('path', { d: petalPath(h), fill: i % 2 ? c1 : c2 }, g);
-            petals.push({ el: el, ang: ang, str: Math.abs(norm) * 0.3 + rr(0, 0.08) });
-          }
-        }
-        layer(8, 86, 0, 0.92, pal[0], pal[1]);   // 後排（深色）
-        layer(7, 76, 0, 1.0, pal[1], pal[2]);    // 前排（淺色）
-        var center = mk('ellipse', { cx: 0, cy: r1(-R * 0.06), rx: r1(R * 0.2), ry: r1(R * 0.14), fill: '#f6c453' }, g);
+
         return {
           g: g,
+          // bp：含苞（0→1 慢慢鼓起來）　op：綻放（0→1 慢慢展開）
           set: function (bp, op) {
             var hb = eo(bp);
             if (hb <= 0.001) { g.setAttribute('opacity', 0); return; }
             g.setAttribute('opacity', 1);
-            g.setAttribute('transform', 'scale(' + r1(hb * 100) / 100 + ')');
-            for (var i = 0; i < petals.length; i++) {
-              var o = eio((op - petals[i].str) / 0.65);
-              petals[i].el.setAttribute('transform',
-                'rotate(' + r1(petals[i].ang * (0.1 + 0.9 * o)) + ') scale(' + r1((0.7 + 0.3 * o) * 100) / 100 + ' ' + r1((0.62 + 0.38 * o) * 100) / 100 + ')');
+            var oc = eio(op), ext = 0;   // ext：花朵往下延伸的距離，用來讓花永遠「坐」在莖尖上
+            for (i = 0; i < parts.length; i++) {
+              var P = parts[i], o = eio((op - P.str) / 0.7);
+              if (type === 'petals') {
+                var pr = P.r * (0.55 + 0.45 * o), pd = P.d * o;
+                P.el.setAttribute('cx', r1(Math.sin(P.ang) * pd));
+                P.el.setAttribute('cy', r1(-Math.cos(P.ang) * pd));
+                P.el.setAttribute('r', r1(pr));
+                ext = Math.max(ext, pd + pr);
+              } else if (type === 'fan') {
+                P.el.setAttribute('transform', 'scale(' + r2(0.35 + 0.65 * o) + ')');
+              } else {
+                var sc = P.bud + (1 - P.bud) * o;
+                P.el.setAttribute('transform', 'scale(' + r2(sc) + ')');
+                ext = Math.max(ext, P.rad * sc);
+              }
             }
-            var co = eio((op - 0.25) / 0.6);
-            center.setAttribute('opacity', co);
-            center.setAttribute('transform', 'scale(' + r1((0.3 + 0.7 * co) * 100) / 100 + ')');
+            g.setAttribute('transform', 'translate(0 ' + r1(-ext * hb) + ') scale(' + r2(hb) + ')' + (type === 'petals' ? ' rotate(' + r1(-30 * (1 - oc)) + ')' : ''));
+            if (center) {
+              var co = eio((op - 0.25) / 0.6);
+              center.setAttribute('opacity', co);
+              center.setAttribute('transform', 'scale(' + r2(0.3 + 0.7 * co) + ')');
+            }
           }
         };
       }
 
-      // ---- 一株植物 = 莖 + 葉 + 花 ----
+      // ---- 一株植物 = 一條細線莖 + 幾片葉 + 一朵花 ----
       var PALS = {
         purple:   ['#8806ce', '#a747db', '#c17ee6'],
         pink:     ['#d4609f', '#e58fc0', '#f4b8d9'],
         lavender: ['#8a72d8', '#a995ea', '#cfc3f6'],
         peach:    ['#e98a66', '#f3a98a', '#fac9b0']
       };
-      var GREENS = ['#6c9a63', '#81b776', '#8ebe84', '#5f8c58'];
+      var STEM_COLOR = '#86a984';
+      var GREENS = ['#8fb08c', '#a3c1a0', '#7ea27c'];
 
       function Plant(parent, o) {
         var root = mk('g', { 'class': 'sway' }, parent);
@@ -322,14 +360,14 @@
         root.style.animationDuration = o.dur + 's';
         root.style.animationDelay = '-' + o.delay + 's';
         var stem = new Stem(o.x, o.h, o.lean, o.bend);
-        var path = mk('path', { d: stem.d, fill: 'none', stroke: '#6c9a63', 'stroke-width': o.sw, 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1, opacity: 0 }, root);
+        var path = mk('path', { d: stem.d, fill: 'none', stroke: STEM_COLOR, 'stroke-width': o.sw, 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1, opacity: 0 }, root);
         var leaves = [];
         for (var i = 0; i < o.leaves.length; i++) {
           var L = o.leaves[i];
-          leaves.push({ el: Leaf(root, GREENS[Math.floor(rnd() * GREENS.length)]), f: L.f, side: L.side, ang: rr(36, 64), size: L.size });
+          leaves.push({ el: Leaf(root, GREENS[Math.floor(rnd() * GREENS.length)]), f: L.f, side: L.side, ang: rr(30, 52), size: L.size });
         }
         var headPos = mk('g', {}, root);
-        var head = Head(headPos, o.R, PALS[o.pal]);
+        var head = Head(headPos, o.R, PALS[o.pal], o.type, o.n, o.double);
         return {
           start: o.start, dur: o.dur2,
           update: function (sp, bp, op) {
@@ -340,7 +378,7 @@
               if (lp <= 0.001) { L.el.setAttribute('opacity', 0); continue; }
               var pos = stem.at(Math.min(L.f, sp));
               L.el.setAttribute('opacity', 1);
-              L.el.setAttribute('transform', 'translate(' + r1(pos.x) + ' ' + r1(pos.y) + ') rotate(' + r1(pos.a + L.side * (10 + L.ang * lp)) + ') scale(' + r1(L.size * lp * 100) / 100 + ')');
+              L.el.setAttribute('transform', 'translate(' + r1(pos.x) + ' ' + r1(pos.y) + ') rotate(' + r1(pos.a + L.side * (10 + L.ang * lp)) + ') scale(' + r2(L.size * lp) + ')');
             }
             var tip = stem.at(sp);
             headPos.setAttribute('transform', 'translate(' + r1(tip.x) + ' ' + r1(tip.y) + ') rotate(' + r1(tip.a * 0.6) + ')');
@@ -349,119 +387,105 @@
         };
       }
 
-      function Blade(parent, x, h, lean, color, start, dur) {
-        var g = mk('g', { 'class': 'sway' }, parent);
-        g.style.transformOrigin = x + 'px 204px';
-        g.style.setProperty('--amp', r1(rr(2, 4)) + 'deg');
-        g.style.animationDuration = r1(rr(3.6, 6)) + 's';
-        g.style.animationDelay = '-' + r1(rr(0, 5)) + 's';
-        var p = mk('path', { d: 'M' + x + ' 204Q' + r1(x + lean * 0.3) + ' ' + r1(204 - h * 0.6) + ' ' + r1(x + lean) + ' ' + r1(204 - h), fill: 'none', stroke: color, 'stroke-width': r1(rr(1.8, 2.8)), 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1, opacity: 0 }, g);
-        return { start: start, dur: dur, set: function (q) { var e = eo(q); p.setAttribute('opacity', e > 0.002 ? 1 : 0); p.setAttribute('stroke-dashoffset', r1((1 - e) * 1000) / 1000); } };
-      }
-
-      // ================= 建立畫面 =================
+      // ================= 建立畫面（由後往前疊）=================
       svg.innerHTML = '';
-      var defs = mk('defs', {}, svg);
-      var gg = mk('linearGradient', { id: 'soilGrad', x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
-      mk('stop', { offset: '0', 'stop-color': '#a98660' }, gg);
-      mk('stop', { offset: '1', 'stop-color': '#7b5b40' }, gg);
 
-      mk('ellipse', { cx: 160, cy: 207, rx: 150, ry: 20, fill: 'url(#soilGrad)' }, svg);
-      mk('ellipse', { cx: 160, cy: 200, rx: 138, ry: 8, fill: '#b9966c', opacity: 0.55 }, svg);
-
-      // 根（在土裡慢慢伸長）
-      var roots = [];
-      [['M160 203C158 209 153 213 148 218', 0.18], ['M160 203C163 210 168 212 173 217', 0.3], ['M160 203C160 210 159 214 161 220', 0.24]].forEach(function (r) {
-        roots.push({ el: mk('path', { d: r[0], fill: 'none', stroke: '#d9c3a0', 'stroke-width': 1.6, 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1, opacity: 0 }, svg), s: r[1] });
+      // 1) 背景色塊：從地平線慢慢升起的柔和半圓
+      var sunLayer = mk('g', { 'class': 'g-suns' }, svg);
+      var suns = [
+        { cx: 160, r: 72, col: '#c9b8f2', op: 0.20, s: 2.3, d: 1.2 },
+        { cx: 238, r: 46, col: '#f4b8d9', op: 0.22, s: 3.4, d: 1.1 },
+        { cx: 82,  r: 38, col: '#fac9b0', op: 0.26, s: 3.7, d: 1.1 }
+      ].map(function (s) {
+        s.el = mk('path', { d: 'M' + (-s.r) + ' 0A' + s.r + ' ' + s.r + ' 0 0 1 ' + s.r + ' 0Z', fill: s.col, opacity: s.op, transform: 'translate(' + s.cx + ' ' + GROUND_Y + ') scale(0)' }, sunLayer);
+        return s;
       });
 
-      // 種子
+      // 2) 地平線：一條細線，從中間慢慢向兩側延伸
+      var horizon = mk('line', { x1: 108, y1: GROUND_Y, x2: 212, y2: GROUND_Y, 'class': 'g-horizon', 'stroke-width': 1.2, 'stroke-linecap': 'round' }, svg);
+
+      // 3) 地平線上的小圓點（花園長成後才出現）
+      var dots = [[44, '#c17ee6'], [70, '#f4b8d9'], [118, '#fac9b0'], [205, '#cfc3f6'], [246, '#c17ee6'], [272, '#fac9b0']].map(function (d) {
+        return { el: mk('circle', { cx: d[0], cy: GROUND_Y - 1.8, r: 0, fill: d[1] }, svg), start: 4.0 + Math.abs(d[0] - 160) / 160 * 0.5 };
+      });
+
+      // 4) 種子：一顆小圓點 + 一圈慢慢呼吸的細環
       var seedG = mk('g', {}, svg);
-      var seedGlow = mk('circle', { cx: 160, cy: 199, r: 12, fill: '#f6e7a0', opacity: 0 }, seedG);
-      seedGlow.setAttribute('class', 'seed-glow');
-      var seedBody = mk('g', { transform: 'translate(160 199)' }, seedG);
-      var seedInner = mk('g', {}, seedBody);
-      mk('ellipse', { cx: 0, cy: 0, rx: 9, ry: 6, fill: '#6b4f36', transform: 'rotate(-15)' }, seedInner);
-      mk('ellipse', { cx: -3, cy: -2, rx: 3, ry: 1.6, fill: '#8d6c4d', transform: 'rotate(-15)' }, seedInner);
-      // 前面一小撮土，蓋住種子下半部
-      mk('path', { d: 'M146 203Q160 196 174 203Z', fill: '#9a7653' }, svg);
+      var seedRing = mk('circle', { cx: 160, cy: 195, r: 9, fill: 'none', stroke: '#c17ee6', 'stroke-width': 1, opacity: 0, 'class': 'seed-ring' }, seedG);
+      var seedDot = mk('circle', { cx: 160, cy: 195, r: 4.5, fill: '#a747db' }, seedG);
 
-      // 背景小草
-      var blades = [];
-      for (var b = 0; b < 22; b++) {
-        var bx = r1(rr(24, 296)), ds = Math.abs(bx - 160) / 160;
-        var blade = Blade(svg, bx, rr(13, 30), rr(-9, 9), GREENS[Math.floor(rnd() * 4)], 4.0 + ds * 0.6 + rr(0, 0.08), 0.32);
-        blades.push(blade);
-      }
-
-      // 其他花：位置、高度、大小、顏色都手排，刻意不對稱
+      // 5) 花：位置、高度、大小、造型、顏色都手排，刻意不對稱
       var secondary = [
-        { x: -120, h: 50,  R: 11, pal: 'lavender', back: 1 },
-        { x: -95,  h: 72,  R: 15, pal: 'pink',     back: 1 },
-        { x: -62,  h: 104, R: 20, pal: 'peach',    back: 1 },
-        { x: -78,  h: 38,  R: 9,  pal: 'purple',   back: 0 },
-        { x: -30,  h: 60,  R: 12, pal: 'pink',     back: 0 },
-        { x: 28,   h: 80,  R: 14, pal: 'lavender', back: 0 },
-        { x: 45,   h: 40,  R: 9,  pal: 'peach',    back: 0 },
-        { x: 62,   h: 110, R: 21, pal: 'pink',     back: 1 },
-        { x: 98,   h: 66,  R: 16, pal: 'purple',   back: 1 },
-        { x: 124,  h: 54,  R: 12, pal: 'lavender', back: 0 }
+        { x: -120, h: 46,  R: 10, pal: 'lavender', type: 'orb',    back: 1 },
+        { x: -95,  h: 70,  R: 14, pal: 'pink',     type: 'petals', n: 5, back: 1 },
+        { x: -62,  h: 100, R: 19, pal: 'peach',    type: 'fan',    back: 1 },
+        { x: -78,  h: 36,  R: 8,  pal: 'purple',   type: 'orb',    back: 0 },
+        { x: -30,  h: 58,  R: 13, pal: 'pink',     type: 'fan',    back: 0 },
+        { x: 28,   h: 78,  R: 13, pal: 'lavender', type: 'petals', n: 5, back: 0 },
+        { x: 45,   h: 38,  R: 8,  pal: 'peach',    type: 'orb',    back: 0 },
+        { x: 62,   h: 104, R: 19, pal: 'pink',     type: 'petals', n: 6, back: 1 },
+        { x: 98,   h: 64,  R: 16, pal: 'purple',   type: 'fan',    back: 1 },
+        { x: 124,  h: 52,  R: 11, pal: 'lavender', type: 'orb',    back: 0 }
       ];
       var layerBack = mk('g', {}, svg), layerMain = mk('g', {}, svg), layerFront = mk('g', {}, svg);
       var plants = [];
       secondary.forEach(function (s) {
         var x = 160 + s.x, ds = Math.abs(s.x) / 160;
-        var leavesDef = [{ f: 0.3, side: -1, size: rr(0.6, 0.85) }, { f: 0.5, side: 1, size: rr(0.55, 0.8) }];
-        if (s.h > 90) leavesDef.push({ f: 0.2, side: 1, size: rr(0.7, 0.9) });
+        var leavesDef = [{ f: 0.34, side: -1, size: rr(0.55, 0.75) }, { f: 0.55, side: 1, size: rr(0.5, 0.7) }];
+        if (s.h > 90) leavesDef.push({ f: 0.2, side: 1, size: rr(0.65, 0.8) });
         var pl = Plant(s.back ? layerBack : layerFront, {
-          x: x, h: s.h, lean: rr(-12, 12), bend: rr(-8, 8), sw: r1(1.8 + s.R * 0.1), R: s.R, pal: s.pal,
-          leaves: leavesDef, amp: r1(rr(1.2, 2.4)), dur: r1(rr(4.2, 6.6)), delay: r1(rr(0, 5)),
+          x: x, h: s.h, lean: rr(-12, 12), bend: rr(-8, 8), sw: 1.5, R: s.R, pal: s.pal, type: s.type, n: s.n,
+          leaves: leavesDef, amp: r1(rr(0.7, 1.4)), dur: r1(rr(7, 11)), delay: r1(rr(0, 8)),
           start: 4.06 + ds * 0.5 + rr(0, 0.08), dur2: 0.4
         });
         plants.push(pl);
       });
 
-      // 中央第一朵花
+      // 中央第一朵花（兩圈圓，像一朵簡化的曼陀羅）
       var main = Plant(layerMain, {
-        x: 160, h: 125, lean: 4, bend: 7, sw: 4.4, R: 27, pal: 'purple',
+        x: 160, h: 112, lean: 4, bend: 6, sw: 2.2, R: 26, pal: 'purple', type: 'petals', n: 6, double: true,
         leaves: [
-          { f: 0.07, side: -1, size: 0.75 }, { f: 0.09, side: 1, size: 0.72 },
-          { f: 0.26, side: -1, size: 1.0 }, { f: 0.38, side: 1, size: 1.05 },
-          { f: 0.52, side: -1, size: 0.95 }, { f: 0.64, side: 1, size: 0.9 },
-          { f: 0.78, side: -1, size: 0.75 }
+          { f: 0.08, side: -1, size: 0.7 }, { f: 0.1, side: 1, size: 0.66 },
+          { f: 0.34, side: -1, size: 1.0 }, { f: 0.5, side: 1, size: 1.0 },
+          { f: 0.68, side: -1, size: 0.8 }
         ],
-        amp: 1.3, dur: 6.2, delay: 1.5, start: 0, dur2: 1
+        amp: 0.9, dur: 9.5, delay: 1.5, start: 0, dur2: 1
       });
 
-      // 光點（花園長成後，慢慢飄起）
+      // 6) 光點（花園長成後，非常緩慢地飄起）
       var lights = mk('g', { opacity: 0 }, svg);
-      for (var l = 0; l < 9; l++) {
-        var dot = mk('circle', { cx: r1(rr(30, 290)), cy: r1(rr(80, 190)), r: r1(rr(1.2, 2.2)), fill: '#fff0b8' }, lights);
+      var lightCols = ['#f4b8d9', '#fac9b0', '#cfc3f6'];
+      for (var l = 0; l < 8; l++) {
+        var dot = mk('circle', { cx: r1(rr(30, 290)), cy: r1(rr(70, 180)), r: r1(rr(1, 1.8)), fill: lightCols[l % 3], opacity: 0.7 }, lights);
         dot.setAttribute('class', 'mote');
-        dot.style.animationDuration = r1(rr(5, 9)) + 's';
-        dot.style.animationDelay = '-' + r1(rr(0, 8)) + 's';
+        dot.style.animationDuration = r1(rr(9, 15)) + 's';
+        dot.style.animationDelay = '-' + r1(rr(0, 12)) + 's';
       }
 
       function set(p) {
-        // 種子與根
+        // 地平線：從中間向兩側慢慢延伸
+        var hw = 52 + 84 * eio(p / 4.6);
+        horizon.setAttribute('x1', r1(160 - hw));
+        horizon.setAttribute('x2', r1(160 + hw));
+        // 種子：稍微鼓起，發芽後淡成莖底的一個小點，細環消失
         var sw = c01(p / 0.6);
-        seedInner.setAttribute('transform', 'scale(' + r1((1 + 0.14 * sw) * 100) / 100 + ')');
-        seedGlow.setAttribute('opacity', r1(0.32 * c01(p / 0.25) * (1 - c01((p - 1.2) / 0.6)) * 100) / 100);
-        seedG.setAttribute('opacity', r1((1 - 0.7 * c01((p - 1.2) / 1.2)) * 100) / 100);
-        for (var i = 0; i < roots.length; i++) {
-          var rp = eio((p - roots[i].s) / 0.9);
-          roots[i].el.setAttribute('opacity', rp > 0.002 ? 1 : 0);
-          roots[i].el.setAttribute('stroke-dashoffset', r1((1 - rp) * 1000) / 1000);
+        seedDot.setAttribute('r', r2(4.5 + 0.7 * sw));
+        seedRing.setAttribute('opacity', r2(0.55 * c01(p / 0.25) * (1 - c01((p - 1.2) / 0.6))));
+        seedG.setAttribute('opacity', r2(1 - 0.45 * c01((p - 1.2) / 1.2)));
+        // 背景半圓：從地平線慢慢升起
+        for (var s = 0; s < suns.length; s++) {
+          var S = suns[s];
+          S.el.setAttribute('transform', 'translate(' + S.cx + ' ' + GROUND_Y + ') scale(' + r2(eo((p - S.s) / S.d)) + ')');
         }
-        // 中央主莖：發芽 → 抽枝 → 長葉，之後含苞、開花
+        // 中央主莖：發芽 → 抽高 → 長葉，之後含苞、開花
         main.update(eio((p - 0.45) / 2.05), eio((p - 2.5) / 0.5), eio((p - 3) / 1));
-        // 其他花與小草：從中心向外蔓延
+        // 其他花：從中心向外蔓延
         for (var j = 0; j < plants.length; j++) {
           var q = (p - plants[j].start) / plants[j].dur;
           plants[j].update(eio(q / 0.6), eio((q - 0.45) / 0.2), eio((q - 0.6) / 0.4));
         }
-        for (var k = 0; k < blades.length; k++) blades[k].set((p - blades[k].start) / blades[k].dur);
-        lights.setAttribute('opacity', r1(eio((p - 4.3) / 0.6) * 100) / 100);
+        for (var k = 0; k < dots.length; k++) dots[k].el.setAttribute('r', r2(1.8 * eo((p - dots[k].start) / 0.4)));
+        lights.setAttribute('opacity', r2(eio((p - 4.3) / 0.6)));
       }
       set(0);
       return { set: set };
@@ -495,8 +519,8 @@
       cancelAnimationFrame(grow.raf);
       var from = grow.p, to = grow.target;
       if (Math.abs(to - from) < 0.001) return;
-      // 走得越遠，花的時間越長（約 1~12 秒）；全程慢—快—慢
-      var dur = Math.max(900, Math.min(12000, Math.abs(to - from) * 2400 + 800));
+      // 走得越遠，花的時間越長（約 1.2~16 秒）；全程慢—快—慢，比以前更悠哉
+      var dur = Math.max(1200, Math.min(16000, Math.abs(to - from) * 3200 + 1200));
       var t0 = null;
       function step(ts) {
         if (t0 === null) t0 = ts;
