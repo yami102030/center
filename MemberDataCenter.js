@@ -987,7 +987,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                                     </select>
                                                 ) : (
                                                     <select disabled className="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-3 sm:py-2.5 font-normal text-slate-400 cursor-not-allowed">
-                                                        <option>註冊登入後才能指定</option>
+                                                        <option>註冊後設定</option>
                                                     </select>
                                                 )}
                                                 {acct && acct.member_count > 1 && <p className="text-xs text-amber-600 leading-snug">共用帳號（{acct.member_names}），改權限會影響所有人。</p>}
