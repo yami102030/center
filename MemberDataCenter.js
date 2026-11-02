@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
     Users, Copy, Trash2, CalendarX, Search, X, Edit2, Edit3, ShieldCheck, 
     Check, Save, CheckCircle2, AlertCircle, UserPlus, User, ChevronLeft,
-    Home, LogOut, Calendar, Lock, Unlock, Menu, BarChart3, PanelLeft
+    Home, LogOut, Calendar, Lock, Unlock, Menu, BarChart3, PanelLeft,
+    GraduationCap, UserCheck, FolderOpen, Star, Plus, Minus
 } from 'lucide-react';
 
 const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights, supabase, utils, constants }) => {
@@ -406,6 +407,8 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
     const ROLE_LABELS = { member: '會友', coworker: '同工', admin_staff: '行政', leader: '領袖', pastor: '牧師', admin: '系統管理員' };
     const ROLE_ORDER = ['member', 'coworker', 'admin_staff', 'leader', 'pastor', 'admin']; // 網頁上可指定的六種權限
     const HIGH_ROLES = ['leader', 'pastor', 'admin']; // 卡片上用顏色標出來
+    // 卡片名字前面的權限圖示：會友＝人、同工＝人＋勾、行政＝開啟的資料夾、領袖＝星星、牧師＝學士帽、系統管理員＝盾牌
+    const ROLE_ICONS = { member: User, coworker: UserCheck, admin_staff: FolderOpen, leader: Star, pastor: GraduationCap, admin: ShieldCheck };
 
     // 這位同工對應的登入帳號（還沒註冊就是 undefined）
     const getAccount = (member) => {
@@ -543,6 +546,12 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
     // 表單用：服事設定收起來時隱藏所有服事欄位（非管理員本來就是服事同工，一律顯示）
     const serviceOn = !isAdmin || serviceOpen;
     const hideIfNoService = serviceOn ? '' : 'hidden';
+    // 「服事設定」那一列中間顯示的摘要（沒有崗位、也沒有服事設定就顯示「尚未設定」）
+    const formPosCount = Object.keys(formPositions).length;
+    const formHasSettings = !!editingMember && quarterSettings.some(q => q.member_id === editingMember.id);
+    const serviceSummary = (formPosCount > 0 || formHasSettings)
+        ? `${formData.availability_status || ''}・${formData.preferred_session || ''}・${formPosCount} 個崗位`
+        : '尚未設定';
 
     const currentGroupID = formData.group_id || '';
     const groupPrefix = currentGroupID.replace(/[0-9]/g, '') || 'FA'; 
@@ -849,17 +858,19 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                                 <div>
                                                     {isAdmin && (
                                                         <h3 className={`${isLargeFont ? 'text-2xl sm:text-3xl' : 'text-xl sm:text-2xl'} font-bold text-slate-900 flex items-center gap-2 flex-wrap leading-tight`}>
+                                                            {(() => {
+                                                                const acct = getAccount(member);
+                                                                if (!acct) return null;
+                                                                const RoleIcon = ROLE_ICONS[acct.role] || User;
+                                                                const roleName = ROLE_LABELS[acct.role] || acct.role;
+                                                                return <span title={roleName} aria-label={roleName} className={`inline-flex items-center cursor-help ${HIGH_ROLES.includes(acct.role) ? 'text-amber-500' : 'text-slate-400'}`}><RoleIcon size={isLargeFont ? 26 : 22} /></span>;
+                                                            })()}
                                                             {member.name}
                                                             {settings.dual_service_pref === 0 && <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-red-50 text-red-600 rounded border border-red-100 font-bold`}>關閉兼任</span>}
                                                             {settings.dual_service_pref === 1 && <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-violet-50 text-violet-600 rounded border border-violet-100 font-bold`}>二堂同崗</span>}
                                                             {settings.dual_service_pref === 2 && <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-violet-50 text-violet-600 rounded border border-violet-100 font-bold`}>二堂異崗</span>}
                                                             {member.group_id && <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-indigo-50 text-indigo-600 rounded border border-indigo-100 font-bold`}>{member.group_id}</span>}
-                                                            {isAdmin && (() => {
-                                                                const acct = getAccount(member);
-                                                                return acct
-                                                                    ? <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} rounded border font-bold ${HIGH_ROLES.includes(acct.role) ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-white text-slate-500 border-slate-200'}`}>{ROLE_LABELS[acct.role] || acct.role}</span>
-                                                                    : (member.email ? <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} rounded border border-dashed border-slate-300 text-slate-400 font-medium`}>未註冊</span> : null);
-                                                            })()}
+                                                            {!getAccount(member) && member.email && <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} rounded border border-dashed border-slate-300 text-slate-400 font-medium`}>未註冊</span>}
                                                         </h3>
                                                     )}
                                                     <div className={`${cardServiceOn ? 'flex' : 'hidden'} items-center flex-wrap gap-1.5 ${isLargeFont ? 'text-sm' : 'text-xs'} font-normal ${isAdmin ? 'mt-3' : ''}`}>
@@ -953,29 +964,6 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                             </div>
                             
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6 touch-pan-y overscroll-contain">
-                                {isAdmin && (() => {
-                                    const acct = editingMember ? getAccount(editingMember) : null;
-                                    return (
-                                        <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                            <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5 flex-wrap">
-                                                <ShieldCheck size={18} className="text-indigo-500"/> 權限設定
-                                                {acct && <span className="text-xs px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-500 font-normal">目前：{ROLE_LABELS[acct.role] || acct.role}</span>}
-                                            </label>
-                                            {acct ? (
-                                                <>
-                                                    <select value={formRole} onChange={e => setFormRole(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 sm:py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-slate-900">
-                                                        {ROLE_ORDER.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                                                    </select>
-                                                    {acct.member_count > 1 && <p className="text-xs text-amber-600 leading-snug">這是共用帳號（{acct.member_names}），改權限會影響共用這個帳號的所有人。</p>}
-                                                </>
-                                            ) : (
-                                                <p className="text-xs text-slate-400 leading-snug">
-                                                    {editingMember ? '這位同工還沒有註冊登入帳號，註冊後才能指定權限。' : '新增後，等同工註冊登入，再回來指定權限。註冊時預設是「會友」，已有服事崗位則是「同工」，之後都由你在這裡調整。'}
-                                                </p>
-                                            )}
-                                        </div>
-                                    );
-                                })()}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-slate-500 uppercase">姓名 <span className="text-red-500">*</span></label>
@@ -988,11 +976,38 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                             readOnly={!isAdmin && !!editingMember} 
                                         />
                                     </div>
+                                    {isAdmin && (() => {
+                                        const acct = editingMember ? getAccount(editingMember) : null;
+                                        return (
+                                            <div className="space-y-1.5">
+                                                <label className="text-xs font-medium text-slate-500 uppercase">權限設定</label>
+                                                {acct ? (
+                                                    <select value={formRole} onChange={e => setFormRole(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 sm:py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-normal text-slate-900 transition-all">
+                                                        {ROLE_ORDER.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                                                    </select>
+                                                ) : (
+                                                    <select disabled className="w-full bg-slate-100 border border-slate-200 rounded-lg px-4 py-3 sm:py-2.5 font-normal text-slate-400 cursor-not-allowed">
+                                                        <option>註冊登入後才能指定</option>
+                                                    </select>
+                                                )}
+                                                {acct && acct.member_count > 1 && <p className="text-xs text-amber-600 leading-snug">共用帳號（{acct.member_names}），改權限會影響所有人。</p>}
+                                            </div>
+                                        );
+                                    })()}
                                     {isAdmin && (
-                                        <div className="sm:col-span-2">
-                                            <button type="button" onClick={() => setServiceOpen(v => !v)} className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-colors">
-                                                <span className="text-sm font-medium text-slate-700">服事設定 <span className="text-xs text-slate-400 font-normal">（有指派崗位才會加入排班與人力統計）</span></span>
-                                                <span className="text-xs text-indigo-600 font-medium shrink-0">{serviceOpen ? '收起' : '展開'}</span>
+                                        <div className="space-y-1.5 sm:col-span-2">
+                                            <label className="text-xs font-medium text-slate-500 uppercase flex items-center gap-1.5 flex-wrap">
+                                                帳號 <span className="text-xs text-slate-400 font-normal normal-case">(忘記密碼需通知「管理員」)</span>
+                                            </label>
+                                            <input type="text" value={formData.email ?? ''} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 sm:py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-normal text-slate-900 transition-all" placeholder="電話號碼或電子郵件" />
+                                        </div>
+                                    )}
+                                    {isAdmin && (
+                                        <div className="sm:col-span-2 border-y border-slate-200">
+                                            <button type="button" onClick={() => setServiceOpen(v => !v)} className="w-full flex items-center justify-between gap-3 py-4 text-left">
+                                                <span className="text-base font-bold text-slate-900 shrink-0">服事設定</span>
+                                                <span className="flex-1 text-center text-sm text-slate-500 truncate">{serviceSummary}</span>
+                                                {serviceOpen ? <Minus size={18} className="text-slate-700 shrink-0"/> : <Plus size={18} className="text-slate-700 shrink-0"/>}
                                             </button>
                                         </div>
                                     )}
@@ -1084,15 +1099,6 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                         </>
                                     )}
                                 </div>
-                                {isAdmin && (
-                                    <div className="space-y-2 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
-                                        <label className="text-xs font-medium text-indigo-600 flex items-center gap-1.5 flex-wrap">
-                                            <User size={14}/> 帳號 
-                                            <span className="text-xs text-indigo-400 font-normal">(忘記密碼需通知「管理員」)</span>
-                                        </label>
-                                        <input type="text" value={formData.email ?? ''} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-white border border-indigo-200 rounded-lg px-4 py-3 sm:py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-normal text-slate-900 transition-all" placeholder="電話號碼或電子郵件" />
-                                    </div>
-                                )}
                                 <div className={`pt-2 border-t border-slate-100 ${hideIfNoService}`}>
                                     <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5 mb-3">
                                         <ShieldCheck size={18} className="text-indigo-500"/> 服事崗位 {!isAdmin && <span className="text-[10px] text-slate-400 font-normal ml-1">(僅供檢視)</span>}
