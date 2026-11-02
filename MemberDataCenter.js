@@ -546,11 +546,11 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
     // 表單用：服事設定收起來時隱藏所有服事欄位（非管理員本來就是服事同工，一律顯示）
     const serviceOn = !isAdmin || serviceOpen;
     const hideIfNoService = serviceOn ? '' : 'hidden';
-    // 「服事設定」那一列中間顯示的摘要（沒有崗位、也沒有服事設定就顯示「尚未設定」）
+    // 「服事設定」那一列中間的文字：有設定顯示「變更」，沒設定顯示「尚未設定」
     const formPosCount = Object.keys(formPositions).length;
     const formHasSettings = !!editingMember && quarterSettings.some(q => q.member_id === editingMember.id);
     const serviceSummary = (formPosCount > 0 || formHasSettings)
-        ? `${formData.availability_status || ''}・${formData.preferred_session || ''}・${formPosCount} 個崗位`
+        ? '變更'
         : '尚未設定';
 
     const currentGroupID = formData.group_id || '';
@@ -958,7 +958,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                             <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0 sticky top-0 z-10">
                                 <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                                     {editingMember ? <Edit2 size={20} className="text-indigo-600"/> : <UserPlus size={20} className="text-indigo-600"/>}
-                                    {editingMember ? '編輯同工資料' : '新增同工'}
+                                    {editingMember ? '編輯資料' : '新增同工'}
                                 </h2>
                                 <button onClick={closeModal} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"><X size={20}/></button>
                             </div>
@@ -1025,7 +1025,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                     </div>
                                     {isAdmin && (
                                         <>
-                                            <div className="space-y-1.5">
+                                            <div className={`space-y-1.5 ${hideIfNoService}`}>
                                                 <label className="text-xs font-medium text-slate-500 uppercase">群組 ID <span className="text-slate-400 font-normal">(選填)</span></label>
                                                 <div className="flex gap-2 items-stretch">
                                                     <select 
