@@ -65,7 +65,11 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
 
     const [editingMember, setEditingMember] = useState(null); 
     const [formData, setFormData] = useState({ ...DEFAULT_MEMBER, unavailable_weeks: [] });
-    const [formPositions, setFormPositions] = useState({}); 
+    const [formPositions, setFormPositions] = useState({});
+    // 模組開關（跟「職務」是兩回事）：畫面用 prayer／serving／office，
+    // 資料庫 member_access 裡對應 prayer／serving／staff_worker。memberModules 是資料庫現況，formModules 是表單上的開關
+    const [memberModules, setMemberModules] = useState({});
+    const [formModules, setFormModules] = useState({ prayer: true, serving: false, office: false });
 
     // 帳號為電話時，系統登入 Email 為「電話@tbc.gmail.com」；帳號本身是 Email 則直接使用
     const toAuthEmail = (account) => {
@@ -97,6 +101,24 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                 } catch (e) {
                     console.error('讀取 Auth 名單失敗', e);
                     setAuthEmails(new Set());
+                }
+            }
+
+            // 讀取每位同工開了哪些模組（僅管理員）。讀不到就當作沒有資料，畫面維持原樣
+            if (isAdmin) {
+                try {
+                    const { data: maData } = await fetchAllData(() => supabase.from('member_access').select('member_id, system, is_active'));
+                    const legacy = { general: 'prayer', admin_worker: 'office', staff_worker: 'office' };
+                    const map = {};
+                    (maData || []).forEach(r => {
+                        if (!map[r.member_id]) map[r.member_id] = { prayer: false, serving: false, office: false };
+                        const key = legacy[r.system] || r.system;
+                        if (r.is_active !== false && key in map[r.member_id]) map[r.member_id][key] = true;
+                    });
+                    setMemberModules(map);
+                } catch (e) {
+                    console.error('讀取模組失敗', e);
+                    setMemberModules({});
                 }
             }
 
@@ -299,8 +321,9 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
     const openAddModal = () => { 
         setEditingMember(null); 
         setFormData({ ...DEFAULT_MEMBER, dual_service_pref: '', unavailable_weeks: [] }); 
-        setFormPositions({}); 
-        setIsModalOpen(true); 
+        setFormPositions({});
+        setFormModules({ prayer: true, serving: false, office: false }); // 新增時預設只開「禱告」
+        setIsModalOpen(true);
     };
 
     const handleAddCustomHoliday = async () => {
@@ -377,8 +400,18 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
 
         const posMap = {};
         memberPositions.filter(mp => mp.member_id === member.id).forEach(mp => { posMap[mp.position_id] = mp.is_active !== false ? 'active' : 'inactive'; });
-        setFormPositions(posMap); 
+        setFormPositions(posMap);
+        // 資料庫沒有模組資料時（例如還沒執行升級 SQL），有崗位的人視為「服事」
+        setFormModules(memberModules[member.id]
+            ? { ...memberModules[member.id] }
+            : { prayer: true, serving: Object.keys(posMap).length > 0, office: false });
         setIsModalOpen(true);
+    };
+
+    const toggleModule = (key) => {
+        const next = { ...formModules, [key]: !formModules[key] };
+        if (!next.member && !next.coworker && !next.admin_staff) return; // 至少要留一個
+        setFormModules(next);
     };
 
     const closeModal = () => { setIsModalOpen(false); setEditingMember(null); setFormData({ ...DEFAULT_MEMBER, unavailable_weeks: [] }); };
@@ -393,12 +426,32 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
         });
     };
 
-    const handleSave = async () => {
+    // 按下「儲存」：先檢查，再決定要不要先跳確認視窗
+    const handleSave = () => {
         if (!isAdmin && !isSubmissionOpen) {
             return showMessage('error', '非開放填寫期間無法儲存變更');
         }
-
         if (!formData.name || !formData.name.trim()) return showMessage('error', '姓名不可為空');
+        if (isAdmin && !formModules.prayer && !formModules.serving && !formModules.office) {
+            return showMessage('error', '至少要開啟一個模組');
+        }
+
+        // 編輯舊同工時把「服事」關掉：先提醒會有什麼後果
+        const wasServing = editingMember && memberModules[editingMember.id]?.serving;
+        if (isAdmin && wasServing && !formModules.serving) {
+            return setConfirmAction({
+                title: '關閉「服事」模組',
+                message: `關閉後，「${formData.name.trim()}」目前與未來季度的崗位會改為暫停，不再被算進排班與人力統計（過去季度的紀錄不變）。確定關閉？`,
+                confirmText: '確定關閉',
+                onConfirm: () => { setConfirmAction(null); doSave(); }
+            });
+        }
+        doSave();
+    };
+
+    const doSave = async () => {
+        // 服事模組關閉時，不建立季度設定、不指派崗位
+        const serviceOn = !isAdmin || formModules.serving;
         setIsLoading(true);
         try {
             let memberId = editingMember ? editingMember.id : null;
@@ -418,14 +471,16 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                 if (error) throw error; memberId = data[0].id;
             }
 
-            await supabase.from('member_quarter_settings').upsert({
-                member_id: memberId, quarter: viewQuarter, preferred_session: formData.preferred_session,
-                availability_status: formData.availability_status, dual_service_pref: finalDualPref,
-                newcomer_rule: parsedNewcomerRule, unavailable_dates: formData.unavailable_dates,
-                unavailable_weeks: formData.unavailable_weeks || []
-            }, { onConflict: 'member_id, quarter' });
+            if (serviceOn) {
+                await supabase.from('member_quarter_settings').upsert({
+                    member_id: memberId, quarter: viewQuarter, preferred_session: formData.preferred_session,
+                    availability_status: formData.availability_status, dual_service_pref: finalDualPref,
+                    newcomer_rule: parsedNewcomerRule, unavailable_dates: formData.unavailable_dates,
+                    unavailable_weeks: formData.unavailable_weeks || []
+                }, { onConflict: 'member_id, quarter' });
+            }
 
-            if (isAdmin && memberId) {
+            if (isAdmin && memberId && serviceOn) {
                 await supabase.from('member_positions').delete().eq('member_id', memberId).eq('quarter', viewQuarter);
                 const posKeys = Object.keys(formPositions);
                 if (posKeys.length > 0) {
@@ -435,7 +490,14 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                     await supabase.from('member_positions').insert(insertPosPayload);
                 }
             }
-            showMessage('success', editingMember ? '更新成功！' : '新增成功！'); closeModal(); loadData();
+            // 最後一步：把三個模組開關存進資料庫（只有系統管理員做得到）
+            if (isAdmin && memberId) {
+                const toDb = { prayer: 'prayer', serving: 'serving', office: 'staff_worker' };
+                const mods = ['prayer', 'serving', 'office'].filter(k => formModules[k]).map(k => toDb[k]);
+                const { error: modErr } = await supabase.rpc('set_member_modules', { p_member: memberId, p_modules: mods });
+                if (modErr) throw new Error('模組儲存失敗（' + modErr.message + '）');
+            }
+            showMessage('success', editingMember ? '更新成功！' : (serviceOn ? '新增成功！' : '新增成功！（未加入排班）')); closeModal(); loadData();
         } catch (err) { showMessage('error', `儲存失敗：${err.message}`); } finally { setIsLoading(false); }
     };
 
@@ -487,6 +549,10 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
         });
     };
     // ==============================================================
+
+    // 表單用：服事模組沒開時，隱藏所有服事相關欄位（非管理員本來就是服事同工，一律顯示）
+    const serviceOn = !isAdmin || formModules.serving;
+    const hideIfNoService = serviceOn ? '' : 'hidden';
 
     const currentGroupID = formData.group_id || '';
     const groupPrefix = currentGroupID.replace(/[0-9]/g, '') || 'FA'; 
@@ -783,6 +849,10 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                 }
                                 safeDates.sort();
 
+                                // 管理員視角：這位同工開了哪些模組；沒開「服事」就不顯示服事資訊
+                                const mods = isAdmin ? memberModules[member.id] : null;
+                                const cardServiceOn = !mods || mods.serving;
+
                                 return (
                                     <div key={member.id} className="bg-white rounded-xl p-4 sm:p-6 shadow-soft border border-slate-100 hover:shadow-hover-soft hover:-translate-y-1 transition-all duration-200 relative group">
                                         <div className="flex justify-between items-start mb-3">
@@ -795,9 +865,12 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                                             {settings.dual_service_pref === 1 && <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-violet-50 text-violet-600 rounded border border-violet-100 font-bold`}>二堂同崗</span>}
                                                             {settings.dual_service_pref === 2 && <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-violet-50 text-violet-600 rounded border border-violet-100 font-bold`}>二堂異崗</span>}
                                                             {member.group_id && <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-indigo-50 text-indigo-600 rounded border border-indigo-100 font-bold`}>{member.group_id}</span>}
+                                                            {mods && [['prayer', '禱告'], ['serving', '服事'], ['office', '行政']].filter(([k]) => mods[k]).map(([k, label]) => (
+                                                                <span key={k} className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-slate-100 text-slate-500 rounded border border-slate-200 font-medium`}>{label}</span>
+                                                            ))}
                                                         </h3>
                                                     )}
-                                                    <div className={`flex items-center flex-wrap gap-1.5 ${isLargeFont ? 'text-sm' : 'text-xs'} font-normal ${isAdmin ? 'mt-3' : ''}`}>
+                                                    <div className={`${cardServiceOn ? 'flex' : 'hidden'} items-center flex-wrap gap-1.5 ${isLargeFont ? 'text-sm' : 'text-xs'} font-normal ${isAdmin ? 'mt-3' : ''}`}>
                                                         <span className={`px-2 py-0.5 rounded-full ${settings.availability_status === '穩定服事' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
                                                             {settings.availability_status}
                                                         </span>
@@ -826,7 +899,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="space-y-3">
+                                        <div className={`space-y-3 ${cardServiceOn ? '' : 'hidden'}`}>
                                             <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                                                 <p className={`${isLargeFont ? 'text-base' : 'text-sm'} font-medium text-slate-700 mb-2 flex items-center gap-1.5`}><ShieldCheck size={isLargeFont ? 16 : 12}/> 服事崗位 ({ownedPosList.length})</p>
                                                 <div className="flex flex-wrap gap-2">
@@ -888,6 +961,23 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                             </div>
                             
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6 touch-pan-y overscroll-contain">
+                                {isAdmin && (
+                                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                        <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5 flex-wrap">
+                                            <ShieldCheck size={18} className="text-indigo-500"/> 使用模組
+                                            <span className="text-xs text-slate-400 font-normal">(至少開啟一個)</span>
+                                        </label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {[['prayer', '禱告'], ['serving', '服事'], ['office', '行政']].map(([key, label]) => (
+                                                <button key={key} type="button" onClick={() => toggleModule(key)} className={`px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium border-2 transition-all duration-200 flex items-center gap-1.5 hover:-translate-y-0.5 active:scale-95 ${formModules[key] ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-400'}`}>
+                                                    {label}
+                                                    {formModules[key] && <Check size={14} strokeWidth={3}/>}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="text-xs text-slate-400 leading-snug">沒有開「服事」的人，不會出現服事欄位，也不會被算進排班與人力統計。</p>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-slate-500 uppercase">姓名 <span className="text-red-500">*</span></label>
@@ -900,13 +990,13 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                             readOnly={!isAdmin && !!editingMember} 
                                         />
                                     </div>
-                                    <div className="space-y-1.5">
+                                    <div className={`space-y-1.5 ${hideIfNoService}`}>
                                         <label className="text-xs font-medium text-slate-500 uppercase">服事意願</label>
                                         <select value={formData.availability_status ?? '穩定服事'} onChange={e => setFormData({...formData, availability_status: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 sm:py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-normal text-slate-900 transition-all">
                                             {FINAL_STATUS_OPTIONS.filter(opt => isAdmin || (opt !== '安息季' && opt !== '一季一次' && opt !== '一季三次')).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                                         </select>
                                     </div>
-                                    <div className="space-y-1.5">
+                                    <div className={`space-y-1.5 ${hideIfNoService}`}>
                                         <label className="text-xs font-medium text-slate-500 uppercase">堂別</label>
                                         <select value={formData.preferred_session ?? '第一堂'} onChange={e => setFormData({...formData, preferred_session: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 sm:py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-normal text-slate-900 transition-all">
                                             {SESSION_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -946,7 +1036,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-1.5">
+                                            <div className={`space-y-1.5 ${hideIfNoService}`}>
                                                 <label className="text-xs font-medium text-slate-500 uppercase">崗位兼任 <span className="text-slate-400 font-normal">(選填)</span></label>
                                                 <select value={formData.dual_service_pref ?? ''} onChange={e => setFormData({...formData, dual_service_pref: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 sm:py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-normal text-slate-900 transition-all">
                                                     <option value="">預設 (開啟兼任)</option>
@@ -955,14 +1045,14 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                                     <option value="2">二堂異崗</option>
                                                 </select>
                                             </div>
-                                            <div className="space-y-1.5">
+                                            <div className={`space-y-1.5 ${hideIfNoService}`}>
                                                 <label className="text-xs font-medium text-slate-500 uppercase">新朋友關懷設定 <span className="text-slate-400 font-normal">(選填)</span></label>
                                                 <select value={formData.newcomer_rule ?? ''} onChange={e => setFormData({...formData, newcomer_rule: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 sm:py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-normal text-slate-900 transition-all">
                                                     <option value="">預設(正常排班)</option><option value="1">主責</option>
                                                 </select>
                                             </div>
 
-                                            <div className="space-y-1.5 sm:col-span-2 pt-2">
+                                            <div className={`space-y-1.5 sm:col-span-2 pt-2 ${hideIfNoService}`}>
                                                 <label className="text-xs font-medium text-slate-500 uppercase flex items-center gap-1.5">
                                                     不可排班周 <span className="text-slate-400 font-normal">(選填)</span>
                                                 </label>
@@ -997,7 +1087,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                         <input type="text" value={formData.email ?? ''} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-white border border-indigo-200 rounded-lg px-4 py-3 sm:py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-normal text-slate-900 transition-all" placeholder="電話號碼或電子郵件" />
                                     </div>
                                 )}
-                                <div className="pt-2 border-t border-slate-100">
+                                <div className={`pt-2 border-t border-slate-100 ${hideIfNoService}`}>
                                     <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5 mb-3">
                                         <ShieldCheck size={18} className="text-indigo-500"/> 服事崗位 {!isAdmin && <span className="text-[10px] text-slate-400 font-normal ml-1">(僅供檢視)</span>}
                                     </label>
@@ -1019,7 +1109,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                     </div>
                                 </div>
                                 
-                                {viewQuarter !== 'BASE' && (
+                                {serviceOn && viewQuarter !== 'BASE' && (
                                     <div className="pt-4 border-t border-slate-100">
                                         <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5 mb-3">
                                             <CalendarX size={18} className="text-orange-500"/> 不可排班日 <span className="text-xs text-slate-400 font-normal ml-1">(點擊選取)</span>
