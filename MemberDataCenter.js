@@ -66,12 +66,10 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
     const [editingMember, setEditingMember] = useState(null); 
     const [formData, setFormData] = useState({ ...DEFAULT_MEMBER, unavailable_weeks: [] });
     const [formPositions, setFormPositions] = useState({});
-    // 模組開關（跟「職務」是兩回事）：畫面用 prayer／serving／office，
-    // 資料庫 member_access 裡對應 prayer／serving／staff_worker。memberModules 是資料庫現況，formModules 是表單上的開關
-    const [isRoleManagerOpen, setIsRoleManagerOpen] = useState(false);
+    // 模組開關（跟「權限」是兩回事）：畫面用 prayer／serving／office，
+    // 資料庫 members.modules 裡對應 prayer／serving／staff_worker。memberModules 是資料庫現況，formModules 是表單上的開關
     const [accounts, setAccounts] = useState([]);
-    const [accountsLoading, setAccountsLoading] = useState(false);
-    const [roleSearch, setRoleSearch] = useState('');
+    const [formRole, setFormRole] = useState('member'); // 編輯視窗裡選的權限
     const [memberModules, setMemberModules] = useState({});
     const [formModules, setFormModules] = useState({ prayer: true, serving: false, office: false });
 
@@ -108,21 +106,26 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                 }
             }
 
-            // 讀取每位同工開了哪些模組（僅管理員）。讀不到就當作沒有資料，畫面維持原樣
+            // 每位同工開了哪些模組：直接讀 members.modules（還沒執行升級 SQL 時沒有這欄，就維持原樣）
+            if (isAdmin) {
+                const map = {};
+                (mData || []).forEach(m => {
+                    if (Array.isArray(m.modules)) {
+                        map[m.id] = { prayer: m.modules.includes('prayer'), serving: m.modules.includes('serving'), office: m.modules.includes('staff_worker') };
+                    }
+                });
+                setMemberModules(map);
+            }
+
+            // 讀取登入帳號與目前權限（僅管理員）；讀不到就當作沒有資料
             if (isAdmin) {
                 try {
-                    const { data: maData } = await fetchAllData(() => supabase.from('member_access').select('member_id, system, is_active'));
-                    const legacy = { general: 'prayer', admin_worker: 'office', staff_worker: 'office' };
-                    const map = {};
-                    (maData || []).forEach(r => {
-                        if (!map[r.member_id]) map[r.member_id] = { prayer: false, serving: false, office: false };
-                        const key = legacy[r.system] || r.system;
-                        if (r.is_active !== false && key in map[r.member_id]) map[r.member_id][key] = true;
-                    });
-                    setMemberModules(map);
+                    const { data: acctData, error: acctErr } = await supabase.rpc('admin_list_accounts');
+                    if (acctErr) throw acctErr;
+                    setAccounts(acctData || []);
                 } catch (e) {
-                    console.error('讀取模組失敗', e);
-                    setMemberModules({});
+                    console.error('讀取帳號權限失敗', e);
+                    setAccounts([]);
                 }
             }
 
@@ -327,6 +330,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
         setFormData({ ...DEFAULT_MEMBER, dual_service_pref: '', unavailable_weeks: [] }); 
         setFormPositions({});
         setFormModules({ prayer: true, serving: false, office: false }); // 新增時預設只開「禱告」
+        setFormRole('member');
         setIsModalOpen(true);
     };
 
@@ -405,6 +409,8 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
         const posMap = {};
         memberPositions.filter(mp => mp.member_id === member.id).forEach(mp => { posMap[mp.position_id] = mp.is_active !== false ? 'active' : 'inactive'; });
         setFormPositions(posMap);
+        const acct = getAccount(member);
+        setFormRole(acct ? acct.role : 'member');
         // 資料庫沒有模組資料時（例如還沒執行升級 SQL），有崗位的人視為「服事」
         setFormModules(memberModules[member.id]
             ? { ...memberModules[member.id] }
@@ -412,44 +418,15 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
         setIsModalOpen(true);
     };
 
-    // ================= 職務設定（user_roles）=================
+    // ================= 權限設定（user_roles）=================
     const ROLE_LABELS = { member: '會友', coworker: '同工', admin_staff: '行政', leader: '領袖', pastor: '牧師', admin: '系統管理員' };
-    const MANUAL_ROLES = ['leader', 'pastor', 'admin']; // 只能手動指定的三種職務
+    const ROLE_ORDER = ['member', 'coworker', 'admin_staff', 'leader', 'pastor', 'admin']; // 網頁上可指定的六種權限
+    const HIGH_ROLES = ['leader', 'pastor', 'admin']; // 卡片上用顏色標出來
 
-    const loadAccounts = async () => {
-        setAccountsLoading(true);
-        try {
-            const { data, error } = await supabase.rpc('admin_list_accounts');
-            if (error) throw error;
-            setAccounts(data || []);
-        } catch (err) {
-            showMessage('error', '讀取帳號失敗：' + err.message);
-        } finally {
-            setAccountsLoading(false);
-        }
-    };
-
-    const openRoleManager = () => { setRoleSearch(''); setIsRoleManagerOpen(true); loadAccounts(); };
-
-    const changeRole = (acct, value) => {
-        const newRole = value === '' ? null : value;
-        const label = newRole ? ROLE_LABELS[newRole] : '自動（依模組判斷）';
-        setConfirmAction({
-            title: '變更職務',
-            message: `將「${acct.member_names || acct.account}」的職務改為「${label}」？`,
-            confirmText: '確定',
-            onConfirm: async () => {
-                setConfirmAction(null);
-                try {
-                    const { error } = await supabase.rpc('admin_set_role', { p_user: acct.user_uid, p_role: newRole });
-                    if (error) throw error;
-                    showMessage('success', '職務已更新');
-                    loadAccounts();
-                } catch (err) {
-                    showMessage('error', '更新失敗：' + err.message);
-                }
-            }
-        });
+    // 這位同工對應的登入帳號（還沒註冊就是 undefined）
+    const getAccount = (member) => {
+        const key = toAuthEmail(member?.email);
+        return key ? accounts.find(a => (a.account || '').trim().toLowerCase() === key) : undefined;
     };
 
     const toggleModule = (key) => {
@@ -540,6 +517,15 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                 const mods = ['prayer', 'serving', 'office'].filter(k => formModules[k]).map(k => toDb[k]);
                 const { error: modErr } = await supabase.rpc('set_member_modules', { p_member: memberId, p_modules: mods });
                 if (modErr) throw new Error('模組儲存失敗（' + modErr.message + '）');
+
+                // 權限：只有已註冊的同工能指定，而且只在有變動時才送出（要在模組儲存之後，避免被自動判斷蓋掉）
+                const acct = editingMember ? getAccount(editingMember) : null;
+                if (acct) {
+                    if (formRole !== acct.role) {
+                        const { error: roleErr } = await supabase.rpc('admin_set_role', { p_user: acct.user_uid, p_role: formRole });
+                        if (roleErr) throw new Error('權限儲存失敗（' + roleErr.message + '）');
+                    }
+                }
             }
             showMessage('success', editingMember ? '更新成功！' : (serviceOn ? '新增成功！' : '新增成功！（未加入排班）')); closeModal(); loadData();
         } catch (err) { showMessage('error', `儲存失敗：${err.message}`); } finally { setIsLoading(false); }
@@ -721,7 +707,6 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                         <div className="tbc-sb-item tbc-sb-active" title="同工資料中心"><Users size={18} /><span className="tbc-sb-label">同工資料中心</span></div>
                         <button onClick={() => { goToSchedule(); setIsMobileMenuOpen(false); }} className="tbc-sb-item" title="排班作業中心"><Calendar size={18} /><span className="tbc-sb-label">排班作業中心</span></button>
                         <button onClick={() => { goToInsights(); setIsMobileMenuOpen(false); }} className="tbc-sb-item" title="人力洞察中心"><BarChart3 size={18} /><span className="tbc-sb-label">人力洞察中心</span></button>
-                        <button onClick={() => { openRoleManager(); setIsMobileMenuOpen(false); }} className="tbc-sb-item" title="職務設定"><ShieldCheck size={18} /><span className="tbc-sb-label">職務設定</span></button>
                     </nav>
                 </div>
                 <div className="tbc-sb-foot">
@@ -910,6 +895,12 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                                             {settings.dual_service_pref === 1 && <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-violet-50 text-violet-600 rounded border border-violet-100 font-bold`}>二堂同崗</span>}
                                                             {settings.dual_service_pref === 2 && <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-violet-50 text-violet-600 rounded border border-violet-100 font-bold`}>二堂異崗</span>}
                                                             {member.group_id && <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-indigo-50 text-indigo-600 rounded border border-indigo-100 font-bold`}>{member.group_id}</span>}
+                                                            {isAdmin && (() => {
+                                                                const acct = getAccount(member);
+                                                                return acct
+                                                                    ? <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} rounded border font-bold ${HIGH_ROLES.includes(acct.role) ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-white text-slate-500 border-slate-200'}`}>{ROLE_LABELS[acct.role] || acct.role}</span>
+                                                                    : (member.email ? <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} rounded border border-dashed border-slate-300 text-slate-400 font-medium`}>未註冊</span> : null);
+                                                            })()}
                                                             {mods && [['prayer', '禱告'], ['serving', '服事'], ['office', '行政']].filter(([k]) => mods[k]).map(([k, label]) => (
                                                                 <span key={k} className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-slate-100 text-slate-500 rounded border border-slate-200 font-medium`}>{label}</span>
                                                             ))}
@@ -1023,6 +1014,29 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                         <p className="text-xs text-slate-400 leading-snug">沒有開「服事」的人，不會出現服事欄位，也不會被算進排班與人力統計。</p>
                                     </div>
                                 )}
+                                {isAdmin && (() => {
+                                    const acct = editingMember ? getAccount(editingMember) : null;
+                                    return (
+                                        <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                            <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5 flex-wrap">
+                                                <ShieldCheck size={18} className="text-indigo-500"/> 權限設定
+                                                {acct && <span className="text-xs px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-500 font-normal">目前：{ROLE_LABELS[acct.role] || acct.role}</span>}
+                                            </label>
+                                            {acct ? (
+                                                <>
+                                                    <select value={formRole} onChange={e => setFormRole(e.target.value)} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 sm:py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-slate-900">
+                                                        {ROLE_ORDER.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                                                    </select>
+                                                    {acct.member_count > 1 && <p className="text-xs text-amber-600 leading-snug">這是共用帳號（{acct.member_names}），改權限會影響共用這個帳號的所有人。</p>}
+                                                </>
+                                            ) : (
+                                                <p className="text-xs text-slate-400 leading-snug">
+                                                    {editingMember ? '這位同工還沒有註冊登入帳號，註冊後才能指定權限。' : '新增後，等同工註冊登入，再回來指定權限。註冊時系統會先依模組給一個初始權限（行政＞服事＞會友），之後都由你在這裡調整。'}
+                                                </p>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-medium text-slate-500 uppercase">姓名 <span className="text-red-500">*</span></label>
@@ -1295,57 +1309,6 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                             <div className="p-3 bg-slate-50 flex gap-2 border-t border-slate-100">
                                 <button onClick={() => setIsCreateQuarterModalOpen(false)} className="flex-1 py-3 font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">取消</button>
                                 <button onClick={handleExecuteCreateQuarter} className="flex-1 py-3 font-medium text-white bg-gradient-to-r from-amber-500 to-orange-500 shadow-button hover:-translate-y-0.5 rounded-lg transition-all duration-200">建立</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {isRoleManagerOpen && isAdmin && (
-                    <div className="fixed inset-0 z-[100] flex flex-col justify-center sm:p-4 bg-slate-900/40 backdrop-blur-sm">
-                        <div className="bg-white w-full h-[100dvh] sm:h-auto mx-auto max-h-full sm:max-h-[85dvh] max-w-2xl sm:rounded-2xl shadow-hover-soft overflow-hidden flex flex-col animate-fade-in border border-slate-100">
-                            <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
-                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2"><ShieldCheck className="text-indigo-600" size={20} /> 職務設定</h3>
-                                <button onClick={() => setIsRoleManagerOpen(false)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"><X size={20}/></button>
-                            </div>
-                            <div className="px-5 pt-4 shrink-0 space-y-3">
-                                <p className="text-xs text-slate-500 leading-relaxed">
-                                    「會友／同工／行政」由系統依模組自動給；「領袖／牧師／系統管理員」要在這裡手動指定。選「自動」會取消手動指定，回到依模組判斷。
-                                </p>
-                                <div className="relative">
-                                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input type="text" value={roleSearch} onChange={e => setRoleSearch(e.target.value)} placeholder="搜尋姓名或帳號" className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-slate-900" />
-                                </div>
-                            </div>
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-2">
-                                {accountsLoading && <div className="text-center py-10 text-slate-400 animate-pulse">Loading...</div>}
-                                {!accountsLoading && accounts
-                                    .filter(a => {
-                                        const kw = roleSearch.trim().toLowerCase();
-                                        if (!kw) return true;
-                                        return (a.account || '').toLowerCase().includes(kw) || (a.member_names || '').toLowerCase().includes(kw);
-                                    })
-                                    .sort((a, b) => (MANUAL_ROLES.includes(b.role) ? 1 : 0) - (MANUAL_ROLES.includes(a.role) ? 1 : 0))
-                                    .map(a => (
-                                        <div key={a.user_uid} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 rounded-xl border border-slate-100 bg-white">
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-slate-900 truncate flex items-center gap-2 flex-wrap">
-                                                    {a.member_names || <span className="text-slate-400 font-normal">（找不到對應同工）</span>}
-                                                    {a.member_count > 1 && <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-600 rounded border border-amber-100 font-bold">共用帳號</span>}
-                                                </p>
-                                                <p className="text-xs text-slate-400 truncate">{(a.account || '').replace('@tbc.gmail.com', '')}</p>
-                                            </div>
-                                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 self-start sm:self-auto ${MANUAL_ROLES.includes(a.role) ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>{ROLE_LABELS[a.role] || a.role}</span>
-                                            <select
-                                                value={MANUAL_ROLES.includes(a.role) ? a.role : ''}
-                                                onChange={e => changeRole(a, e.target.value)}
-                                                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-indigo-500 text-sm text-slate-900 shrink-0"
-                                            >
-                                                <option value="">自動（依模組）</option>
-                                                {MANUAL_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
-                                            </select>
-                                        </div>
-                                    ))}
-                                {!accountsLoading && accounts.length === 0 && <div className="text-center py-10 text-slate-400">沒有登入帳號資料</div>}
                             </div>
                         </div>
                     </div>
