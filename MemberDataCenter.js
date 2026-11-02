@@ -66,12 +66,9 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
     const [editingMember, setEditingMember] = useState(null); 
     const [formData, setFormData] = useState({ ...DEFAULT_MEMBER, unavailable_weeks: [] });
     const [formPositions, setFormPositions] = useState({});
-    // 模組開關（跟「權限」是兩回事）：畫面用 prayer／serving／office，
-    // 資料庫 members.modules 裡對應 prayer／serving／staff_worker。memberModules 是資料庫現況，formModules 是表單上的開關
     const [accounts, setAccounts] = useState([]);
     const [formRole, setFormRole] = useState('member'); // 編輯視窗裡選的權限
-    const [memberModules, setMemberModules] = useState({});
-    const [formModules, setFormModules] = useState({ prayer: true, serving: false, office: false });
+    const [serviceOpen, setServiceOpen] = useState(false); // 新增視窗裡「服事設定」是否展開（管理員用）
 
     // 帳號為電話時，系統登入 Email 為「電話@tbc.gmail.com」；帳號本身是 Email 則直接使用
     const toAuthEmail = (account) => {
@@ -104,17 +101,6 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                     console.error('讀取 Auth 名單失敗', e);
                     setAuthEmails(new Set());
                 }
-            }
-
-            // 每位同工開了哪些模組：直接讀 members.modules（還沒執行升級 SQL 時沒有這欄，就維持原樣）
-            if (isAdmin) {
-                const map = {};
-                (mData || []).forEach(m => {
-                    if (Array.isArray(m.modules)) {
-                        map[m.id] = { prayer: m.modules.includes('prayer'), serving: m.modules.includes('serving'), office: m.modules.includes('staff_worker') };
-                    }
-                });
-                setMemberModules(map);
             }
 
             // 讀取登入帳號與目前權限（僅管理員）；讀不到就當作沒有資料
@@ -329,7 +315,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
         setEditingMember(null); 
         setFormData({ ...DEFAULT_MEMBER, dual_service_pref: '', unavailable_weeks: [] }); 
         setFormPositions({});
-        setFormModules({ prayer: true, serving: false, office: false }); // 新增時預設只開「禱告」
+        setServiceOpen(false); // 新增時服事設定預設收起來；沒有指派崗位就不會加入排班與統計
         setFormRole('member');
         setIsModalOpen(true);
     };
@@ -411,10 +397,8 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
         setFormPositions(posMap);
         const acct = getAccount(member);
         setFormRole(acct ? acct.role : 'member');
-        // 資料庫沒有模組資料時（例如還沒執行升級 SQL），有崗位的人視為「服事」
-        setFormModules(memberModules[member.id]
-            ? { ...memberModules[member.id] }
-            : { prayer: true, serving: Object.keys(posMap).length > 0, office: false });
+        // 已經有崗位或這一季有服事設定的人，服事欄位預設展開
+        setServiceOpen(Object.keys(posMap).length > 0 || quarterSettings.some(q => q.member_id === member.id));
         setIsModalOpen(true);
     };
 
@@ -427,12 +411,6 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
     const getAccount = (member) => {
         const key = toAuthEmail(member?.email);
         return key ? accounts.find(a => (a.account || '').trim().toLowerCase() === key) : undefined;
-    };
-
-    const toggleModule = (key) => {
-        const next = { ...formModules, [key]: !formModules[key] };
-        if (!next.member && !next.coworker && !next.admin_staff) return; // 至少要留一個
-        setFormModules(next);
     };
 
     const closeModal = () => { setIsModalOpen(false); setEditingMember(null); setFormData({ ...DEFAULT_MEMBER, unavailable_weeks: [] }); };
@@ -453,26 +431,15 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
             return showMessage('error', '非開放填寫期間無法儲存變更');
         }
         if (!formData.name || !formData.name.trim()) return showMessage('error', '姓名不可為空');
-        if (isAdmin && !formModules.prayer && !formModules.serving && !formModules.office) {
-            return showMessage('error', '至少要開啟一個模組');
-        }
-
-        // 編輯舊同工時把「服事」關掉：先提醒會有什麼後果
-        const wasServing = editingMember && memberModules[editingMember.id]?.serving;
-        if (isAdmin && wasServing && !formModules.serving) {
-            return setConfirmAction({
-                title: '關閉「服事」模組',
-                message: `關閉後，「${formData.name.trim()}」目前與未來季度的崗位會改為暫停，不再被算進排班與人力統計（過去季度的紀錄不變）。確定關閉？`,
-                confirmText: '確定關閉',
-                onConfirm: () => { setConfirmAction(null); doSave(); }
-            });
-        }
         doSave();
     };
 
     const doSave = async () => {
-        // 服事模組關閉時，不建立季度設定、不指派崗位
-        const serviceOn = !isAdmin || formModules.serving;
+        // 管理員：有指派崗位、或這位同工這一季本來就有服事設定，才寫入服事資料；
+        // 沒有崗位的人（只用禱告）不建立季度設定，也不會被算進排班與人力統計
+        const hasPositions = Object.keys(formPositions).length > 0;
+        const hadSettings = !!editingMember && quarterSettings.some(q => q.member_id === editingMember.id);
+        const hasService = !isAdmin || hasPositions || hadSettings;
         setIsLoading(true);
         try {
             let memberId = editingMember ? editingMember.id : null;
@@ -492,7 +459,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                 if (error) throw error; memberId = data[0].id;
             }
 
-            if (serviceOn) {
+            if (hasService) {
                 await supabase.from('member_quarter_settings').upsert({
                     member_id: memberId, quarter: viewQuarter, preferred_session: formData.preferred_session,
                     availability_status: formData.availability_status, dual_service_pref: finalDualPref,
@@ -501,7 +468,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                 }, { onConflict: 'member_id, quarter' });
             }
 
-            if (isAdmin && memberId && serviceOn) {
+            if (isAdmin && memberId && hasService) {
                 await supabase.from('member_positions').delete().eq('member_id', memberId).eq('quarter', viewQuarter);
                 const posKeys = Object.keys(formPositions);
                 if (posKeys.length > 0) {
@@ -511,23 +478,16 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                     await supabase.from('member_positions').insert(insertPosPayload);
                 }
             }
-            // 最後一步：把三個模組開關存進資料庫（只有系統管理員做得到）
-            if (isAdmin && memberId) {
-                const toDb = { prayer: 'prayer', serving: 'serving', office: 'staff_worker' };
-                const mods = ['prayer', 'serving', 'office'].filter(k => formModules[k]).map(k => toDb[k]);
-                const { error: modErr } = await supabase.rpc('set_member_modules', { p_member: memberId, p_modules: mods });
-                if (modErr) throw new Error('模組儲存失敗（' + modErr.message + '）');
-
-                // 權限：只有已註冊的同工能指定，而且只在有變動時才送出（要在模組儲存之後，避免被自動判斷蓋掉）
-                const acct = editingMember ? getAccount(editingMember) : null;
-                if (acct) {
-                    if (formRole !== acct.role) {
-                        const { error: roleErr } = await supabase.rpc('admin_set_role', { p_user: acct.user_uid, p_role: formRole });
-                        if (roleErr) throw new Error('權限儲存失敗（' + roleErr.message + '）');
-                    }
+            // 權限：只有已註冊的同工能指定，而且只在有變動時才送出
+            // （有服事崗位的「會友」，資料庫會自動升成「同工」，所以先存崗位、再存權限）
+            if (isAdmin && memberId && editingMember) {
+                const acct = getAccount(editingMember);
+                if (acct && formRole !== acct.role) {
+                    const { error: roleErr } = await supabase.rpc('admin_set_role', { p_user: acct.user_uid, p_role: formRole });
+                    if (roleErr) throw new Error('權限儲存失敗（' + roleErr.message + '）');
                 }
             }
-            showMessage('success', editingMember ? '更新成功！' : (serviceOn ? '新增成功！' : '新增成功！（未加入排班）')); closeModal(); loadData();
+            showMessage('success', editingMember ? '更新成功！' : (hasService ? '新增成功！' : '新增成功！（未指派崗位，不會加入排班與統計）')); closeModal(); loadData();
         } catch (err) { showMessage('error', `儲存失敗：${err.message}`); } finally { setIsLoading(false); }
     };
 
@@ -580,8 +540,8 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
     };
     // ==============================================================
 
-    // 表單用：服事模組沒開時，隱藏所有服事相關欄位（非管理員本來就是服事同工，一律顯示）
-    const serviceOn = !isAdmin || formModules.serving;
+    // 表單用：服事設定收起來時隱藏所有服事欄位（非管理員本來就是服事同工，一律顯示）
+    const serviceOn = !isAdmin || serviceOpen;
     const hideIfNoService = serviceOn ? '' : 'hidden';
 
     const currentGroupID = formData.group_id || '';
@@ -879,9 +839,8 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                 }
                                 safeDates.sort();
 
-                                // 管理員視角：這位同工開了哪些模組；沒開「服事」就不顯示服事資訊
-                                const mods = isAdmin ? memberModules[member.id] : null;
-                                const cardServiceOn = !mods || mods.serving;
+                                // 沒有崗位、也沒有這一季服事設定的人（只用禱告），卡片不顯示服事資訊
+                                const cardServiceOn = !isAdmin || ownedPosList.length > 0 || quarterSettings.some(q => q.member_id === member.id);
 
                                 return (
                                     <div key={member.id} className="bg-white rounded-xl p-4 sm:p-6 shadow-soft border border-slate-100 hover:shadow-hover-soft hover:-translate-y-1 transition-all duration-200 relative group">
@@ -901,9 +860,6 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                                                     ? <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} rounded border font-bold ${HIGH_ROLES.includes(acct.role) ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-white text-slate-500 border-slate-200'}`}>{ROLE_LABELS[acct.role] || acct.role}</span>
                                                                     : (member.email ? <span className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} rounded border border-dashed border-slate-300 text-slate-400 font-medium`}>未註冊</span> : null);
                                                             })()}
-                                                            {mods && [['prayer', '禱告'], ['serving', '服事'], ['office', '行政']].filter(([k]) => mods[k]).map(([k, label]) => (
-                                                                <span key={k} className={`${isLargeFont ? 'text-xs px-2.5 py-1' : 'text-[10px] px-2 py-0.5'} bg-slate-100 text-slate-500 rounded border border-slate-200 font-medium`}>{label}</span>
-                                                            ))}
                                                         </h3>
                                                     )}
                                                     <div className={`${cardServiceOn ? 'flex' : 'hidden'} items-center flex-wrap gap-1.5 ${isLargeFont ? 'text-sm' : 'text-xs'} font-normal ${isAdmin ? 'mt-3' : ''}`}>
@@ -997,23 +953,6 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                             </div>
                             
                             <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6 touch-pan-y overscroll-contain">
-                                {isAdmin && (
-                                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                        <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5 flex-wrap">
-                                            <ShieldCheck size={18} className="text-indigo-500"/> 使用模組
-                                            <span className="text-xs text-slate-400 font-normal">(至少開啟一個)</span>
-                                        </label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {[['prayer', '禱告'], ['serving', '服事'], ['office', '行政']].map(([key, label]) => (
-                                                <button key={key} type="button" onClick={() => toggleModule(key)} className={`px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium border-2 transition-all duration-200 flex items-center gap-1.5 hover:-translate-y-0.5 active:scale-95 ${formModules[key] ? 'bg-indigo-50 border-indigo-500 text-indigo-700' : 'bg-white border-slate-200 text-slate-400'}`}>
-                                                    {label}
-                                                    {formModules[key] && <Check size={14} strokeWidth={3}/>}
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <p className="text-xs text-slate-400 leading-snug">沒有開「服事」的人，不會出現服事欄位，也不會被算進排班與人力統計。</p>
-                                    </div>
-                                )}
                                 {isAdmin && (() => {
                                     const acct = editingMember ? getAccount(editingMember) : null;
                                     return (
@@ -1031,7 +970,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                                 </>
                                             ) : (
                                                 <p className="text-xs text-slate-400 leading-snug">
-                                                    {editingMember ? '這位同工還沒有註冊登入帳號，註冊後才能指定權限。' : '新增後，等同工註冊登入，再回來指定權限。註冊時系統會先依模組給一個初始權限（行政＞服事＞會友），之後都由你在這裡調整。'}
+                                                    {editingMember ? '這位同工還沒有註冊登入帳號，註冊後才能指定權限。' : '新增後，等同工註冊登入，再回來指定權限。註冊時預設是「會友」，已有服事崗位則是「同工」，之後都由你在這裡調整。'}
                                                 </p>
                                             )}
                                         </div>
@@ -1049,6 +988,14 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                                             readOnly={!isAdmin && !!editingMember} 
                                         />
                                     </div>
+                                    {isAdmin && (
+                                        <div className="sm:col-span-2">
+                                            <button type="button" onClick={() => setServiceOpen(v => !v)} className="w-full flex items-center justify-between gap-2 px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-colors">
+                                                <span className="text-sm font-medium text-slate-700">服事設定 <span className="text-xs text-slate-400 font-normal">（有指派崗位才會加入排班與人力統計）</span></span>
+                                                <span className="text-xs text-indigo-600 font-medium shrink-0">{serviceOpen ? '收起' : '展開'}</span>
+                                            </button>
+                                        </div>
+                                    )}
                                     <div className={`space-y-1.5 ${hideIfNoService}`}>
                                         <label className="text-xs font-medium text-slate-500 uppercase">服事意願</label>
                                         <select value={formData.availability_status ?? '穩定服事'} onChange={e => setFormData({...formData, availability_status: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 sm:py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 font-normal text-slate-900 transition-all">
