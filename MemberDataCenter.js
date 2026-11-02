@@ -68,6 +68,10 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
     const [formPositions, setFormPositions] = useState({});
     // 模組開關（跟「職務」是兩回事）：畫面用 prayer／serving／office，
     // 資料庫 member_access 裡對應 prayer／serving／staff_worker。memberModules 是資料庫現況，formModules 是表單上的開關
+    const [isRoleManagerOpen, setIsRoleManagerOpen] = useState(false);
+    const [accounts, setAccounts] = useState([]);
+    const [accountsLoading, setAccountsLoading] = useState(false);
+    const [roleSearch, setRoleSearch] = useState('');
     const [memberModules, setMemberModules] = useState({});
     const [formModules, setFormModules] = useState({ prayer: true, serving: false, office: false });
 
@@ -408,6 +412,46 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
         setIsModalOpen(true);
     };
 
+    // ================= 職務設定（user_roles）=================
+    const ROLE_LABELS = { member: '會友', coworker: '同工', admin_staff: '行政', leader: '領袖', pastor: '牧師', admin: '系統管理員' };
+    const MANUAL_ROLES = ['leader', 'pastor', 'admin']; // 只能手動指定的三種職務
+
+    const loadAccounts = async () => {
+        setAccountsLoading(true);
+        try {
+            const { data, error } = await supabase.rpc('admin_list_accounts');
+            if (error) throw error;
+            setAccounts(data || []);
+        } catch (err) {
+            showMessage('error', '讀取帳號失敗：' + err.message);
+        } finally {
+            setAccountsLoading(false);
+        }
+    };
+
+    const openRoleManager = () => { setRoleSearch(''); setIsRoleManagerOpen(true); loadAccounts(); };
+
+    const changeRole = (acct, value) => {
+        const newRole = value === '' ? null : value;
+        const label = newRole ? ROLE_LABELS[newRole] : '自動（依模組判斷）';
+        setConfirmAction({
+            title: '變更職務',
+            message: `將「${acct.member_names || acct.account}」的職務改為「${label}」？`,
+            confirmText: '確定',
+            onConfirm: async () => {
+                setConfirmAction(null);
+                try {
+                    const { error } = await supabase.rpc('admin_set_role', { p_user: acct.user_uid, p_role: newRole });
+                    if (error) throw error;
+                    showMessage('success', '職務已更新');
+                    loadAccounts();
+                } catch (err) {
+                    showMessage('error', '更新失敗：' + err.message);
+                }
+            }
+        });
+    };
+
     const toggleModule = (key) => {
         const next = { ...formModules, [key]: !formModules[key] };
         if (!next.member && !next.coworker && !next.admin_staff) return; // 至少要留一個
@@ -677,6 +721,7 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                         <div className="tbc-sb-item tbc-sb-active" title="同工資料中心"><Users size={18} /><span className="tbc-sb-label">同工資料中心</span></div>
                         <button onClick={() => { goToSchedule(); setIsMobileMenuOpen(false); }} className="tbc-sb-item" title="排班作業中心"><Calendar size={18} /><span className="tbc-sb-label">排班作業中心</span></button>
                         <button onClick={() => { goToInsights(); setIsMobileMenuOpen(false); }} className="tbc-sb-item" title="人力洞察中心"><BarChart3 size={18} /><span className="tbc-sb-label">人力洞察中心</span></button>
+                        <button onClick={() => { openRoleManager(); setIsMobileMenuOpen(false); }} className="tbc-sb-item" title="職務設定"><ShieldCheck size={18} /><span className="tbc-sb-label">職務設定</span></button>
                     </nav>
                 </div>
                 <div className="tbc-sb-foot">
@@ -1250,6 +1295,57 @@ const MemberDataCenter = ({ session, isAdmin, goBack, goToSchedule, goToInsights
                             <div className="p-3 bg-slate-50 flex gap-2 border-t border-slate-100">
                                 <button onClick={() => setIsCreateQuarterModalOpen(false)} className="flex-1 py-3 font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition-colors">取消</button>
                                 <button onClick={handleExecuteCreateQuarter} className="flex-1 py-3 font-medium text-white bg-gradient-to-r from-amber-500 to-orange-500 shadow-button hover:-translate-y-0.5 rounded-lg transition-all duration-200">建立</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {isRoleManagerOpen && isAdmin && (
+                    <div className="fixed inset-0 z-[100] flex flex-col justify-center sm:p-4 bg-slate-900/40 backdrop-blur-sm">
+                        <div className="bg-white w-full h-[100dvh] sm:h-auto mx-auto max-h-full sm:max-h-[85dvh] max-w-2xl sm:rounded-2xl shadow-hover-soft overflow-hidden flex flex-col animate-fade-in border border-slate-100">
+                            <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2"><ShieldCheck className="text-indigo-600" size={20} /> 職務設定</h3>
+                                <button onClick={() => setIsRoleManagerOpen(false)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors"><X size={20}/></button>
+                            </div>
+                            <div className="px-5 pt-4 shrink-0 space-y-3">
+                                <p className="text-xs text-slate-500 leading-relaxed">
+                                    「會友／同工／行政」由系統依模組自動給；「領袖／牧師／系統管理員」要在這裡手動指定。選「自動」會取消手動指定，回到依模組判斷。
+                                </p>
+                                <div className="relative">
+                                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input type="text" value={roleSearch} onChange={e => setRoleSearch(e.target.value)} placeholder="搜尋姓名或帳號" className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2.5 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-slate-900" />
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-2">
+                                {accountsLoading && <div className="text-center py-10 text-slate-400 animate-pulse">Loading...</div>}
+                                {!accountsLoading && accounts
+                                    .filter(a => {
+                                        const kw = roleSearch.trim().toLowerCase();
+                                        if (!kw) return true;
+                                        return (a.account || '').toLowerCase().includes(kw) || (a.member_names || '').toLowerCase().includes(kw);
+                                    })
+                                    .sort((a, b) => (MANUAL_ROLES.includes(b.role) ? 1 : 0) - (MANUAL_ROLES.includes(a.role) ? 1 : 0))
+                                    .map(a => (
+                                        <div key={a.user_uid} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 rounded-xl border border-slate-100 bg-white">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-slate-900 truncate flex items-center gap-2 flex-wrap">
+                                                    {a.member_names || <span className="text-slate-400 font-normal">（找不到對應同工）</span>}
+                                                    {a.member_count > 1 && <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-600 rounded border border-amber-100 font-bold">共用帳號</span>}
+                                                </p>
+                                                <p className="text-xs text-slate-400 truncate">{(a.account || '').replace('@tbc.gmail.com', '')}</p>
+                                            </div>
+                                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium shrink-0 self-start sm:self-auto ${MANUAL_ROLES.includes(a.role) ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>{ROLE_LABELS[a.role] || a.role}</span>
+                                            <select
+                                                value={MANUAL_ROLES.includes(a.role) ? a.role : ''}
+                                                onChange={e => changeRole(a, e.target.value)}
+                                                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-indigo-500 text-sm text-slate-900 shrink-0"
+                                            >
+                                                <option value="">自動（依模組）</option>
+                                                {MANUAL_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                                            </select>
+                                        </div>
+                                    ))}
+                                {!accountsLoading && accounts.length === 0 && <div className="text-center py-10 text-slate-400">沒有登入帳號資料</div>}
                             </div>
                         </div>
                     </div>
