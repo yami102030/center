@@ -544,23 +544,30 @@
           const softBtn = isNext ? 'bg-white/15 hover:bg-white/25' : 'bg-white/15 hover:bg-white/25';
           const avatarBg = isNext ? 'bg-white/20' : 'bg-white/20';
 
-          // 目前登入帳號的權限（讀自己的那一筆；沒登入或讀不到，就顯示「會友」圖示）
+          // 權限圖示：只有「登入帳號本人」就是畫面上這個姓名時才顯示他的權限；
+          // 查別人的姓名、沒登入、或讀不到，一律顯示一般的人像圖示（不顯示任何權限）
           const [role, setRole] = useState(null);
           useEffect(() => {
             let alive = true;
+            setRole(null);
             (async () => {
               try {
                 const { data } = await supabase.auth.getSession();
                 const uid = data?.session?.user?.id;
-                if (!uid) return;
+                if (!uid || !name) return;
+                const { data: myIds } = await supabase.rpc('my_member_ids');
+                const mine = (myIds || []).map(x => (typeof x === 'string' ? x : Object.values(x || {})[0]));
+                if (mine.length === 0) return;
+                const { data: rows } = await supabase.from('vw_public_members').select('id').eq('name', name);
+                if (!(rows || []).some(r => mine.includes(r.id))) return;
                 const { data: r } = await supabase.from('user_roles').select('role').eq('user_uid', uid).maybeSingle();
                 if (alive) setRole(r?.role || 'member');
               } catch (e) {}
             })();
             return () => { alive = false; };
-          }, []);
-          const meta = ROLE_META[role] || ROLE_META.member;
-          const RoleIcon = meta.Icon;
+          }, [name]);
+          const meta = role ? ROLE_META[role] : null;
+          const RoleIcon = meta ? meta.Icon : User;
 
           return (
             <React.Fragment>
@@ -579,7 +586,7 @@
               </nav>
               <div className={`${bg} ${fg} transition-colors duration-500`}>
                 <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 pt-1 pb-6 flex items-center gap-4">
-                  <div title={meta.label} aria-label={meta.label} className={`w-16 h-16 rounded-full ${avatarBg} flex items-center justify-center shrink-0 cursor-help`}>
+                  <div title={meta ? meta.label : undefined} aria-label={meta ? meta.label : undefined} className={`w-16 h-16 rounded-full ${avatarBg} flex items-center justify-center shrink-0 ${meta ? 'cursor-help' : ''}`}>
                     <RoleIcon size={32} />
                   </div>
                   <div className="min-w-0">
