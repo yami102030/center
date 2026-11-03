@@ -325,7 +325,6 @@
         };
 
         const AppHeader = ({ title, name, account, onLogout }) => {
-            const accountInfo = account ? maskAccountForDisplay(account) : null;
             return (
                 <React.Fragment>
                     <nav className="bg-emerald-600 text-white sticky top-0 z-50" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
@@ -342,13 +341,6 @@
                             </div>
                             <div className="min-w-0">
                                 <h2 className="text-2xl font-black truncate">{name}</h2>
-                                {accountInfo && (
-                                    <div className="mt-1.5">
-                                        <div className="flex items-center gap-1.5 mt-0.5">
-                                            <p className="text-sm font-semibold text-white/90 truncate">{accountInfo.masked}</p>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
