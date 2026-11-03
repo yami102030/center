@@ -147,7 +147,7 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { Activity, LogOut, AlertCircle, User, Lock, Users, Calendar, ArrowRight, ShieldCheck, Eye, EyeOff, BarChart3, Menu, X, Home, Check, HandHeart } from 'lucide-react';
+        import { Activity, LogOut, AlertCircle, User, Lock, Users, Calendar, ArrowRight, ShieldCheck, Eye, EyeOff, BarChart3, Menu, X, Home, Check, HandHeart, UserCheck, FolderOpen, Star, GraduationCap } from 'lucide-react';
         import { createClient } from '@supabase/supabase-js';
 
         // ==========================================
@@ -324,7 +324,11 @@
             );
         };
 
-        const AppHeader = ({ title, name, account, onLogout }) => {
+        const ROLE_ICON_MAP = { member: User, coworker: UserCheck, admin_staff: FolderOpen, leader: Star, pastor: GraduationCap, admin: ShieldCheck };
+        const ROLE_NAME_MAP = { member: '會友', coworker: '同工', admin_staff: '行政', leader: '領袖', pastor: '牧師', admin: '系統管理員' };
+
+        const AppHeader = ({ title, name, role, onLogout }) => {
+            const RoleIcon = ROLE_ICON_MAP[role] || User;
             return (
                 <React.Fragment>
                     <nav className="bg-emerald-600 text-white sticky top-0 z-50" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
@@ -337,7 +341,7 @@
                     <div className="bg-emerald-600 text-white relative z-10">
                         <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 pt-1 pb-6 flex items-center gap-4">
                             <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                                <User size={32} />
+                                <RoleIcon size={32} title={ROLE_NAME_MAP[role] || ''} />
                             </div>
                             <div className="min-w-0">
                                 <h2 className="text-2xl font-black truncate">{name}</h2>
@@ -534,6 +538,7 @@
         // ==========================================
         const MainApp = ({ session }) => {
             const [isAdmin, setIsAdmin] = useState(false);
+            const [myRole, setMyRole] = useState('member');
             const [isRoleChecking, setIsRoleChecking] = useState(true);
             const [currentApp, setCurrentApp] = useState('members'); 
             const [myName, setMyName] = useState('');
@@ -578,6 +583,7 @@
 
             const userIsAdmin = data?.role === 'admin';
             setIsAdmin(userIsAdmin);
+            setMyRole(data?.role || 'member');
             
             // ✅ [關鍵修改 1]：加入判斷，只有在「初始載入 (isRoleChecking)」時，才執行路由跳轉
             if (isRoleChecking) {
@@ -856,7 +862,7 @@
             return (
                 <div className={`flex ${!isAdmin ? 'flex-col' : ''} h-[100dvh] w-full bg-slate-50 overflow-hidden relative`}>
                     {!isAdmin && (
-                        <AppHeader title="個人設定" name={myName || extractAccountFromEmail(session?.user?.email)} account={session?.user?.email} onLogout={handleLogout} />
+                        <AppHeader title="個人設定" name={myName || extractAccountFromEmail(session?.user?.email)} role={myRole} onLogout={handleLogout} />
                     )}
                     {/* 這裡改為 overflow-y-auto 與 custom-scrollbar，確保內容過長時可正常滾動 */}
                     <main className="flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar relative z-10">
