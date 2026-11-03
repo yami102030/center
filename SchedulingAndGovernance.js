@@ -285,7 +285,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
             .map(m => {
                 const qs = dbData.memberQuarterSettings.find(s => s.member_id === m.id && s.quarter === currentQuarterStr);
                 
-                let unDatesRaw = qs?.unavailable_dates ? safeParseJSON(qs.unavailable_dates, []) : (m.unavailable_dates || []);
+                let unDatesRaw = qs?.unavailable_dates ? safeParseJSON(qs.unavailable_dates, []) : [];
                 let unDates = Array.isArray(unDatesRaw) ? [...unDatesRaw] : [];
                 
                 const unavailableWeeks = qs?.unavailable_weeks ? safeParseJSON(qs.unavailable_weeks, []) : [];
@@ -302,9 +302,9 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
 
                 return {
                     ...m,
-                    availability_status: qs?.availability_status || m.availability_status || '可排班',
-                    preferred_session: qs?.preferred_session || m.preferred_session || '皆可',
-                    dual_service_pref: qs?.dual_service_pref ?? m.dual_service_pref ?? null,
+                    availability_status: qs?.availability_status || '可排班',
+                    preferred_session: qs?.preferred_session || '皆可',
+                    dual_service_pref: qs?.dual_service_pref ?? null,
                     unavailable_dates: unDates.sort()
                 };
             });
@@ -1107,7 +1107,10 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
         const emptyRoles = {};
         dbData.positions.forEach(p => emptyRoles[p.name] = 0);
 
+        // 這一季沒有任何服事崗位的人（例如只使用禱告的人），不納入排班數據分析
+        const servingIds = new Set(effectiveMemberPositions.map(mp => mp.member_id));
         effectiveMembers.forEach(m => {
+            if (!servingIds.has(m.id)) return;
             const status = (m.availability_status || '').trim();
             if (status === '暫停服事' || status === '安息季') return;
             memberStats[m.id] = { id: m.id, name: m.name, group: m.group_id, totalService: 0, attendanceDates: new Set(), roles: { ...emptyRoles } };
@@ -1122,7 +1125,7 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
         });
         
         return Object.values(memberStats).map(d => ({ ...d, attendance: d.attendanceDates.size, distinctRolesCount: Object.values(d.roles).filter(c => c > 0).length, healthScore: 0 })); 
-    }, [generatedDraft, effectiveMembers, dbData.positions]);
+    }, [generatedDraft, effectiveMembers, effectiveMemberPositions, dbData.positions]);
 
     const dashboardStats = useMemo(() => {
         if (!dashboardData || dashboardData.length === 0) return null;
@@ -1492,9 +1495,9 @@ const SchedulingAndGovernance = ({ session, goBack, goToMembers, goToInsights, s
                                                     groupPrefix: groupPrefix,
                                                     groupNumber: groupNumberStr,
                                                     positions: posMap,
-                                                    preferred_session: qs.preferred_session || member.preferred_session || '第一堂',
-                                                    availability_status: qs.availability_status || member.availability_status || '穩定服事',
-                                                    dual_service_pref: qs.dual_service_pref ?? member.dual_service_pref ?? '',
+                                                    preferred_session: qs.preferred_session || '第一堂',
+                                                    availability_status: qs.availability_status || '穩定服事',
+                                                    dual_service_pref: qs.dual_service_pref ?? '',
                                                     newcomer_rule: qs.newcomer_rule ?? '', 
                                                     unavailable_dates: safeDates,
                                                     unavailable_weeks: safeUnavailableWeeks 
