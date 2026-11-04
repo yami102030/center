@@ -48,7 +48,7 @@
         @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
         .prayer-toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 70; width: max-content; max-width: min(92vw, 420px); white-space: nowrap; padding: 12px 18px; border-radius: 8px; background: #262626; color: #fff; font-size: 14px; font-weight: 700; line-height: 1.5; text-align: center; box-shadow: 0 10px 25px -5px rgba(0,0,0,.3); animation: toastIn .3s ease-out both; }
         @media (prefers-reduced-motion: reduce) { .prayer-toast { animation: none; } }
-        input, textarea, select { font-size: 1rem !important; }
+        input, textarea, select { font-size: 16px !important; }
     </style>
 </head>
 <body>
@@ -199,19 +199,6 @@
         const CircleXIcon = (p) => <Icon {...p} d={<React.Fragment><circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" /></React.Fragment>} />;
         const UndoIcon = (p) => <Icon {...p} d={<React.Fragment><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" /></React.Fragment>} />;
         const XMarkIcon = (p) => <Icon {...p} d={<React.Fragment><path d="M18 6 6 18" /><path d="m6 6 12 12" /></React.Fragment>} />;
-        // Aa 圖示：用來調整文字大小
-        const TextSizeIcon = ({ size = 18 }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <text x="12" y="17" textAnchor="middle" fontSize="14" fontWeight="700" fontFamily="inherit">Aa</text>
-            </svg>
-        );
-        // 文字大小三段：標準、大、特大（改的是整個網頁的基準字級，所有用 rem 的文字會一起放大）
-        const FONT_LEVELS = [{ pct: 100, label: '標準' }, { pct: 112.5, label: '大' }, { pct: 125, label: '特大' }];
-        const FONT_KEY = 'tbc_prayer_font';
-        const loadFontLevel = () => {
-            try { const n = Number(localStorage.getItem(FONT_KEY)); return Number.isInteger(n) && n >= 0 && n < FONT_LEVELS.length ? n : 0; }
-            catch (e) { return 0; }
-        };
         const ActivityIcon = (p) => <Icon {...p} d={<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />} />;
 
         // 日期區間：開始日 00:00:00 到結束日 23:59:59（以瀏覽器所在時區計算）
@@ -321,7 +308,7 @@
         const CategoryAvatar = ({ id }) => {
             const I = CATEGORY_ICON[id] || UserIcon;
             return (
-                <span className="w-10 h-10 shrink-0 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center" title={categoryLabel(id)} role="img" aria-label={`分類：${categoryLabel(id)}`}>
+                <span className="w-10 h-10 shrink-0 rounded-full bg-zinc-100 text-indigo-600 flex items-center justify-center" title={categoryLabel(id)} role="img" aria-label={`分類：${categoryLabel(id)}`}>
                     <I size={20} />
                 </span>
             );
@@ -593,21 +580,23 @@
             useLayoutEffect(() => { if (!expanded) measure(); }, [expanded, text, measure]);
             useEffect(() => {
                 window.addEventListener('resize', measure);
+                window.addEventListener('tbc-fontsize', measure);   // 按 A 改字級後，重新量一次要不要顯示「...更多」
                 if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
-                return () => window.removeEventListener('resize', measure);
+                return () => { window.removeEventListener('resize', measure); window.removeEventListener('tbc-fontsize', measure); };
             }, [measure]);
 
-            const moreCls = `text-[0.9375rem] leading-6 font-medium text-zinc-400 hover:text-zinc-700 active:text-zinc-900 transition-colors duration-150 rounded ${focusRing}`;
+            const fsStyle = { fontSize: 'var(--post-fs, 15px)', lineHeight: 1.6 };
+            const moreCls = `font-medium text-zinc-400 hover:text-zinc-700 active:text-zinc-900 transition-colors duration-150 rounded ${focusRing}`;
             return expanded ? (
-                <p className="text-[0.9375rem] leading-6 text-zinc-700 whitespace-pre-line break-words">
+                <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words">
                     {text}
-                    <button type="button" onClick={() => setExpanded(false)} aria-expanded="true" className={`ml-2 ${moreCls}`}>較少</button>
+                    <button type="button" onClick={() => setExpanded(false)} aria-expanded="true" style={fsStyle} className={`ml-2 ${moreCls}`}>較少</button>
                 </p>
             ) : (
                 <div className="relative">
-                    <p ref={textRef} className="text-[0.9375rem] leading-6 text-zinc-700 whitespace-pre-line break-words line-clamp-3">{text}</p>
+                    <p ref={textRef} style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words line-clamp-3">{text}</p>
                     {clamped && (
-                        <button type="button" onClick={() => setExpanded(true)} aria-expanded="false"
+                        <button type="button" onClick={() => setExpanded(true)} aria-expanded="false" style={fsStyle}
                             className={`absolute right-0 bottom-0 pl-10 bg-gradient-to-l from-white from-70% to-transparent ${moreCls}`}>...更多</button>
                     )}
                 </div>
@@ -661,7 +650,7 @@
                 <li className="bg-white rounded-lg border border-zinc-200 shadow-sm p-4 sm:p-5">
                     <div className="flex items-center gap-3 mb-2.5">
                         <CategoryAvatar id={p.category} />
-                        <span className="text-[0.9375rem] font-medium text-zinc-900 truncate min-w-0">{name}</span>
+                        <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{name}</span>
                     </div>
 
                     <ClampText text={text} />
@@ -674,6 +663,43 @@
                     </div>
                     {error && <div className="mt-2"><InlineError message={error} /></div>}
                 </li>
+            );
+        };
+
+        // 文字大小切換：三個大小不同的「A」，選擇會記在這個瀏覽器
+        const FONT_SIZES = [
+            { id: 'sm', px: 13, label: '小字' },
+            { id: 'md', px: 15, label: '標準字' },
+            { id: 'lg', px: 18, label: '大字' },
+        ];
+        const FONT_KEY = 'tbc_prayer_fontsize';
+        const applyFontSize = (id) => {
+            const f = FONT_SIZES.find(x => x.id === id) || FONT_SIZES[1];
+            document.documentElement.style.setProperty('--post-fs', f.px + 'px');
+            window.dispatchEvent(new Event('tbc-fontsize'));
+        };
+        const loadFontSize = () => { try { return localStorage.getItem(FONT_KEY) || 'md'; } catch (e) { return 'md'; } };
+        // 一開啟頁面就套用上次選的大小
+        try { document.documentElement.style.setProperty('--post-fs', (FONT_SIZES.find(x => x.id === loadFontSize()) || FONT_SIZES[1]).px + 'px'); } catch (e) {}
+
+        const FontSizeSwitch = () => {
+            const [size, setSize] = useState(loadFontSize);
+            const pick = (id) => {
+                setSize(id);
+                try { localStorage.setItem(FONT_KEY, id); } catch (e) {}
+                applyFontSize(id);
+            };
+            return (
+                <div className="flex items-center gap-1.5 mb-5" role="group" aria-label="文字大小">
+                    {FONT_SIZES.map(f => {
+                        const active = size === f.id;
+                        return (
+                            <button key={f.id} type="button" onClick={() => pick(f.id)} aria-pressed={active} aria-label={f.label} title={f.label}
+                                className={`w-11 h-11 rounded-lg inline-flex items-center justify-center font-medium transition-colors duration-150 active:scale-[0.98] ${focusRing} ${active ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-800 hover:bg-zinc-200'}`}
+                                style={{ fontSize: f.px + 3 }}>A</button>
+                        );
+                    })}
+                </div>
             );
         };
 
@@ -703,7 +729,8 @@
 
             return (
                 <main className="max-w-2xl mx-auto w-full px-4 sm:px-6 pt-6 pb-20 animate-fade-in">
-                    <h2 className="text-[clamp(0.9375rem,4.6vw,1.5rem)] whitespace-nowrap font-semibold text-zinc-900 leading-snug mb-5">每一次禱告，都是一滴滋養生命的水</h2>
+                    <h2 className="text-[clamp(1.0625rem,5.4vw,1.5rem)] font-semibold text-zinc-900 leading-snug mb-3 break-words">今天，神感動你要為什麼禱告？</h2>
+                    <FontSizeSwitch />
                     <section aria-live="polite">
                         {status === 'loading' && <Skeletons />}
                         {status === 'error' && <ErrorBox message="暫時無法載入，稍後再試" onRetry={() => load()} />}
@@ -1009,7 +1036,7 @@
                     <div className="flex items-center justify-between gap-3 mb-2.5">
                         <div className="flex items-center gap-3 min-w-0">
                             <CategoryAvatar id={post.category} />
-                            <span className="text-[0.9375rem] font-medium text-zinc-900 truncate min-w-0">{name}</span>
+                            <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{name}</span>
                         </div>
                         {returned && <button type="button" onClick={() => goEdit(post.id)} className={`${btnGhost} shrink-0`}><PencilIcon size={16} />編輯重新送審</button>}
                     </div>
@@ -1252,7 +1279,7 @@
                 <div className="flex items-center justify-between gap-3 mb-2.5">
                     <div className="flex items-center gap-3 min-w-0">
                         <CategoryAvatar id={post.category} />
-                        <span className="text-[0.9375rem] font-medium text-zinc-900 truncate min-w-0">{shownName}</span>
+                        <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{shownName}</span>
                     </div>
                     {actions}
                 </div>
@@ -1525,19 +1552,6 @@
             const [showLogin, setShowLogin] = useState(false);
             const [flash, setFlash] = useState('');
             const [menuOpen, setMenuOpen] = useState(false);
-            const [fontLevel, setFontLevel] = useState(loadFontLevel);
-
-            // 文字大小：改整個網頁的基準字級，並記在這個瀏覽器，下次開啟還是同樣大小
-            useLayoutEffect(() => {
-                document.documentElement.style.fontSize = `${FONT_LEVELS[fontLevel].pct}%`;
-                try { localStorage.setItem(FONT_KEY, String(fontLevel)); } catch (e) { /* 無法儲存就略過 */ }
-            }, [fontLevel]);
-            // 每按一次換下一段：標準 → 大 → 特大 → 標準
-            const cycleFont = () => {
-                const next = (fontLevel + 1) % FONT_LEVELS.length;
-                setFontLevel(next);
-                showToast(`文字大小：${FONT_LEVELS[next].label}`);
-            };
 
             useEffect(() => {
                 const onHash = () => { setRoute(parseRoute()); };
@@ -1627,7 +1641,7 @@
             const leftRef = useRef(null);
             const [collapsed, setCollapsed] = useState(false);
             const [moreOpen, setMoreOpen] = useState(false);
-            const iconCount = 5 + (isReviewer ? 1 : 0);   // Aa、新增貼文、搜尋、通知、我的禱告（＋審核）
+            const iconCount = 4 + (isReviewer ? 1 : 0);   // 新增貼文、搜尋、通知、我的禱告（＋審核）
             useLayoutEffect(() => {
                 const row = rowRef.current, left = leftRef.current;
                 if (!row || !left) return;
@@ -1643,12 +1657,11 @@
                 if (ro) ro.observe(row); else window.addEventListener('resize', measure);
                 if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
                 return () => { if (ro) ro.disconnect(); else window.removeEventListener('resize', measure); };
-            }, [iconCount, route.name, fontLevel]);
+            }, [iconCount, route.name]);
             useEffect(() => { if (!collapsed) setMoreOpen(false); }, [collapsed]);
 
             const goThen = (fn) => () => { setMoreOpen(false); fn(); };
             const moreItems = [
-                { id: 'm-font', label: `文字大小（${FONT_LEVELS[fontLevel].label}）`, icon: <TextSizeIcon size={20} />, onClick: () => { setMoreOpen(false); cycleFont(); } },
                 { id: 'm-add', label: '新增貼文', icon: <SquarePlusIcon size={20} />, onClick: goThen(() => requireLogin('#/submit')) },
                 { id: 'm-search', label: '搜尋', icon: <SearchIcon size={20} />, onClick: goThen(() => go('#/search')) },
                 { id: 'm-bell', label: '通知', icon: <BellIcon size={20} />, badge: session ? unread : 0, active: route.name === 'notifications', onClick: goThen(() => { setUnread(0); requireLogin('#/notifications'); }) },
@@ -1697,7 +1710,6 @@
                                 </div>
                                 ) : (
                                 <div className="justify-self-end flex items-center">
-                                    <button onClick={cycleFont} aria-label={`調整文字大小，目前${FONT_LEVELS[fontLevel].label}`} title="文字大小" className={iconBtn}><TextSizeIcon size={24} /></button>
                                     <button onClick={() => requireLogin('#/submit')} aria-label="新增貼文" title="新增貼文" className={iconBtn}><SquarePlusIcon size={24} /></button>
                                     <button onClick={() => go('#/search')} aria-label="搜尋" title="搜尋" className={iconBtn}><SearchIcon size={24} /></button>
                                     <button onClick={() => { setUnread(0); requireLogin('#/notifications'); }} aria-label={unread > 0 ? `通知，${unread} 則未讀` : '通知'} title="通知" className={`${iconBtn} ${route.name === 'notifications' ? 'bg-zinc-100' : ''}`}>
