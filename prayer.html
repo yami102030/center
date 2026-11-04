@@ -720,16 +720,23 @@
         };
         const roleInfoOf = (role) => ROLE_INFO[role === 'user' ? 'member' : role] || (role ? { icon: UserIcon, label: String(role) } : ROLE_INFO.member);
         const UserBadge = ({ loggedIn, role, name }) => {
+            const [showRole, setShowRole] = useState(false);
+            // 點圖示：姓名換成權限文字；再點一次換回來，3 秒後也會自己換回來
+            useEffect(() => {
+                if (!showRole) return;
+                const t = setTimeout(() => setShowRole(false), 3000);
+                return () => clearTimeout(t);
+            }, [showRole]);
             const info = loggedIn ? roleInfoOf(role) : { icon: UserIcon, label: '訪客' };
             const I = info.icon;
             const shown = loggedIn ? (name || '會員') : '訪客';
             return (
                 <div className="flex items-center gap-2.5 min-w-0 text-zinc-700">
-                    <span className={`w-10 h-10 shrink-0 rounded-full bg-zinc-100 ${info.high ? 'text-amber-500' : 'text-zinc-500'} flex items-center justify-center`} role="img" aria-label={`權限：${info.label}`}><I size={20} /></span>
-                    <span className="flex flex-col min-w-0 leading-tight">
-                        <span className="text-[15px] font-medium text-zinc-900 truncate">{shown}</span>
-                        <span className="text-xs text-zinc-500 truncate">{info.label}</span>
-                    </span>
+                    <button type="button" onClick={() => setShowRole(v => !v)} aria-pressed={showRole} aria-label={`權限：${info.label}，點一下切換顯示`} title="點一下看權限"
+                        className={`w-10 h-10 shrink-0 rounded-full bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 ${info.high ? 'text-amber-500' : 'text-zinc-500'} flex items-center justify-center transition-colors duration-150 ${focusRing}`}>
+                        <I size={20} />
+                    </button>
+                    <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0" aria-live="polite">{showRole ? info.label : shown}</span>
                 </div>
             );
         };
