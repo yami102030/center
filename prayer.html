@@ -574,14 +574,37 @@
         // 內文固定顯示 3 行；超過才出現「...更多」，就地展開，展開後最後出現「較少」
         const ClampText = ({ text }) => {
             const [expanded, setExpanded] = useState(false);
-            const [clamped, setClamped] = useState(false);
-            const textRef = useRef(null);
+            const [cut, setCut] = useState(null);          // null＝不用截斷；字串＝截斷後留下的前段文字
+            const probeRef = useRef(null);
 
-            // 量一量：內文超過 3 行才需要「...更多」
+            // 量一量：內文超過 3 行時，找出「前段文字 + ...更多」剛好塞進 3 行的最長長度，
+            // 這樣「...更多」緊接在文字後面，不用漸層遮蓋，也不會切到半個字。
             const measure = useCallback(() => {
-                const el = textRef.current;
-                if (el) setClamped(el.scrollHeight > el.clientHeight + 1);
-            }, []);
+                const probe = probeRef.current;
+                if (!probe) return;
+                const lh = parseFloat(getComputedStyle(probe).lineHeight) || 24;
+                const maxH = lh * 3 + 1;
+                const build = (str, withMore) => {
+                    probe.textContent = '';
+                    probe.appendChild(document.createTextNode(str));
+                    if (withMore) {
+                        const s = document.createElement('span');
+                        s.className = 'font-medium';
+                        s.textContent = '...更多';
+                        probe.appendChild(s);
+                    }
+                };
+                build(text, false);
+                if (probe.scrollHeight <= maxH) { setCut(null); return; }
+                const chars = Array.from(text);
+                let lo = 0, hi = chars.length;
+                while (lo < hi) {
+                    const mid = Math.ceil((lo + hi) / 2);
+                    build(chars.slice(0, mid).join('').trimEnd(), true);
+                    if (probe.scrollHeight <= maxH) lo = mid; else hi = mid - 1;
+                }
+                setCut(chars.slice(0, lo).join('').trimEnd());
+            }, [text]);
             useLayoutEffect(() => { if (!expanded) measure(); }, [expanded, text, measure]);
             useEffect(() => {
                 window.addEventListener('resize', measure);
@@ -599,10 +622,15 @@
                 </p>
             ) : (
                 <div className="relative">
-                    <p ref={textRef} style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words line-clamp-3">{text}</p>
-                    {clamped && (
-                        <button type="button" onClick={() => setExpanded(true)} aria-expanded="false" style={fsStyle}
-                            className={`absolute right-0 bottom-0 pl-10 bg-gradient-to-l from-white from-70% to-transparent ${moreCls}`}>...更多</button>
+                    {/* 隱藏的量測用區塊：與正文同寬同字級 */}
+                    <div ref={probeRef} aria-hidden="true" style={fsStyle} className="absolute left-0 right-0 top-0 invisible pointer-events-none whitespace-pre-line break-words"></div>
+                    {cut === null ? (
+                        <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words line-clamp-3">{text}</p>
+                    ) : (
+                        <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words">
+                            {cut}
+                            <button type="button" onClick={() => setExpanded(true)} aria-expanded="false" style={fsStyle} className={moreCls}>...更多</button>
+                        </p>
                     )}
                 </div>
             );
