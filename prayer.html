@@ -798,8 +798,8 @@
                                 </label>
                                 <InlineError message={error} />
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button type="button" onClick={() => { setText(''); setError(''); }} disabled={busy} className={btnCancelWhite}><XMarkIcon size={16} />取消</button>
-                                    <button type="submit" disabled={busy || !text.trim()} className={btnSubmitDark}><SendIcon size={16} />{busy ? '送出中…' : '送出'}</button>
+                                    <button type="button" onClick={() => { setText(''); setError(''); }} disabled={busy} className={btnCancelWhite}><XMarkIcon size={16} />清除</button>
+                                    <button type="submit" disabled={busy || !text.trim()} className={btnSubmitDark}><SendIcon size={16} />{busy ? '送出中' : '送出'}</button>
                                 </div>
                             </form>
                         )}
@@ -1143,7 +1143,7 @@
 
                     <div className="grid grid-cols-2 gap-3 pt-2">
                         <button type="button" onClick={onCancel} className={btnCancelWhite}><XMarkIcon size={16} />取消</button>
-                        <button type="submit" disabled={busy || !ready} className={btnSubmitDark}><SendIcon size={16} />{busy ? '送出中…' : submitLabel}</button>
+                        <button type="submit" disabled={busy || !ready} className={btnSubmitDark}><SendIcon size={16} />{busy ? '送出中' : submitLabel}</button>
                     </div>
                 </form>
             );
