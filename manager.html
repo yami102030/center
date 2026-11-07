@@ -325,7 +325,7 @@
         };
 
         const ROLE_ICON_MAP = { member: User, coworker: UserCheck, admin_staff: FolderOpen, leader: Star, pastor: GraduationCap, admin: ShieldCheck };
-        const ROLE_NAME_MAP = { member: '會友', coworker: '同工', admin_staff: '行政', leader: '領袖', pastor: '牧師', admin: '系統管理員' };
+        const ROLE_NAME_MAP = { member: '會友', coworker: '同工', admin_staff: '行政', leader: '領袖', pastor: '牧師', admin: '管理員' };
 
         const AppHeader = ({ title, name, role, onLogout }) => {
             const RoleIcon = ROLE_ICON_MAP[role] || User;
