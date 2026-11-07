@@ -810,7 +810,7 @@
                                 </label>
                                 <InlineError message={error} />
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button type="button" onClick={() => { setText(''); setError(''); }} disabled={busy} className={btnCancelWhite}><XMarkIcon size={16} />取消</button>
+                                    <button type="button" onClick={() => { setText(''); setError(''); }} disabled={busy} className={btnCancelWhite}><XMarkIcon size={16} />清除內容</button>
                                     <button type="submit" disabled={busy || !text.trim()} className={btnSubmitDark}><SendIcon size={16} />{busy ? '送出中…' : '送出'}</button>
                                 </div>
                             </form>
