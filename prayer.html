@@ -106,7 +106,7 @@
         };
         const ACTION_LABEL = {
             submitted: '貼文', approved: '核准', returned: '退回',
-            resubmitted: '編輯重新送審', visibility_changed: '誰可以看到貼文變更',
+            resubmitted: '重新送審', visibility_changed: '誰可以看到貼文變更',
             category_changed: '分類變更', privacy_changed: '隱私設定變更', content_edited: '內容修改',
         };
 
@@ -149,8 +149,8 @@
         const btnCancel = `h-12 rounded-full border border-slate-300 bg-slate-50 text-slate-600 text-base font-medium hover:bg-slate-100 active:bg-slate-200 transition-colors duration-150 ${disabledCls} ${focusRing}`;
         const btnSubmitDark = `h-12 rounded-full inline-flex items-center justify-center gap-2 bg-slate-700 text-white text-base font-medium hover:bg-slate-800 active:bg-slate-900 transition-colors duration-150 ${disabledCls} ${focusRing}`;
         const btnReturnSoft = `h-12 rounded-full bg-red-100 text-red-700 text-base font-medium hover:bg-red-200 active:bg-red-300 transition-colors duration-150 ${disabledCls} ${focusRing}`;
-        // 卡片右上角的小按鈕（編輯、取消、儲存、編輯重新送審）
-        const btnGhost = `inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-sm font-medium text-zinc-600 bg-zinc-50 hover:bg-zinc-100 active:bg-zinc-200 transition-colors duration-150 ${disabledCls} ${focusRing}`;
+        // 卡片右上角的小按鈕（編輯、取消、儲存、刪除、重新送審）：沒有底色，圖示＋文字
+        const btnGhost = `inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-sm font-medium text-zinc-600 hover:text-zinc-900 active:text-black transition-colors duration-150 ${disabledCls} ${focusRing}`;
         const btnDanger = `px-4 py-2.5 rounded-full text-sm font-medium border border-red-200 text-red-700 bg-white hover:bg-red-50 active:bg-red-100 transition-colors duration-150 ${disabledCls} ${focusRing}`;
         const inputCls = "w-full bg-zinc-50 border border-zinc-200 rounded-lg px-4 py-3 text-zinc-800 font-medium hover:border-zinc-300 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20 transition-colors duration-150";
 
@@ -297,6 +297,7 @@
                 return { canReply: !!(d && d.can_reply), items: (d && d.items) || [] };
             },
             addUpdate: (postId, content) => rpc('add_prayer_update', { p_post_id: postId, p_content: content }),
+            editUpdate: (id, content) => rpc('edit_prayer_update', { p_id: id, p_content: content }),
             updateCounts: async (ids) => (await rpc('get_prayer_update_counts', { p_ids: ids })) || {},
             markRead: (id) => rpc('mark_prayer_notification_read', { p_id: id }),
             markAllRead: () => rpc('mark_all_prayer_notifications_read', {}),
@@ -716,6 +717,52 @@
             );
         };
 
+        // 一則回覆：權限圖示＋姓名＋時間，下方是內容。審查權限者可以按「編輯」修改內容。
+        const ReplyItem = ({ u, onSaved }) => {
+            const [editing, setEditing] = useState(false);
+            const [draft, setDraft] = useState(u.content);
+            const [busy, setBusy] = useState(false);
+            const [error, setError] = useState('');
+            const fsStyle = { fontSize: 'var(--post-fs, 15px)', lineHeight: 1.6 };
+            const save = async () => {
+                const content = draft.trim();
+                if (!content || busy) return;
+                setBusy(true); setError('');
+                try { await api.editUpdate(u.id, content); onSaved(u.id, content); setEditing(false); }
+                catch (err) { setError(err.message || '暫時無法儲存，稍後再試'); }
+                setBusy(false);
+            };
+            return (
+                <div className="p-4 sm:p-5">
+                    <div className="flex items-center justify-between gap-3 mb-2.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <RoleAvatar role={u.author_role} />
+                            <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{u.author_name}</span>
+                            <span className="text-sm text-zinc-400 tabular-nums shrink-0">{formatAgo(u.created_at)}</span>
+                        </div>
+                        {viewerState.isReviewer && !editing && (
+                            <button type="button" onClick={() => { setDraft(u.content); setError(''); setEditing(true); }} className={`${btnGhost} shrink-0`}><PencilIcon size={16} />編輯</button>
+                        )}
+                    </div>
+                    {editing ? (
+                        <div className="flex flex-col gap-3">
+                            <label className="flex flex-col gap-1.5">
+                                <span className="flex justify-between text-sm font-medium text-zinc-700">回覆內容 <span className="text-xs tabular-nums text-zinc-400">{draft.length}/500</span></span>
+                                <textarea value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={500} rows={5} className={`${inputCls} leading-relaxed resize-y`} />
+                            </label>
+                            <InlineError message={error} />
+                            <div className="grid grid-cols-2 gap-3">
+                                <button type="button" onClick={() => { setEditing(false); setError(''); }} disabled={busy} className={btnCancelWhite}><XMarkIcon size={16} />取消</button>
+                                <button type="button" onClick={save} disabled={busy || !draft.trim()} className={btnSubmitDark}><CheckIcon size={16} />{busy ? '儲存中…' : '儲存'}</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words">{u.content}</p>
+                    )}
+                </div>
+            );
+        };
+
         // 貼文完整畫面（像 Threads）：上面是貼文，下面是所有留言，中間用灰線分隔。
         // 留言：權限圖示＋姓名＋時間，下方是內容。只有貼文者與審查權限者（資料庫判斷）會看到輸入框。
         const PostDetailView = ({ id, goBack }) => {
@@ -791,14 +838,7 @@
                         {state.status === 'loading' && <div className="p-4 sm:p-5 text-sm text-zinc-400">讀取留言中</div>}
                         {state.status === 'error' && <div className="p-4 sm:p-5 text-sm text-zinc-500">暫時無法讀取留言</div>}
                         {state.items.map(u => (
-                            <div key={u.id} className="p-4 sm:p-5">
-                                <div className="flex items-center gap-3 mb-2.5">
-                                    <RoleAvatar role={u.author_role} />
-                                    <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{u.author_name}</span>
-                                    <span className="text-sm text-zinc-400 tabular-nums shrink-0">{formatAgo(u.created_at)}</span>
-                                </div>
-                                <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words">{u.content}</p>
-                            </div>
+                            <ReplyItem key={u.id} u={u} onSaved={(rid, content) => setState(st => ({ ...st, items: st.items.map(x => x.id === rid ? { ...x, content } : x) }))} />
                         ))}
 
                         {/* 輸入框：只有貼文者與審查權限者看得到；版面同發表貼文 */}
@@ -1253,7 +1293,7 @@
                             <CategoryAvatar id={post.category} />
                             <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{name}</span>
                         </div>
-                        {returned && <button type="button" onClick={() => goEdit(post.id)} className={`${btnGhost} shrink-0`}><PencilIcon size={16} />編輯重新送審</button>}
+                        {returned && <button type="button" onClick={() => goEdit(post.id)} className={`${btnGhost} shrink-0`}><PencilIcon size={16} />重新送審</button>}
                     </div>
                     <ClampText text={post.content} />
                     {(returned || forceReason) && (
@@ -1359,7 +1399,7 @@
 
             return (
                 <PageShell back={<BackButton onClick={goMine} label="返回我的禱告" />}>
-                    <h2 className="text-2xl font-semibold text-zinc-900 mb-6">編輯重新送審</h2>
+                    <h2 className="text-2xl font-semibold text-zinc-900 mb-6">重新送審</h2>
                     {status === 'loading' && <Skeletons />}
                     {status === 'error' && <ErrorBox message="暫時無法載入，稍後再試" />}
                     {status === 'notfound' && <EmptyBox message="找不到貼文" action={<button onClick={goMine} className={btnDark}>回到我的禱告</button>} />}
@@ -1485,7 +1525,7 @@
             );
             const trashBtn = (
                 <button type="button" onClick={() => setConfirmDel(true)} disabled={saving || deleting} aria-label="刪除貼文" title="刪除貼文"
-                    className={`${btnGhost} !px-2 hover:!text-red-600`}><TrashIcon size={16} /></button>
+                    className={`${btnGhost} hover:!text-red-600`}><TrashIcon size={16} />刪除</button>
             );
             const deleteBlock = confirmDel && (
                 <ConfirmModal title="刪除貼文？" confirmLabel="刪除" busy={deleting} error={error}
