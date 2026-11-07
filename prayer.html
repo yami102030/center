@@ -168,6 +168,7 @@
         const CheckIcon = (p) => <Icon {...p} d={<path d="M20 6 9 17l-5-5" />} />;
         const BellIcon = (p) => <Icon {...p} d={<React.Fragment><path d="M10.268 21a2 2 0 0 0 3.464 0" /><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" /></React.Fragment>} />;
         const MenuIcon = (p) => <Icon {...p} d={<React.Fragment><path d="M4 12h16" /><path d="M4 18h16" /><path d="M4 6h16" /></React.Fragment>} />;
+        const EllipsisIcon = (p) => <Icon {...p} d={<React.Fragment><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></React.Fragment>} />;
         const EllipsisVerticalIcon = (p) => <Icon {...p} d={<React.Fragment><circle cx="12" cy="5" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" /></React.Fragment>} />;
         const SquarePlusIcon = (p) => <Icon {...p} d={<React.Fragment><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M8 12h8" /><path d="M12 8v8" /></React.Fragment>} />;
         const UserIcon = (p) => <Icon {...p} d={<React.Fragment><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></React.Fragment>} />;
@@ -705,7 +706,7 @@
             );
         };
 
-        // 權限圖示（圓形淺灰底）：圖示依權限，領袖、牧師、系統管理員用琥珀色
+        // 權限圖示（圓形淺灰底）：圖示依權限，領袖、牧師、管理員用琥珀色
         const RoleAvatar = ({ role, size = 40 }) => {
             const info = roleInfoOf(role);
             const I = info.icon;
@@ -860,18 +861,84 @@
             );
         };
 
-        const PostCard = ({ p, onResponded }) => {
+        // 貼文右上角的「三個點」選單：審查者才看得到，選項是編輯、刪除
+        const PostMenu = ({ onEdit, onDelete }) => {
+            const [open, setOpen] = useState(false);
+            const boxRef = useRef(null);
+            useEffect(() => {
+                if (!open) return;
+                const onDown = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false); };
+                const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+                document.addEventListener('mousedown', onDown);
+                document.addEventListener('touchstart', onDown);
+                window.addEventListener('keydown', onKey);
+                return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('touchstart', onDown); window.removeEventListener('keydown', onKey); };
+            }, [open]);
+            const itemCls = `w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-left hover:bg-zinc-50 active:bg-zinc-100 transition-colors duration-150 ${focusRing}`;
+            return (
+                <div ref={boxRef} className="relative shrink-0">
+                    <button type="button" onClick={() => setOpen(v => !v)} aria-haspopup="menu" aria-expanded={open} aria-label="更多" title="更多"
+                        className={`p-2 -m-2 rounded-full text-zinc-400 hover:text-zinc-700 transition-colors duration-150 ${focusRing}`}><EllipsisIcon size={20} /></button>
+                    {open && (
+                        <div role="menu" className="absolute right-0 top-full mt-3 z-20 min-w-[8rem] bg-white rounded-lg border border-zinc-200 shadow-lg py-1 overflow-hidden">
+                            <button type="button" role="menuitem" onClick={() => { setOpen(false); onEdit(); }} className={`${itemCls} text-zinc-700`}><PencilIcon size={16} />編輯</button>
+                            <button type="button" role="menuitem" onClick={() => { setOpen(false); onDelete(); }} className={`${itemCls} text-red-600`}><TrashIcon size={16} />刪除</button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const PostCard = ({ p, onResponded, onDeleted }) => {
             const [error, setError] = useState('');
-            const text = p.content ?? p.summary ?? '';
+            const [edited, setEdited] = useState(null);       // 審查者編輯後的內容（先顯示在這張卡片上）
+            const [editing, setEditing] = useState(false);
+            const [draft, setDraft] = useState('');
+            const [saving, setSaving] = useState(false);
+            const [confirmDel, setConfirmDel] = useState(false);
+            const [deleting, setDeleting] = useState(false);
+            const [menuError, setMenuError] = useState('');
+            const isReviewer = viewerState.isReviewer;
+            const saveEdit = async () => {
+                const content = draft.trim();
+                if (!content) { setMenuError('內容不可空白'); return; }
+                if (content === (edited ?? p.content ?? p.summary ?? '')) { setEditing(false); return; }
+                setSaving(true); setMenuError('');
+                try { await api.editContent(p.id, content); setEdited(content); setEditing(false); }
+                catch (err) { setMenuError(err.message || '儲存失敗，稍後再試'); }
+                setSaving(false);
+            };
+            const doDelete = async () => {
+                setDeleting(true); setMenuError('');
+                try { await api.deletePost(p.id); setConfirmDel(false); if (onDeleted) onDeleted(p.id); }
+                catch (err) { setMenuError(err.message || '刪除失敗，稍後再試'); }
+                setDeleting(false);
+            };
+            const text = edited ?? p.content ?? p.summary ?? '';
             const name = !p.display_name || p.display_name === '匿名' ? ANON_NAME : p.display_name;
             return (
                 <li className="bg-white rounded-lg border border-zinc-200 shadow-sm p-4 sm:p-5">
-                    <div className="flex items-center gap-3 mb-2.5">
-                        <CategoryAvatar id={p.category} />
-                        <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{name}</span>
+                    <div className="flex items-center justify-between gap-3 mb-2.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <CategoryAvatar id={p.category} />
+                            <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{name}</span>
+                        </div>
+                        {isReviewer && <PostMenu onEdit={() => { setDraft(text); setMenuError(''); setEditing(true); }} onDelete={() => { setMenuError(''); setConfirmDel(true); }} />}
                     </div>
 
-                    <ClampText text={text} />
+                    {editing ? (
+                        <div className="flex flex-col gap-3">
+                            <label className="flex flex-col gap-1.5">
+                                <span className="flex justify-between text-sm font-medium text-zinc-700">內容 <span className="text-xs tabular-nums text-zinc-400">{draft.length}/800</span></span>
+                                <textarea value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={800} rows={6} className={`${inputCls} leading-relaxed resize-y`} />
+                            </label>
+                            <InlineError message={menuError} />
+                            <div className="grid grid-cols-2 gap-3">
+                                <button type="button" onClick={() => { setEditing(false); setMenuError(''); }} disabled={saving} className={btnCancelWhite}><XMarkIcon size={16} />取消</button>
+                                <button type="button" onClick={saveEdit} disabled={saving || !draft.trim()} className={btnSubmitDark}><CheckIcon size={16} />{saving ? '儲存中…' : '儲存'}</button>
+                            </div>
+                        </div>
+                    ) : <ClampText text={text} />}
 
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-zinc-500">
                         <PrayButton postId={p.id} count={Number(p.response_count) || 0} responded={!!p.has_responded} onResponded={onResponded} onError={setError} />
@@ -881,6 +948,10 @@
                         </span>
                     </div>
                     {error && <div className="mt-2"><InlineError message={error} /></div>}
+                    {confirmDel && (
+                        <ConfirmModal title="刪除貼文？" confirmLabel="刪除" busy={deleting} error={menuError}
+                            onCancel={() => { setConfirmDel(false); setMenuError(''); }} onConfirm={doDelete} />
+                    )}
                 </li>
             );
         };
@@ -923,14 +994,14 @@
         };
 
         // 目前登入者：權限圖示＋姓名（未登入顯示「訪客」）
-        // 權限代號、名稱、圖示與 MemberDataCenter 相同（領袖、牧師、系統管理員的圖示用琥珀色標出來）
+        // 權限代號、名稱、圖示與 MemberDataCenter 相同（領袖、牧師、管理員的圖示用琥珀色標出來）
         const ROLE_INFO = {
             member:      { icon: UserIcon,        label: '會友' },
             coworker:    { icon: UserCheckIcon,   label: '同工' },
             admin_staff: { icon: FolderOpenIcon,  label: '行政' },
             leader:      { icon: StarIcon,        label: '領袖', high: true },
             pastor:      { icon: GraduationCapIcon, label: '牧師', high: true },
-            admin:       { icon: ShieldIcon,      label: '系統管理員', high: true },
+            admin:       { icon: ShieldIcon,      label: '管理員', high: true },
         };
         const roleInfoOf = (role) => ROLE_INFO[role === 'user' ? 'member' : role] || (role ? { icon: UserIcon, label: String(role) } : ROLE_INFO.member);
         const UserBadge = ({ loggedIn, role, name }) => {
@@ -992,7 +1063,7 @@
                         {status === 'ok' && results.length === 0 && <EmptyBox message="讓我們一起守望禱告" action={<button onClick={goSubmit} className={btnDark}>新增貼文</button>} />}
                         {status === 'ok' && results.length > 0 && (
                             <ul className="flex flex-col gap-3">
-                                {results.map(p => <PostCard key={p.id} p={p} onResponded={(n) => patch(p.id, n)} />)}
+                                {results.map(p => <PostCard key={p.id} p={p} onResponded={(n) => patch(p.id, n)} onDeleted={(id) => setResults(l => l.filter(x => x.id !== id))} />)}
                             </ul>
                         )}
                         {status === 'ok' && results.length >= 50 && <p className="text-center text-sm text-zinc-400 mt-6">顯示最新 50 則，更多請用搜尋</p>}
@@ -1124,7 +1195,7 @@
                             {status === 'ok' && results.length === 0 && <EmptyBox message="找不到，換個關鍵字試試" />}
                             {status === 'ok' && results.length > 0 && (
                                 <ul className="flex flex-col gap-3">
-                                    {results.map(p => <PostCard key={p.id} p={p} onResponded={(n) => patch(p.id, n)} />)}
+                                    {results.map(p => <PostCard key={p.id} p={p} onResponded={(n) => patch(p.id, n)} onDeleted={(id) => setResults(l => l.filter(x => x.id !== id))} />)}
                                 </ul>
                             )}
                         </section>
@@ -1666,7 +1737,7 @@
             if (!session) return <PageShell back={<BackButton onClick={goHome} label="返回禱告牆" />}><NeedLogin onLogin={onLogin} /></PageShell>;
             if (!REVIEWER_ROLES.includes(role)) return <PageShell back={<BackButton onClick={goHome} label="返回禱告牆" />}><EmptyBox message="只有牧師、區長與管理員可以進入審查頁" /></PageShell>;
 
-            const tabs = [{ id: 'pending', label: '待審查' }, { id: 'returned', label: '已退回' }, { id: 'approved', label: '編輯' }];
+            const tabs = [{ id: 'pending', label: '待審查' }, { id: 'returned', label: '已退回' }];
             const onChanged = async () => { if (searching) await runSearch(keyword, true); else await load(true); refreshPending(); };
 
             return (
