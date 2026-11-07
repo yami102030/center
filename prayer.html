@@ -778,7 +778,6 @@
                         {/* 所有留言：權限圖示＋姓名，下方是內容，之間用灰線分隔 */}
                         {state.status === 'loading' && <div className="p-4 sm:p-5 text-sm text-zinc-400">讀取留言中</div>}
                         {state.status === 'error' && <div className="p-4 sm:p-5 text-sm text-zinc-500">暫時無法讀取留言</div>}
-                        {state.status === 'ok' && state.items.length === 0 && <div className="p-4 sm:p-5 text-sm text-zinc-400">還沒有更新</div>}
                         {state.items.map(u => (
                             <div key={u.id} className="p-4 sm:p-5">
                                 <div className="flex items-center gap-3 mb-2.5">
@@ -790,17 +789,19 @@
                             </div>
                         ))}
 
-                        {/* 輸入框：只有貼文者與審查權限者看得到 */}
+                        {/* 輸入框：只有貼文者與審查權限者看得到；版面同發表貼文 */}
                         {state.canReply && (
-                            <div className="p-4 sm:p-5 flex flex-col gap-2">
-                                <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={500} rows={3} placeholder="寫下更新或回覆"
-                                    className="w-full bg-zinc-100 rounded-lg px-3 py-2.5 text-[15px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 resize-none" />
-                                <div className="flex items-center justify-between gap-3">
-                                    <span className="text-xs text-zinc-400 tabular-nums">{text.length}/500</span>
-                                    <button type="button" onClick={send} disabled={busy || !text.trim()} className={`${btnPrimary} inline-flex items-center gap-1.5`}><SendIcon size={16} />{busy ? '送出中' : '送出'}</button>
-                                </div>
+                            <form onSubmit={(e) => { e.preventDefault(); send(); }} className="p-4 sm:p-5 flex flex-col gap-4">
+                                <label className="flex flex-col gap-1.5">
+                                    <span className="flex justify-between text-sm font-medium text-zinc-700">你想說什麼 <span className="text-xs tabular-nums text-zinc-400">{text.length}/500</span></span>
+                                    <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={500} rows={5} placeholder="新增回覆" className={`${inputCls} leading-relaxed resize-y`} />
+                                </label>
                                 <InlineError message={error} />
-                            </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button type="button" onClick={() => { setText(''); setError(''); }} disabled={busy} className={btnCancelWhite}><XMarkIcon size={16} />取消</button>
+                                    <button type="submit" disabled={busy || !text.trim()} className={btnSubmitDark}><SendIcon size={16} />{busy ? '送出中…' : '送出'}</button>
+                                </div>
+                            </form>
                         )}
                     </div>
                 </PageShell>
