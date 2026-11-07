@@ -724,6 +724,7 @@
             const [editing, setEditing] = useState(false);
             const [confirmDel, setConfirmDel] = useState(false);
             const [deleting, setDeleting] = useState(false);
+            useExclusiveEdit(editing, () => { setEditing(false); setError(''); });
             const doDelete = async () => {
                 setDeleting(true); setError('');
                 try { await api.deleteUpdate(u.id); setConfirmDel(false); onDeleted(u.id); }
@@ -793,6 +794,7 @@
             const [postConfirmDel, setPostConfirmDel] = useState(false);
             const [postDeleting, setPostDeleting] = useState(false);
             const [postError, setPostError] = useState('');
+            useExclusiveEdit(postEditing, () => { setPostEditing(false); setPostError(''); });
             const savePost = async () => {
                 const content = postDraft.trim();
                 if (!content) { setPostError('內容不可空白'); return; }
@@ -918,6 +920,22 @@
             );
         };
 
+        // 同一時間只能開一個編輯視窗：這個編輯打開時，會自動關掉另一個正在編輯的（貼文、回覆都算）
+        const editLock = { cur: null };
+        const useExclusiveEdit = (editing, close) => {
+            const id = useRef({}).current;
+            const closeRef = useRef(close);
+            closeRef.current = close;
+            useEffect(() => {
+                if (editing) {
+                    const prev = editLock.cur;
+                    if (prev && prev.id !== id) prev.close();
+                    editLock.cur = { id, close: () => closeRef.current() };
+                }
+                return () => { if (editLock.cur && editLock.cur.id === id) editLock.cur = null; };
+            }, [editing]);
+        };
+
         // 貼文右上角的「三個點」選單：審查者才看得到，選項是編輯、刪除
         const PostMenu = ({ onEdit, onDelete }) => {
             const [open, setOpen] = useState(false);
@@ -956,6 +974,7 @@
             const [deleting, setDeleting] = useState(false);
             const [menuError, setMenuError] = useState('');
             const isReviewer = viewerState.isReviewer;
+            useExclusiveEdit(editing, () => { setEditing(false); setMenuError(''); });
             const saveEdit = async () => {
                 const content = draft.trim();
                 if (!content) { setMenuError('內容不可空白'); return; }
@@ -1595,6 +1614,7 @@
                 }
             };
 
+            useExclusiveEdit(editing, () => { setEditing(false); setError(''); });
             const startEdit = () => { setDraft({ content: post.content }); setError(''); setEditing(true); };
             const cancelEdit = () => { setEditing(false); setError(''); };
             const saveEdit = async () => {
@@ -1696,11 +1716,14 @@
             // 待審查／已核准：顯示方式相同；按右上角「編輯」才展開內容與各項設定。待審查多了下方的核准、退回。
             const actions = (
                 <div className="flex items-center gap-1 shrink-0">
-                    {editing && <button type="button" onClick={cancelEdit} disabled={saving} className={ghostBtn}><XMarkIcon size={16} />取消</button>}
-                    <button type="button" onClick={editing ? saveEdit : startEdit} disabled={saving} aria-expanded={editing} className={ghostBtn}>
-                        {editing ? <CheckIcon size={16} /> : <PencilIcon size={16} />}{editing ? (saving ? '儲存中' : '儲存') : '編輯'}
-                    </button>
-                    {trashBtn}
+                    {editing ? (
+                        <>
+                            <button type="button" onClick={cancelEdit} disabled={saving} className={ghostBtn}><XMarkIcon size={16} />取消</button>
+                            <button type="button" onClick={saveEdit} disabled={saving} className={ghostBtn}><CheckIcon size={16} />{saving ? '儲存中' : '儲存'}</button>
+                        </>
+                    ) : (
+                        <PostMenu onEdit={startEdit} onDelete={() => setConfirmDel(true)} />
+                    )}
                 </div>
             );
             const decideBlock = !pending ? null : returning ? (
