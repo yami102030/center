@@ -297,6 +297,7 @@
                 return { canReply: !!(d && d.can_reply), items: (d && d.items) || [] };
             },
             addUpdate: (postId, content) => rpc('add_prayer_update', { p_post_id: postId, p_content: content }),
+            updateCounts: async (ids) => (await rpc('get_prayer_update_counts', { p_ids: ids })) || {},
             markRead: (id) => rpc('mark_prayer_notification_read', { p_id: id }),
             markAllRead: () => rpc('mark_all_prayer_notifications_read', {}),
             pendingCount: async () => {
@@ -654,70 +655,160 @@
             );
         };
 
-        // 「更新」：圖示＋文字。點開就地展開貼文的更新（回覆）。
-        // 所有人都看得到；只有貼文者與審查權限者（資料庫判斷）會看到輸入框。回覆者顯示姓名與時間。
-        const UpdatesButton = ({ open, onClick }) => (
-            <button type="button" onClick={onClick} aria-expanded={open}
-                className={`inline-flex items-center gap-1.5 text-sm font-medium rounded-full px-2.5 py-1.5 -my-1.5 transition-colors duration-150 ${focusRing} ${open ? 'text-zinc-900 bg-zinc-100' : 'text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 active:bg-zinc-200'}`}>
-                <MessageIcon size={18} />更新
-            </button>
-        );
-        const UpdatesPanel = ({ postId }) => {
+        // 「更新」：只有圖示＋更新數量。點了切到這則貼文的完整畫面（貼文＋所有留言）。
+        // 數量用「集中查詢」：同一個畫面的所有貼文，在 30 毫秒內合併成一次資料庫查詢。
+        const updateCounts = { cache: {}, waiters: {}, timer: null };
+        const fetchUpdateCount = (id) => new Promise((resolve) => {
+            const c = updateCounts;
+            if (id in c.cache) return resolve(c.cache[id]);
+            (c.waiters[id] = c.waiters[id] || []).push(resolve);
+            if (c.timer) return;
+            c.timer = setTimeout(async () => {
+                c.timer = null;
+                const waiters = c.waiters; c.waiters = {};
+                const ids = Object.keys(waiters);
+                let map = null;
+                try { map = await api.updateCounts(ids); } catch (e) { console.error('讀取更新數量失敗:', e); }
+                ids.forEach(i => {
+                    const n = map ? Number(map[i]) || 0 : null;   // 讀取失敗時回傳 null，按鈕不顯示數字
+                    if (n !== null) c.cache[i] = n;
+                    waiters[i].forEach(r => r(n));
+                });
+            }, 30);
+        });
+        const UpdatesButton = ({ postId, onClick }) => {
+            const [n, setN] = useState(updateCounts.cache[postId] ?? null);
+            useEffect(() => {
+                let alive = true;
+                fetchUpdateCount(postId).then(v => { if (alive) setN(v); });
+                return () => { alive = false; };
+            }, [postId]);
+            return (
+                <button type="button" onClick={onClick} aria-label={n === null ? '查看更新' : `查看更新，共 ${n} 則`} title="更新"
+                    className={`inline-flex items-center gap-1.5 text-zinc-400 hover:text-zinc-700 transition-colors duration-150 rounded-full ${focusRing}`}>
+                    <span className="p-2.5 -my-2.5 -mx-2.5 rounded-full hover:bg-zinc-100 active:bg-zinc-200 transition-colors duration-150 inline-flex"><MessageIcon size={18} /></span>
+                    <span className="text-sm tabular-nums font-medium text-zinc-500 ml-2.5 min-w-[0.75rem]">{n === null ? '' : n}</span>
+                </button>
+            );
+        };
+
+        // 權限圖示（圓形淺灰底）：圖示依權限，領袖、牧師、系統管理員用琥珀色
+        const RoleAvatar = ({ role, size = 40 }) => {
+            const info = roleInfoOf(role);
+            const I = info.icon;
+            return (
+                <span style={{ width: size, height: size }} title={info.label} role="img" aria-label={`權限：${info.label}`}
+                    className={`shrink-0 rounded-full bg-zinc-100 ${info.high ? 'text-amber-500' : 'text-zinc-500'} flex items-center justify-center`}>
+                    <I size={Math.round(size / 2)} />
+                </span>
+            );
+        };
+
+        // 貼文完整畫面（像 Threads）：上面是貼文，下面是所有留言，中間用灰線分隔。
+        // 留言：權限圖示＋姓名＋時間，下方是內容。只有貼文者與審查權限者（資料庫判斷）會看到輸入框。
+        const PostDetailView = ({ id, goBack }) => {
+            const [post, setPost] = useState(undefined);       // undefined＝讀取中，null＝找不到
+            const [isPublicView, setIsPublicView] = useState(true);
             const [state, setState] = useState({ status: 'loading', canReply: false, items: [] });
             const [text, setText] = useState('');
             const [busy, setBusy] = useState(false);
             const [error, setError] = useState('');
+
             useEffect(() => {
                 let alive = true;
-                api.updates(postId)
-                    .then(r => { if (alive) setState({ status: 'ok', canReply: r.canReply, items: r.items }); })
+                setPost(undefined);
+                (async () => {
+                    let d = null;
+                    try { d = await api.detail(id); } catch (e) { console.error('讀取貼文失敗:', e); }
+                    if (!alive) return;
+                    if (d) { setPost(d); setIsPublicView(true); return; }
+                    // 不公開的貼文：貼文者本人與審查者讀得到（資料庫規則決定）
+                    try {
+                        const rows = await api.postsByIds([id]);
+                        if (!alive) return;
+                        const r = rows[0];
+                        if (r) { setPost({ id: r.id, category: r.category, content: r.content, created_at: r.created_at, display_name: r.show_name ? r.author_name : ANON_NAME, response_count: 0, has_responded: false }); setIsPublicView(false); return; }
+                    } catch (e) { console.error('讀取貼文失敗:', e); }
+                    if (alive) setPost(null);
+                })();
+                api.updates(id)
+                    .then(r => { if (!alive) return; updateCounts.cache[id] = r.items.length; setState({ status: 'ok', canReply: r.canReply, items: r.items }); })
                     .catch(err => { console.error('讀取更新失敗:', err); if (alive) setState({ status: 'error', canReply: false, items: [] }); });
                 return () => { alive = false; };
-            }, [postId]);
+            }, [id]);
+
             const send = async () => {
                 const content = text.trim();
                 if (!content || busy) return;
                 setBusy(true); setError('');
                 try {
-                    const row = await api.addUpdate(postId, content);
-                    setState(st => ({ ...st, items: [...st.items, row] }));
+                    const row = await api.addUpdate(id, content);
+                    setState(st => { const items = [...st.items, row]; updateCounts.cache[id] = items.length; return { ...st, items }; });
                     setText('');
                 } catch (err) { setError(err.message || '暫時無法送出，稍後再試'); }
                 setBusy(false);
             };
+
             const fsStyle = { fontSize: 'var(--post-fs, 15px)', lineHeight: 1.6 };
+            const back = <BackButton onClick={goBack} label="返回" />;
+            if (post === undefined) return <PageShell back={back}><Skeletons /></PageShell>;
+            if (post === null) return <PageShell back={back}><EmptyBox message="找不到這則貼文，或它沒有公開" /></PageShell>;
+            const name = !post.display_name || post.display_name === '匿名' ? ANON_NAME : post.display_name;
+
             return (
-                <div className="mt-3 pt-3 border-t border-zinc-100 flex flex-col gap-3">
-                    {state.status === 'loading' && <p className="text-sm text-zinc-400">讀取中</p>}
-                    {state.status === 'error' && <p className="text-sm text-zinc-500">暫時無法讀取更新</p>}
-                    {state.status === 'ok' && state.items.length === 0 && !state.canReply && <p className="text-sm text-zinc-400">還沒有更新</p>}
-                    {state.items.map(u => (
-                        <div key={u.id} className="flex flex-col gap-0.5">
-                            <div className="flex items-baseline gap-2 text-sm">
-                                <span className="font-medium text-zinc-900 truncate min-w-0">{u.author_name}</span>
-                                <span className="text-zinc-400 tabular-nums shrink-0">{formatAgo(u.created_at)}</span>
+                <PageShell back={back}>
+                    <div className="bg-white rounded-lg border border-zinc-200 shadow-sm divide-y divide-zinc-200">
+                        {/* 貼文 */}
+                        <div className="p-4 sm:p-5">
+                            <div className="flex items-center gap-3 mb-2.5">
+                                <CategoryAvatar id={post.category} />
+                                <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{name}</span>
                             </div>
-                            <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words">{u.content}</p>
-                        </div>
-                    ))}
-                    {state.canReply && (
-                        <div className="flex flex-col gap-2">
-                            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={500} rows={3} placeholder="寫下更新或回覆"
-                                className="w-full bg-zinc-100 rounded-lg px-3 py-2.5 text-[15px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 resize-none" />
-                            <div className="flex items-center justify-between gap-3">
-                                <span className="text-xs text-zinc-400 tabular-nums">{text.length}/500</span>
-                                <button type="button" onClick={send} disabled={busy || !text.trim()} className={`${btnPrimary} inline-flex items-center gap-1.5`}><SendIcon size={16} />{busy ? '送出中' : '送出'}</button>
+                            <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words">{post.content ?? post.summary ?? ''}</p>
+                            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-zinc-500">
+                                {isPublicView
+                                    ? <PrayButton postId={post.id} count={Number(post.response_count) || 0} responded={!!post.has_responded} onResponded={() => {}} onError={setError} />
+                                    : null}
+                                <span className="inline-flex items-center gap-1.5 text-sm tabular-nums shrink-0">
+                                    <ClockIcon size={18} /><span className="sr-only">時間：</span>{formatAgo(post.created_at)}
+                                </span>
                             </div>
-                            <InlineError message={error} />
                         </div>
-                    )}
-                </div>
+
+                        {/* 所有留言：權限圖示＋姓名，下方是內容，之間用灰線分隔 */}
+                        {state.status === 'loading' && <div className="p-4 sm:p-5 text-sm text-zinc-400">讀取留言中</div>}
+                        {state.status === 'error' && <div className="p-4 sm:p-5 text-sm text-zinc-500">暫時無法讀取留言</div>}
+                        {state.status === 'ok' && state.items.length === 0 && <div className="p-4 sm:p-5 text-sm text-zinc-400">還沒有更新</div>}
+                        {state.items.map(u => (
+                            <div key={u.id} className="p-4 sm:p-5">
+                                <div className="flex items-center gap-3 mb-2.5">
+                                    <RoleAvatar role={u.author_role} />
+                                    <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{u.author_name}</span>
+                                    <span className="text-sm text-zinc-400 tabular-nums shrink-0">{formatAgo(u.created_at)}</span>
+                                </div>
+                                <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words">{u.content}</p>
+                            </div>
+                        ))}
+
+                        {/* 輸入框：只有貼文者與審查權限者看得到 */}
+                        {state.canReply && (
+                            <div className="p-4 sm:p-5 flex flex-col gap-2">
+                                <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={500} rows={3} placeholder="寫下更新或回覆"
+                                    className="w-full bg-zinc-100 rounded-lg px-3 py-2.5 text-[15px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/30 resize-none" />
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="text-xs text-zinc-400 tabular-nums">{text.length}/500</span>
+                                    <button type="button" onClick={send} disabled={busy || !text.trim()} className={`${btnPrimary} inline-flex items-center gap-1.5`}><SendIcon size={16} />{busy ? '送出中' : '送出'}</button>
+                                </div>
+                                <InlineError message={error} />
+                            </div>
+                        )}
+                    </div>
+                </PageShell>
             );
         };
 
         const PostCard = ({ p, onResponded }) => {
             const [error, setError] = useState('');
-            const [showUpdates, setShowUpdates] = useState(false);
             const text = p.content ?? p.summary ?? '';
             const name = !p.display_name || p.display_name === '匿名' ? ANON_NAME : p.display_name;
             return (
@@ -731,13 +822,12 @@
 
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-zinc-500">
                         <PrayButton postId={p.id} count={Number(p.response_count) || 0} responded={!!p.has_responded} onResponded={onResponded} onError={setError} />
-                        <UpdatesButton open={showUpdates} onClick={() => setShowUpdates(v => !v)} />
+                        <UpdatesButton postId={p.id} onClick={() => go(`#/post/${p.id}`)} />
                         <span className="inline-flex items-center gap-1.5 text-sm tabular-nums shrink-0">
                             <ClockIcon size={18} /><span className="sr-only">時間：</span>{formatAgo(p.created_at)}
                         </span>
                     </div>
                     {error && <div className="mt-2"><InlineError message={error} /></div>}
-                    {showUpdates && <UpdatesPanel postId={p.id} />}
                 </li>
             );
         };
@@ -1143,7 +1233,6 @@
         const MyPostCard = ({ post, reason, showStatus, goEdit, forceReason, canSeeHistory }) => {
             const returned = post.review_status === 'returned';
             const name = post.show_name ? post.author_name : ANON_NAME;
-            const [showUpdates, setShowUpdates] = useState(false);
             return (
                 <li className="bg-white rounded-lg border border-zinc-200 shadow-sm p-4 sm:p-5">
                     <div className="flex items-center justify-between gap-3 mb-2.5">
@@ -1162,12 +1251,11 @@
                     )}
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-zinc-500">
                         {showStatus && <StatusLabel status={post.review_status} />}
-                        {post.review_status === 'approved' && <UpdatesButton open={showUpdates} onClick={() => setShowUpdates(v => !v)} />}
+                        {post.review_status === 'approved' && <UpdatesButton postId={post.id} onClick={() => go(`#/post/${post.id}`)} />}
                         <span className="inline-flex items-center gap-1.5 text-sm tabular-nums shrink-0">
                             <ClockIcon size={18} /><span className="sr-only">時間：</span>{formatAgo(post.created_at)}
                         </span>
                     </div>
-                    {showUpdates && <UpdatesPanel postId={post.id} />}
                     {canSeeHistory && <HistoryToggle postId={post.id} />}
                 </li>
             );
@@ -1641,7 +1729,7 @@
 
         // ==========================================
         // 外框：頁首（漢堡選單｜守望花園｜新增貼文、搜尋、通知）與網址切換
-        // 網址：prayer.html / #/search / #/submit / #/mine / #/edit/編號 / #/review
+        // 網址：prayer.html / #/search / #/submit / #/mine / #/edit/編號 / #/post/編號 / #/review
         // ==========================================
         const UUID = '([0-9a-fA-F-]{36})';
         const parseRoute = () => {
@@ -1653,6 +1741,8 @@
             if (h === '#/notifications') return { name: 'notifications' };
             const m = h.match(new RegExp(`^#/edit/${UUID}$`));
             if (m) return { name: 'edit', id: m[1] };
+            const pm = h.match(new RegExp(`^#/post/${UUID}$`));
+            if (pm) return { name: 'post', id: pm[1] };
             return { name: 'home' };
         };
         const go = (hash) => { window.location.hash = hash; window.scrollTo(0, 0); };
@@ -1789,6 +1879,7 @@
 
             let body;
             if (!sessionReady && ['submit', 'mine', 'edit', 'review', 'notifications'].includes(route.name)) body = <PageShell><Skeletons /></PageShell>;
+            else if (route.name === 'post') body = <PostDetailView key={route.id} id={route.id} goBack={() => { if (window.history.length > 1) window.history.back(); else goHome(); }} />;
             else if (route.name === 'search') body = <SearchView goHome={goHome} />;
             else if (route.name === 'submit') body = <SubmitView session={session} onLogin={() => setShowLogin(true)} goMine={goMine} goHome={goHome} notify={notify} />;
             else if (route.name === 'mine') body = <MineView session={session} role={role} onLogin={() => setShowLogin(true)} goHome={goHome} goEdit={(id) => go(`#/edit/${id}`)} flash={flash} />;
