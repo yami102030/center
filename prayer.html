@@ -298,6 +298,7 @@
                 return { canReply: !!(d && d.can_reply), items: (d && d.items) || [] };
             },
             addUpdate: (postId, content) => rpc('add_prayer_update', { p_post_id: postId, p_content: content }),
+            deleteUpdate: (id) => rpc('delete_prayer_update', { p_id: id }),
             editUpdate: (id, content) => rpc('edit_prayer_update', { p_id: id, p_content: content }),
             updateCounts: async (ids) => (await rpc('get_prayer_update_counts', { p_ids: ids })) || {},
             markRead: (id) => rpc('mark_prayer_notification_read', { p_id: id }),
@@ -719,8 +720,16 @@
         };
 
         // 一則回覆：權限圖示＋姓名＋時間，下方是內容。審查權限者可以按「編輯」修改內容。
-        const ReplyItem = ({ u, onSaved }) => {
+        const ReplyItem = ({ u, onSaved, onDeleted }) => {
             const [editing, setEditing] = useState(false);
+            const [confirmDel, setConfirmDel] = useState(false);
+            const [deleting, setDeleting] = useState(false);
+            const doDelete = async () => {
+                setDeleting(true); setError('');
+                try { await api.deleteUpdate(u.id); setConfirmDel(false); onDeleted(u.id); }
+                catch (err) { setError(err.message || '刪除失敗，稍後再試'); }
+                setDeleting(false);
+            };
             const [draft, setDraft] = useState(u.content);
             const [busy, setBusy] = useState(false);
             const [error, setError] = useState('');
@@ -742,7 +751,7 @@
                             <span className="text-sm text-zinc-400 tabular-nums shrink-0">{formatAgo(u.created_at)}</span>
                         </div>
                         {viewerState.isReviewer && !editing && (
-                            <button type="button" onClick={() => { setDraft(u.content); setError(''); setEditing(true); }} className={`${btnGhost} shrink-0`}><PencilIcon size={16} />編輯</button>
+                            <PostMenu onEdit={() => { setDraft(u.content); setError(''); setEditing(true); }} onDelete={() => { setError(''); setConfirmDel(true); }} />
                         )}
                     </div>
                     {editing ? (
@@ -760,6 +769,10 @@
                     ) : (
                         <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words">{u.content}</p>
                     )}
+                    {confirmDel && (
+                        <ConfirmModal title="刪除回覆？" confirmLabel="刪除" busy={deleting} error={error}
+                            onCancel={() => { setConfirmDel(false); setError(''); }} onConfirm={doDelete} />
+                    )}
                 </div>
             );
         };
@@ -773,6 +786,28 @@
             const [text, setText] = useState('');
             const [busy, setBusy] = useState(false);
             const [error, setError] = useState('');
+            // 審查者：貼文本身的編輯、刪除
+            const [postEditing, setPostEditing] = useState(false);
+            const [postDraft, setPostDraft] = useState('');
+            const [postSaving, setPostSaving] = useState(false);
+            const [postConfirmDel, setPostConfirmDel] = useState(false);
+            const [postDeleting, setPostDeleting] = useState(false);
+            const [postError, setPostError] = useState('');
+            const savePost = async () => {
+                const content = postDraft.trim();
+                if (!content) { setPostError('內容不可空白'); return; }
+                if (content === (post.content ?? post.summary ?? '')) { setPostEditing(false); return; }
+                setPostSaving(true); setPostError('');
+                try { await api.editContent(post.id, content); setPost(pst => ({ ...pst, content })); setPostEditing(false); }
+                catch (err) { setPostError(err.message || '儲存失敗，稍後再試'); }
+                setPostSaving(false);
+            };
+            const deletePost = async () => {
+                setPostDeleting(true); setPostError('');
+                try { await api.deletePost(post.id); setPostConfirmDel(false); goBack(); }
+                catch (err) { setPostError(err.message || '刪除失敗，稍後再試'); }
+                setPostDeleting(false);
+            };
 
             useEffect(() => {
                 let alive = true;
@@ -820,11 +855,32 @@
                     <div className="bg-white rounded-lg border border-zinc-200 shadow-sm divide-y divide-zinc-200">
                         {/* 貼文 */}
                         <div className="p-4 sm:p-5">
-                            <div className="flex items-center gap-3 mb-2.5">
-                                <CategoryAvatar id={post.category} />
-                                <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{name}</span>
+                            <div className="flex items-center justify-between gap-3 mb-2.5">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <CategoryAvatar id={post.category} />
+                                    <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{name}</span>
+                                </div>
+                                {viewerState.isReviewer && !postEditing && <PostMenu onEdit={() => { setPostDraft(post.content ?? post.summary ?? ''); setPostError(''); setPostEditing(true); }} onDelete={() => { setPostError(''); setPostConfirmDel(true); }} />}
                             </div>
-                            <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words">{post.content ?? post.summary ?? ''}</p>
+                            {postEditing ? (
+                                <div className="flex flex-col gap-3">
+                                    <label className="flex flex-col gap-1.5">
+                                        <span className="flex justify-between text-sm font-medium text-zinc-700">內容 <span className="text-xs tabular-nums text-zinc-400">{postDraft.length}/800</span></span>
+                                        <textarea value={postDraft} onChange={(e) => setPostDraft(e.target.value)} maxLength={800} rows={6} className={`${inputCls} leading-relaxed resize-y`} />
+                                    </label>
+                                    <InlineError message={postError} />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button type="button" onClick={() => { setPostEditing(false); setPostError(''); }} disabled={postSaving} className={btnCancelWhite}><XMarkIcon size={16} />取消</button>
+                                        <button type="button" onClick={savePost} disabled={postSaving || !postDraft.trim()} className={btnSubmitDark}><CheckIcon size={16} />{postSaving ? '儲存中…' : '儲存'}</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words">{post.content ?? post.summary ?? ''}</p>
+                            )}
+                            {postConfirmDel && (
+                                <ConfirmModal title="刪除貼文？" confirmLabel="刪除" busy={postDeleting} error={postError}
+                                    onCancel={() => { setPostConfirmDel(false); setPostError(''); }} onConfirm={deletePost} />
+                            )}
                             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-zinc-500">
                                 {isPublicView
                                     ? <PrayButton postId={post.id} count={Number(post.response_count) || 0} responded={!!post.has_responded} onResponded={() => {}} onError={setError} />
@@ -839,7 +895,8 @@
                         {state.status === 'loading' && <div className="p-4 sm:p-5 text-sm text-zinc-400">讀取留言中</div>}
                         {state.status === 'error' && <div className="p-4 sm:p-5 text-sm text-zinc-500">暫時無法讀取留言</div>}
                         {state.items.map(u => (
-                            <ReplyItem key={u.id} u={u} onSaved={(rid, content) => setState(st => ({ ...st, items: st.items.map(x => x.id === rid ? { ...x, content } : x) }))} />
+                            <ReplyItem key={u.id} u={u} onSaved={(rid, content) => setState(st => ({ ...st, items: st.items.map(x => x.id === rid ? { ...x, content } : x) }))}
+                                onDeleted={(rid) => setState(st => { const items = st.items.filter(x => x.id !== rid); updateCounts.cache[id] = items.length; return { ...st, items }; })} />
                         ))}
 
                         {/* 輸入框：只有貼文者與審查權限者看得到；版面同發表貼文 */}
@@ -1087,18 +1144,23 @@
 
         const chipCls = (active) => `px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors duration-150 active:scale-[0.98] ${focusRing} ${active ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-800 hover:bg-zinc-200'}`;
 
+        // 搜尋條件記在這裡：點進貼文再返回時，回到原本的關鍵字與結果；從搜尋圖示重新進入則清空
+        let searchMemory = null;
+        const openSearch = () => { searchMemory = null; go('#/search'); };
         const SearchView = ({ goHome }) => {
-            const [draft, setDraft] = useState('');
-            const [category, setCategory] = useState('all');
-            const [showFilter, setShowFilter] = useState(false);
+            const mem = searchMemory || {};
+            const [draft, setDraft] = useState(mem.draft || '');
+            const [category, setCategory] = useState(mem.category || 'all');
+            const [showFilter, setShowFilter] = useState(!!mem.showFilter);
             const [recent, setRecent] = useState(loadRecent);
             const [editing, setEditing] = useState(false);
             const [results, setResults] = useState([]);
             const [status, setStatus] = useState('idle');
             const reqId = useRef(0);
-            const [dateFrom, setDateFrom] = useState('');
-            const [dateTo, setDateTo] = useState('');
-            const [showAll, setShowAll] = useState(false);   // 按下「全部」：直接列出所有貼文
+            const [dateFrom, setDateFrom] = useState(mem.dateFrom || '');
+            const [dateTo, setDateTo] = useState(mem.dateTo || '');
+            const [showAll, setShowAll] = useState(!!mem.showAll);   // 按下「全部」：直接列出所有貼文
+            useEffect(() => { searchMemory = { draft, category, showFilter, dateFrom, dateTo, showAll }; }, [draft, category, showFilter, dateFrom, dateTo, showAll]);
             const keyword = draft.trim();
             const rangeBad = dateFrom !== '' && dateTo !== '' && dateFrom > dateTo;
             const active = keyword !== '' || category !== 'all' || dateFrom !== '' || dateTo !== '' || showAll;
@@ -1995,7 +2057,7 @@
             const goThen = (fn) => () => { setMoreOpen(false); fn(); };
             const moreItems = [
                 { id: 'm-add', label: '新增貼文', icon: <SquarePlusIcon size={20} />, onClick: goThen(() => requireLogin('#/submit')) },
-                { id: 'm-search', label: '搜尋', icon: <SearchIcon size={20} />, onClick: goThen(() => go('#/search')) },
+                { id: 'm-search', label: '搜尋', icon: <SearchIcon size={20} />, onClick: goThen(() => openSearch()) },
                 { id: 'm-bell', label: '通知', icon: <BellIcon size={20} />, badge: session ? unread : 0, active: route.name === 'notifications', onClick: goThen(() => { setUnread(0); requireLogin('#/notifications'); }) },
                 { id: 'm-mine', label: '我的禱告', icon: <HandHeartIcon size={20} />, active: route.name === 'mine' || route.name === 'edit', onClick: goThen(() => requireLogin('#/mine')) },
                 ...(isReviewer ? [{ id: 'm-review', label: '貼文審核', icon: <ClipboardCheckIcon size={20} />, badge: pending, active: route.name === 'review', onClick: goThen(() => go('#/review')) }] : []),
@@ -2044,7 +2106,7 @@
                                 ) : (
                                 <div className="justify-self-end flex items-center">
                                     <button onClick={() => requireLogin('#/submit')} aria-label="新增貼文" title="新增貼文" className={iconBtn}><SquarePlusIcon size={24} /></button>
-                                    <button onClick={() => go('#/search')} aria-label="搜尋" title="搜尋" className={iconBtn}><SearchIcon size={24} /></button>
+                                    <button onClick={openSearch} aria-label="搜尋" title="搜尋" className={iconBtn}><SearchIcon size={24} /></button>
                                     <button onClick={() => { setUnread(0); requireLogin('#/notifications'); }} aria-label={unread > 0 ? `通知，${unread} 則未讀` : '通知'} title="通知" className={`${iconBtn} ${route.name === 'notifications' ? 'bg-zinc-100' : ''}`}>
                                         <BellIcon size={24} />
                                         {session && unread > 0 && <span className="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-xs font-medium tabular-nums">{unread > 99 ? '99+' : unread}</span>}
