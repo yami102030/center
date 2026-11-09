@@ -1820,7 +1820,7 @@
             const onDeleted = (id) => { setPosts(l => l.filter(p => p.id !== id)); setResults(l => l.filter(p => p.id !== id)); };
 
             if (!session) return <PageShell back={<BackButton onClick={goHome} label="返回禱告牆" />}><NeedLogin onLogin={onLogin} /></PageShell>;
-            if (!REVIEWER_ROLES.includes(role)) return <PageShell back={<BackButton onClick={goHome} label="返回禱告牆" />}><EmptyBox message="只有牧師、區長與管理員可以進入審查頁" /></PageShell>;
+            if (!REVIEWER_ROLES.includes(role)) return <PageShell back={<BackButton onClick={goHome} label="返回禱告牆" />}><EmptyBox message="權限不足" /></PageShell>;
 
             const tabs = [{ id: 'pending', label: '待審查' }, { id: 'returned', label: '已退回' }];
             const onChanged = async () => { if (searching) await runSearch(keyword, true); else await load(true); refreshPending(); };
