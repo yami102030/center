@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 
+    <script src="https://tbcsm.github.io/management/tbc-config.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { theme: { extend: { colors: { indigo: {50: '#f7eefc', 100: '#eddaf8', 200: '#d9afef', 300: '#c17ee6', 400: '#a747db', 500: '#941fd3', 600: '#8806ce', 700: '#7205ad', 800: '#5c048c', 900: '#49036f'}, emerald: {50: '#f7eefc', 100: '#eddaf8', 200: '#d9afef', 300: '#c17ee6', 400: '#a747db', 500: '#941fd3', 600: '#8806ce', 700: '#7205ad', 800: '#5c048c', 900: '#49036f'}, sky: {50: '#f7eefc', 100: '#eddaf8', 200: '#d9afef', 300: '#c17ee6', 400: '#a747db', 500: '#941fd3', 600: '#8806ce', 700: '#7205ad', 800: '#5c048c', 900: '#49036f'} } } } }
@@ -60,12 +61,11 @@
         import { createClient } from '@supabase/supabase-js';
 
         // ==========================================
-        // 連線設定（與 manager.html 相同的公開金鑰）
+        // 連線設定（網址與金鑰統一放在 management 的 tbc-config.js）
         // 資料安全不靠這把金鑰，而是靠資料庫裡的警衛規則與權限窗口。
         // 與 manager.html、search.html 連同一個專案（jcepavwocdujoeoqxvsd），登入狀態會自動共用。
         // ==========================================
-        const SUPABASE_URL = "https://jcepavwocdujoeoqxvsd.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_Tj2n8e3yY1HyvaFzXRyO_w_PWrVFB7E";
+        const { SUPABASE_URL, SUPABASE_KEY } = window.TBC_CONFIG;   // 來自 management/tbc-config.js
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
         const VIRTUAL_DOMAIN = "@tbc.gmail.com";
         const formatEmailForAuth = (acc) => { const t = (acc || '').trim(); return t.includes('@') ? t : `${t}${VIRTUAL_DOMAIN}`; };
