@@ -12,10 +12,10 @@
   /* 風格：TBC ONE（圓角、細框、不加陰影）＋ Together 紫色 #8806ce */
   :root{ --bg:#ffffff; --card:#f7f9fa; --text:#262626; --sub:#595959; --mute:#8c8c8c; --border:#e8e8e8;
          --primary:#8806ce; --primary-hover:#7205ad; --primary-tint:#f7eefc; --primary-ink:#5c048c;
-         --good:#8806ce; --bad:#d4380d; --bad-bg:#fff1f0; --green:#1f7a45; --green-bg:#e8f6ee; }
+         --good:#8806ce; --adhoc:#f2f4cd; --busy:#c9c9c9; --bad:#d4380d; --bad-bg:#fff1f0; --green:#1f7a45; --green-bg:#e8f6ee; }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){ --bg:#0b1120; --card:#1e293b; --text:#f1f5f9; --sub:#94a3b8; --mute:#64748b; --border:#334155;
-      --primary-tint:#3a1a4d; --primary-ink:#e6c9f6; --good:#d9afef; --bad:#ff7a45; --bad-bg:#3a1d17; --green:#6fd09a; --green-bg:#14301f; }
+      --adhoc:#33361a; --busy:#475569; --primary-tint:#3a1a4d; --primary-ink:#e6c9f6; --good:#d9afef; --bad:#ff7a45; --bad-bg:#3a1d17; --green:#6fd09a; --green-bg:#14301f; }
   }
   *{ box-sizing:border-box; }
   html,body{ margin:0; }
@@ -28,27 +28,32 @@
   svg{ display:block; flex:none; }
   .sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 
-  /* 頂端列 */
-  .top{ position:sticky; top:0; z-index:20; background:var(--bg); border-bottom:1px solid var(--border); padding-top:env(safe-area-inset-top,0px); }
-  .top-in{ max-width:640px; margin:0 auto; height:52px; display:flex; align-items:center; gap:8px; padding:0 8px; }
-  .back{ width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--text); }
-  .back:hover{ background:var(--card); }
-  .top h1{ font-size:17px; font-weight:600; margin:0; flex:1; min-width:0; }
-  .who{ display:flex; align-items:center; gap:6px; font-size:14px; color:var(--sub); min-width:0; }
-  .who b{ font-weight:500; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:7em; }
-  .link{ color:var(--primary); font-size:14px; font-weight:500; padding:8px; border-radius:8px; }
+  /* 頂端列：左選單、中標題、右使用者 */
+  .top{ position:sticky; top:0; z-index:30; background:var(--bg); border-bottom:1px solid var(--border); padding-top:env(safe-area-inset-top,0px); }
+  .top-in{ max-width:640px; margin:0 auto; height:56px; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:0 12px; position:relative; }
+  .menu-btn{ width:40px; height:40px; border-radius:10px; background:var(--card); display:flex; align-items:center; justify-content:center; }
+  .top h1{ font-size:17px; font-weight:700; margin:0; text-align:center; }
+  .who{ justify-self:end; display:flex; align-items:center; gap:8px; font-size:15px; font-weight:500; min-width:0; }
+  .who b{ font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:5.5em; }
+  .avatar{ width:36px; height:36px; border-radius:50%; background:var(--card); color:var(--primary); display:flex; align-items:center; justify-content:center; flex:none; }
+  .link{ color:var(--primary); font-size:15px; font-weight:600; padding:8px; border-radius:8px; }
   .link:hover{ background:var(--primary-tint); }
+  .menu{ position:absolute; left:12px; top:60px; width:230px; background:var(--bg); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.12); }
+  .menu a,.menu button{ display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; font-size:15px; font-weight:500; color:var(--sub); text-decoration:none; text-align:left; }
+  .menu a + a,.menu a + button,.menu button + button{ border-top:1px solid var(--border); }
+  .menu a:hover,.menu button:hover{ background:var(--card); }
+  .menu-bg{ position:fixed; inset:0; z-index:25; }
 
   main{ max-width:640px; margin:0 auto; padding-bottom:40px; }
 
   /* 工具列：今天｜天 月｜找場地｜新增 */
   .tb{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; background:var(--card); border-bottom:1px solid var(--border); }
-  .btn-soft{ height:40px; padding:0 16px; border-radius:9999px; border:1px solid var(--border); background:var(--bg); font-weight:500; }
+  .btn-soft{ height:40px; padding:0 14px; border-radius:9999px; border:1px solid var(--border); background:var(--bg); font-weight:500; }
   .btn-soft:hover{ background:var(--primary-tint); }
   .seg{ display:flex; border:1px solid var(--border); border-radius:9999px; overflow:hidden; background:var(--bg); }
   .seg button{ height:40px; min-width:56px; padding:0 14px; font-weight:500; color:var(--sub); }
   .seg button[aria-pressed="true"]{ background:var(--primary); color:#fff; }
-  .tb-right{ display:flex; gap:8px; }
+  .tb-right{ display:flex; gap:6px; }
   .btn-icon{ width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--bg); display:flex; align-items:center; justify-content:center; color:var(--text); }
   .btn-icon:hover{ background:var(--primary-tint); }
   .btn-icon.primary{ background:var(--primary); border-color:var(--primary); color:#fff; }
@@ -57,28 +62,28 @@
   /* 標題＋前後翻頁 */
   .nav{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px; }
   .nav h2{ margin:0; font-size:20px; font-weight:700; }
-  .arrows{ display:flex; border:1px solid var(--border); border-radius:9999px; overflow:hidden; }
-  .arrows button{ width:46px; height:38px; display:flex; align-items:center; justify-content:center; }
-  .arrows button + button{ border-left:1px solid var(--border); }
-  .arrows button:hover{ background:var(--primary-tint); }
+  .arrows{ display:flex; gap:2px; }
+  .arrows button{ width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--text); }
+  .arrows button:hover{ background:var(--card); }
   .arrows button:disabled{ opacity:.4; cursor:default; }
 
-  /* 月曆 */
-  .wk{ display:grid; grid-template-columns:repeat(7,1fr); background:var(--primary); color:#fff; font-weight:600; text-align:center; }
-  .wk span{ padding:7px 0; }
-  .grid{ display:grid; grid-template-columns:repeat(7,1fr); }
-  .cell{ position:relative; height:54px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); display:flex; flex-direction:column; align-items:center; padding-top:6px; font-size:16px; font-weight:600; }
-  .cell:nth-child(7n){ border-right:0; }
-  .cell.out{ color:var(--mute); font-weight:500; }
-  .cell.sel{ background:var(--primary-tint); color:var(--primary); }
-  .cell .n{ width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
-  .cell.today .n{ background:var(--primary); color:#fff; }
-  .dots{ display:flex; gap:3px; margin-top:3px; height:6px; }
-  .dots i{ width:6px; height:6px; border-radius:50%; background:var(--c); }
-  .dots i.p{ background:transparent; border:1.5px solid var(--c); }
+  /* 月曆（比照後台：無外框、過去日期灰色、有預約只放一個點） */
+  .nav{ padding:12px 12px 4px 16px; }
+  .nav h2{ font-size:18px; }
+  .wk{ display:grid; grid-template-columns:repeat(7,1fr); color:var(--sub); font-size:14px; text-align:center; padding:6px 8px 0; }
+  .wk span{ padding:6px 0; }
+  .grid{ display:grid; grid-template-columns:repeat(7,1fr); padding:0 8px 10px; }
+  .cell{ height:50px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:16px; font-weight:500; }
+  .cell.out{ color:var(--mute); }
+  .cell.past{ color:var(--mute); }
+  .cell .n{ width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .cell.sel .n{ background:var(--primary-tint); color:var(--primary); font-weight:700; }
+  .cell.today .n{ background:var(--primary); color:#fff; font-weight:700; }
+  .dots{ height:5px; display:flex; }
+  .dots i{ width:5px; height:5px; border-radius:50%; background:var(--primary); }
 
   /* 當天條列 */
-  .dayhead{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; background:var(--card); border-top:1px solid var(--border); border-bottom:1px solid var(--border); margin-top:0; }
+  .dayhead{ display:flex; align-items:center; gap:10px; padding:4px 4px 4px 16px; background:var(--card); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
   .dayhead b{ font-size:17px; font-weight:700; }
   .dayhead span.d{ color:var(--sub); font-size:14px; margin-left:auto; }
   .list{ margin:0; padding:0; list-style:none; }
@@ -86,6 +91,7 @@
   .ev-t{ width:84px; flex:none; background:var(--c); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:8px 4px; }
   .ev-t b{ font-size:19px; font-weight:700; line-height:1.15; }
   .ev-t small{ font-size:12px; opacity:.9; }
+  .ev:not(.rec) .ev-b{ background:var(--adhoc); }
   .ev-b{ flex:1; min-width:0; padding:10px 12px; display:flex; flex-direction:column; justify-content:center; gap:2px; }
   .ev-sp{ font-size:13px; font-weight:600; color:var(--c); }
   .ev-ti{ font-size:17px; font-weight:700; overflow-wrap:anywhere; }
@@ -123,7 +129,8 @@
   .inp{ width:100%; height:46px; padding:0 12px; border:1px solid var(--border); border-radius:8px; background:var(--card); }
   textarea.inp{ height:84px; padding:10px 12px; resize:vertical; }
   .inp:focus{ border-color:var(--primary); }
-  select.inp{ appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:34px; }
+  select.inp,.selbtn{ appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:34px; }
+  .selbtn{ text-align:left; }
   .pills{ display:flex; flex-wrap:wrap; gap:8px; }
   .pill{ height:40px; padding:0 16px; border-radius:9999px; border:1px solid var(--border); background:var(--bg); font-weight:500; }
   .pill[aria-pressed="true"]{ background:var(--primary); border-color:var(--primary); color:#fff; }
@@ -132,12 +139,34 @@
   .avail{ margin:4px 0 14px; padding:10px 12px; border-radius:8px; font-size:14px; background:var(--card); }
   .avail.ok{ color:var(--primary); background:var(--primary-tint); font-weight:600; }
   .avail.no{ color:var(--bad); background:var(--bad-bg); }
+  .tl{ margin:6px 0 14px; }
+  .tl-bar{ position:relative; height:34px; border-radius:8px; background:var(--card); overflow:hidden; }
+  .tl-bar i{ position:absolute; top:0; bottom:0; background:var(--busy); }
+  .tl-bar b{ position:absolute; top:2px; bottom:2px; border-radius:6px; background:var(--primary); opacity:.9; }
+  .tl-bar b.bad{ background:var(--bad); }
+  .tl-ax{ position:relative; height:18px; font-size:12px; color:var(--mute); margin-top:4px; }
+  .tl-ax span{ position:absolute; transform:translateX(-50%); }
+  .tl-ax span:first-child{ transform:none; } .tl-ax span:last-child{ transform:translateX(-100%); }
+  .tl-lg{ display:flex; gap:14px; align-items:center; font-size:13px; color:var(--sub); margin-top:4px; }
+  .tl-lg i{ display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--busy); margin-right:5px; vertical-align:-1px; }
+  .tl-lg .ok{ color:var(--primary); font-weight:700; } .tl-lg .no{ color:var(--bad); font-weight:700; }
+  .tl-why{ font-size:13px; color:var(--bad); margin-top:6px; }
+  .wait{ text-align:center; color:var(--sub); font-size:14px; margin:14px 0 4px; }
+  .tab{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .mine{ border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:10px; }
+  .mine-top{ display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
+  .mine-top b{ font-size:16px; overflow-wrap:anywhere; }
+  .tag{ flex:none; font-size:12px; font-weight:600; padding:3px 10px; border-radius:9999px; background:var(--card); color:var(--sub); }
+  .tag.pending{ background:#fff7e0; color:#a36a00; } .tag.approved{ background:var(--green-bg); color:var(--green); } .tag.rejected{ background:var(--bad-bg); color:var(--bad); }
+  .mine .m{ font-size:14px; color:var(--sub); margin-top:6px; }
+  .why{ margin-top:10px; padding:10px 12px; border-radius:8px; background:var(--bad-bg); color:var(--bad); font-size:14px; overflow-wrap:anywhere; }
+  .why small{ display:block; font-size:12px; opacity:.85; }
   details{ border-top:1px solid var(--border); padding:10px 0; }
   details:last-of-type{ border-bottom:1px solid var(--border); margin-bottom:14px; }
   summary{ cursor:pointer; font-weight:600; list-style:none; display:flex; align-items:center; justify-content:space-between; min-height:32px; }
   summary::-webkit-details-marker{ display:none; }
-  summary::after{ content:''; width:8px; height:8px; border-right:2px solid var(--sub); border-bottom:2px solid var(--sub); transform:rotate(45deg); margin-right:4px; transition:transform .15s; }
-  details[open] summary::after{ transform:rotate(-135deg); }
+  summary::after{ content:'+'; font-size:24px; font-weight:400; color:var(--sub); line-height:1; margin-right:4px; }
+  details[open] summary::after{ content:'−'; }
   details > div{ padding-top:10px; }
   .dates{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .dchip{ padding:4px 10px; border-radius:9999px; background:var(--card); font-size:13px; }
@@ -215,11 +244,19 @@ const IC = {
   left: '<path d="m15 18-6-6 6-6"/>', right: '<path d="m9 18 6-6-6-6"/>', back: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
   plus: '<path d="M5 12h14"/><path d="M12 5v14"/>', search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  menu: '<path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/>',
+  home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
+  logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
+  login: '<path d="m10 17 5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>',
+  list: '<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
+  user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
 };
 const svg = (n, s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
 
 /* ============ 資料 ============ */
-const state = { view: 'month', sel: todayStr(), month: monthStart(todayStr()), page: 0, spaces: [], err: '', loading: true, session: null, name: '' };
+const state = { menu: false, view: 'month', sel: todayStr(), month: monthStart(todayStr()), page: 0, spaces: [], err: '', loading: true, session: null, name: '' };
 const cache = new Map();
 let lastLoad = 0;
 
@@ -244,13 +281,20 @@ async function loadSpaces() {
 }
 
 /* ============ 畫面：頂端列 ============ */
+const shortName = (n) => { n = (n || '').trim(); return /^[\u4e00-\u9fff]{2,3}$/.test(n) ? n.slice(1) : n; };   // 去掉姓氏
 function renderTop() {
   $('#top').innerHTML = `
-    <a class="back" href="./index.html" aria-label="回首頁">${svg('back', 22)}</a>
+    <button class="menu-btn" data-act="menu" aria-label="${state.menu ? '關閉選單' : '開啟選單'}" aria-expanded="${state.menu}">${svg(state.menu ? 'x' : 'menu', 22)}</button>
     <h1>場地預約</h1>
     ${state.session
-      ? `<div class="who"><b>${esc(state.name || '會友')}</b><button class="link" data-act="logout">登出</button></div>`
-      : `<button class="link" data-act="login">登入</button>`}`;
+      ? `<div class="who"><span class="avatar">${svg('user', 18)}</span><b>${esc(shortName(state.name) || '會友')}</b></div>`
+      : `<button class="link who" data-act="login">登入</button>`}
+    ${state.menu ? `<div class="menu-bg" data-act="menu"></div><nav class="menu" aria-label="選單">
+      <a href="./index.html">${svg('home')}回首頁</a>
+      <a href="./search.html">${svg('clock')}我的服事</a>
+      <a href="./manager.html">${svg('users')}個人設定</a>
+      ${state.session ? `<button data-act="logout">${svg('logout')}登出</button>` : `<button data-act="login">${svg('login')}登入</button>`}
+    </nav>` : ''}`;
 }
 
 /* ============ 畫面：主畫面（月曆＋當天條列） ============ */
@@ -270,6 +314,7 @@ function render() {
       <div class="tb-right">
         <button class="btn-icon" data-act="find" aria-label="快速找場地">${svg('search')}</button>
         <button class="btn-icon primary" data-act="new" aria-label="新增預約">${svg('plus')}</button>
+        <button class="btn-icon" data-act="mine" aria-label="我的預約">${svg('list')}</button>
       </div>
     </div>`;
 
@@ -279,31 +324,32 @@ function render() {
     const g = monthGrid(state.month);
     const by = new Map();
     for (const e of monthEvents || []) { if (!by.has(e.booking_date)) by.set(e.booking_date, []); by.get(e.booking_date).push(e); }
-    h += `<div class="nav"><h2>${state.month.slice(0, 4)}年 ${+state.month.slice(5, 7)} 月</h2>
+    h += `<div class="nav"><h2>${state.month.slice(0, 4)}年${+state.month.slice(5, 7)}月</h2>
       <div class="arrows"><button data-act="mprev" aria-label="上個月">${svg('left')}</button><button data-act="mnext" aria-label="下個月">${svg('right')}</button></div></div>
       <div class="wk">${WEEK.map((w) => `<span>${w}</span>`).join('')}</div>
       <div class="grid" role="grid" aria-label="月曆">${g.map((d) => {
-        const evs = by.get(d) || [];
-        const dots = [...new Map(evs.map((e) => [e.space_id + e.kind, e])).values()].slice(0, 4).map((e) => `<i class="${e.kind === 'pending' ? 'p' : ''}" style="--c:${colorOf(e.space_id)}"></i>`).join('');
-        return `<button class="cell${d.slice(0, 7) !== state.month.slice(0, 7) ? ' out' : ''}${d === sel ? ' sel' : ''}${d === today ? ' today' : ''}" data-act="pick" data-d="${d}" role="gridcell" aria-label="${+d.slice(5, 7)} 月 ${+d.slice(8, 10)} 日${evs.length ? `，${evs.length} 筆預約` : ''}">
-          <span class="n">${+d.slice(8, 10)}</span><span class="dots">${dots}</span></button>`;
+        const n = (by.get(d) || []).length;
+        return `<button class="cell${d.slice(0, 7) !== state.month.slice(0, 7) ? ' out' : ''}${d < today ? ' past' : ''}${d === sel ? ' sel' : ''}${d === today ? ' today' : ''}" data-act="pick" data-d="${d}" role="gridcell" aria-label="${+d.slice(5, 7)} 月 ${+d.slice(8, 10)} 日${n ? `，${n} 筆預約` : ''}">
+          <span class="n">${+d.slice(8, 10)}</span><span class="dots">${n ? '<i></i>' : ''}</span></button>`;
       }).join('')}</div>`;
   }
 
-  const rel = sel === today ? '今天' : sel === addDays(today, 1) ? '明天' : sel === addDays(today, -1) ? '昨天' : `${+sel.slice(5, 7)} 月 ${+sel.slice(8, 10)} 日`;
-  h += `<div class="dayhead"><b>${rel}</b><span class="d">${sel.slice(0, 4)}年${+sel.slice(5, 7)}月${+sel.slice(8, 10)}日 星期${WEEK[dow(sel)]}</span>
+  const relWord = sel === today ? '今天' : sel === addDays(today, 1) ? '明天' : sel === addDays(today, -1) ? '昨天' : '';
+  const left = relWord || `${+sel.slice(5, 7)}月${+sel.slice(8, 10)}日`;
+  const right = relWord ? `${sel.slice(0, 4)}年${+sel.slice(5, 7)}月${+sel.slice(8, 10)}日` : `星期${WEEK[dow(sel)]}`;
+  h += `<div class="dayhead"><b>${left}</b><span class="d">${right}</span>
     <div class="arrows"><button data-act="dprev" aria-label="前一天">${svg('left')}</button><button data-act="dnext" aria-label="後一天">${svg('right')}</button></div></div>`;
 
   const evs = (monthEvents || []).filter((e) => e.booking_date === sel).sort((a, b) => a.start_time.localeCompare(b.start_time) || a.space_name.localeCompare(b.space_name, 'zh-TW'));
   if (!monthEvents && !state.err) h += `<div class="skeleton">載入中…</div>`;
-  else if (!evs.length) h += `<div class="empty">這一天沒有預約</div>`;
+  else if (!evs.length) h += `<div class="empty">沒有人預約，歡迎來卡位</div>`;
   else {
     const pages = Math.ceil(evs.length / PAGE);
     const pg = Math.min(state.page, pages - 1);
     h += `<ul class="list">${evs.slice(pg * PAGE, pg * PAGE + PAGE).map((e) => `
-      <li class="ev ${e.kind === 'pending' ? 'pending' : ''}" style="--c:${colorOf(e.space_id)}">
+      <li class="ev ${e.kind === 'pending' ? 'pending' : ''}${e.is_recurring ? ' rec' : ''}" style="--c:${colorOf(e.space_id)}">
         <div class="ev-t"><b>${hm(e.start_time)}</b><small>${hm(e.end_time)}</small></div>
-        <div class="ev-b"><span class="ev-sp">${esc(e.space_name)}</span><span class="ev-ti">${esc(e.title)}</span><span class="ev-meta">${hm(e.start_time)} – ${hm(e.end_time)}</span></div>
+        <div class="ev-b"><span class="ev-sp">${esc(e.space_name)}</span><span class="ev-ti">${esc(e.title)}</span></div>
       </li>`).join('')}</ul>`;
     if (pages > 1) h += `<div class="pager"><button class="pbtn" data-act="pprev" ${pg === 0 ? 'disabled' : ''}>‹ 上一頁</button><button class="pbtn" data-act="pnext" ${pg >= pages - 1 ? 'disabled' : ''}>下一頁 ›</button></div>`;
   }
@@ -339,12 +385,16 @@ $('#main').addEventListener('click', (ev) => {
   else if (a === 'pnext') { state.page += 1; render(); }
   else if (a === 'retry') { reload(); }
   else if (a === 'find') openFind();
+  else if (a === 'mine') needLogin(openMine);
   else if (a === 'new') needLogin(() => openBooking({ date: state.sel >= todayStr() ? state.sel : todayStr() }));
 });
 $('#top').addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-act]'); if (!b) return;
-  if (b.dataset.act === 'login') openLogin();
-  if (b.dataset.act === 'logout') supabase.auth.signOut();
+  const a = b.dataset.act;
+  if (a === 'menu') { state.menu = !state.menu; renderTop(); return; }
+  if (state.menu) { state.menu = false; renderTop(); }
+  if (a === 'login') openLogin();
+  if (a === 'logout') supabase.auth.signOut();
 });
 
 /* ============ 通用：彈出視窗、提示 ============ */
@@ -386,7 +436,6 @@ function openLogin() {
     <form id="lf"><div class="f"><label for="la">帳號</label><input id="la" class="inp" autocomplete="username" placeholder="電話號碼或電子郵件" required></div>
     <div class="f"><label for="lp">密碼</label><input id="lp" class="inp" type="password" autocomplete="current-password" placeholder="6位以上英數組合" required></div>
     <div class="err" id="le" role="alert"></div>
-    <p class="hint">申請借用場地需要先登入（會友以上）。</p>
     <button class="btn primary" style="width:100%" type="submit" id="lb">登入</button></form>
     <p class="hint" style="text-align:center;margin-top:16px">首次設定密碼？請<a href="./manager.html#signup" style="color:var(--primary);font-weight:600">點這裡</a><br>沒有帳號、忘記密碼？請聯絡行政辦公室</p>`, '');
   $('#la', s.el).focus();
@@ -452,21 +501,14 @@ function openBooking(init, onBack) {
       <div class="f"><label for="bs">場地 <span class="req">*</span></label><select id="bs" class="inp">${state.spaces.map((x) => `<option value="${x.id}" ${x.id === b.space ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
       <div class="f"><label for="bd">日期 <span class="req">*</span></label><input id="bd" class="inp" type="date" min="${today}" value="${b.date}"></div>
       ${durHtml(b, 'b')}
-      <div class="avail" id="bav" aria-live="polite"></div>
-      <details id="brp"><summary>重複預約</summary><div>
-        <label class="chk"><input type="checkbox" id="brc"> 每週同一天重複</label>
-        <div id="brw" hidden style="margin-top:10px"><label for="bw" class="hint" style="display:block;margin:0 0 4px">共幾週（含第一週）</label>
-          <select id="bw" class="inp">${Array.from({ length: 11 }, (_, i) => i + 2).map((n) => `<option ${n === 4 ? 'selected' : ''}>${n}</option>`).join('')}</select>
-          <div id="bdl" class="dates"></div>
-          <label class="chk" id="bsk" hidden><input type="checkbox" id="bskc"> 略過時間衝突場次，其餘照常預約</label></div>
-      </div></details>
+      <div class="tl" id="bav" aria-live="polite"></div>
       <div class="f" style="margin-top:14px"><label for="bc">聯絡人 <span class="req">*</span></label><input id="bc" class="inp" maxlength="50" value="${esc(b.contact)}"></div>
       <details><summary>更多資訊</summary><div>
         <div class="f"><label for="bo">借用單位</label><input id="bo" class="inp" maxlength="100"></div>
         <div class="f"><label for="bp">聯絡電話</label><input id="bp" class="inp" type="tel" inputmode="tel" maxlength="30"></div>
         <div class="f"><label for="bn">備註</label><textarea id="bn" class="inp" maxlength="500"></textarea></div>
       </div></details>
-      <p class="hint">送出後需經行政審核；核准前，其他人只會看到「審核中」。</p>
+      <p class="wait">審核中，請耐心等候</p>
       <div class="err" id="ber" role="alert"></div>
     </form>`,
     `<button type="button" class="btn" data-close>取消</button><button type="submit" form="bf" class="btn primary" id="bsub">送出申請</button>`);
@@ -475,7 +517,7 @@ function openBooking(init, onBack) {
   s.onClose = () => { if (!saved && onBack) onBack(); };
   setTimeout(() => { const f = r.querySelector('[data-first]'); if (f) f.focus(); }, 50);
 
-  const dates = () => (b.repeat ? Array.from({ length: b.weeks }, (_, i) => addDays(b.date, i * 7)) : [b.date]);
+  const dates = () => [b.date];
   const clash = (d) => eventsOn(d).filter((e) => e.space_id === b.space && tmin(e.start_time) < tmin(b.start) + durMin(b) && tmin(e.end_time) > tmin(b.start));
   const errors = () => {
     if (!b.title.trim()) return '請填寫活動名稱';
@@ -490,24 +532,16 @@ function openBooking(init, onBack) {
     const ds = b.date && b.date >= today ? dates() : [];
     try { await ensureDates(ds); } catch (e) { /* 伺服器送出時還會再檢查一次 */ }
     if (my !== token || s.closed) return;
-    const av = g('#bav'); let ok = true;
-    const bad = ds.filter((d) => timeValid(b) && clash(d).length);
-    if (!ds.length || !timeValid(b)) { av.className = 'avail'; av.textContent = ''; av.hidden = true; }
-    else {
-      av.hidden = false;
-      if (!b.repeat) {
-        const c = clash(b.date);
-        if (c.length) { ok = false; av.className = 'avail no'; av.textContent = `這個時段已被占用：${c.map((e) => `${hm(e.start_time)}–${hm(e.end_time)} ${e.title}`).join('、')}`; }
-        else { av.className = 'avail ok'; av.textContent = '這個時段可以預約'; }
-      } else {
-        av.className = bad.length ? 'avail no' : 'avail ok';
-        av.textContent = bad.length ? `共 ${ds.length} 場，其中 ${bad.length} 場時段已被占用` : `共 ${ds.length} 場，時段都可以預約`;
-        g('#bdl').innerHTML = ds.map((d) => `<span class="dchip${bad.includes(d) ? ' bad' : ''}">${mdw(d)}</span>`).join('');
-        g('#bsk').hidden = !(bad.length > 0 && bad.length < ds.length);
-        if (g('#bsk').hidden) { b.skip = false; g('#bskc').checked = false; }
-        ok = bad.length === 0 || (bad.length < ds.length && b.skip);
-      }
-    }
+    const av = g('#bav');
+    if (!ds.length) { av.innerHTML = ''; g('#bsub').disabled = false; return; }
+    const day = eventsOn(b.date).filter((e) => e.space_id === b.space);
+    const ok = !timeValid(b) || clash(b.date).length === 0;
+    const pos = (m) => Math.min(100, Math.max(0, (m - 480) / 900 * 100));
+    const seg = (a, z) => `left:${pos(a)}%;width:${Math.max(0, pos(z) - pos(a))}%`;
+    av.innerHTML = `<div class="tl-bar">${day.map((e) => `<i style="${seg(tmin(e.start_time), tmin(e.end_time))}"></i>`).join('')}${timeValid(b) ? `<b class="${ok ? '' : 'bad'}" style="${seg(tmin(b.start), tmin(b.start) + durMin(b))}"></b>` : ''}</div>
+      <div class="tl-ax">${[8, 11, 14, 17, 20, 23].map((h) => `<span style="left:${pos(h * 60)}%">${pad(h)}</span>`).join('')}</div>
+      <div class="tl-lg"><span><i></i>已預約</span>${timeValid(b) ? `<span class="${ok ? 'ok' : 'no'}">${ok ? '可預約' : '不可預約'}</span>` : ''}</div>
+      ${ok ? '' : `<div class="tl-why">${clash(b.date).map((e) => `${hm(e.start_time)}–${hm(e.end_time)} ${esc(e.title)}`).join('、')}</div>`}`;
     g('#bsub').disabled = !ok;
   }
   const upd = () => { g('#ber').textContent = ''; refresh(); };
@@ -516,9 +550,6 @@ function openBooking(init, onBack) {
   g('#bs').addEventListener('change', (e) => { b.space = e.target.value; upd(); });
   g('#bd').addEventListener('change', (e) => { b.date = e.target.value; upd(); });
   g('#bc').addEventListener('input', (e) => { b.contact = e.target.value; });
-  g('#brc').addEventListener('change', (e) => { b.repeat = e.target.checked; g('#brw').hidden = !b.repeat; upd(); });
-  g('#bw').addEventListener('change', (e) => { b.weeks = +e.target.value; upd(); });
-  g('#bskc').addEventListener('change', (e) => { b.skip = e.target.checked; upd(); });
   refresh();
 
   g('#bf').addEventListener('submit', async (e) => {
@@ -530,7 +561,7 @@ function openBooking(init, onBack) {
     const { data, error } = await supabase.rpc('venue_submit_request', {
       p_space_id: b.space, p_title: b.title.trim(), p_dates: ds, p_start_time: b.start, p_end_time: endOf(b),
       p_org_unit: b.org.trim() || null, p_contact_name: b.contact.trim(), p_contact_phone: b.phone.trim() || null, p_note: b.note.trim() || null,
-      p_skip_conflicts: b.repeat && b.skip,
+      p_skip_conflicts: false,
     });
     btn.textContent = '送出申請';
     if (error) {
@@ -567,7 +598,7 @@ function openFind(prev) {
     <div class="f"><label for="qd">日期</label><input id="qd" class="inp" type="date" min="${today}" value="${f.date}"></div>
     ${durHtml(f, 'q')}
     <div class="f"><span class="lb">場地</span>
-      <button type="button" class="inp" id="qsb" style="text-align:left" aria-expanded="false"></button>
+      <button type="button" class="inp selbtn" id="qsb" aria-expanded="false"></button>
       <div class="sp-panel" id="qsp" hidden></div></div>
     <div id="qres" aria-live="polite"></div>`, `<button type="button" class="btn" data-close>關閉</button>`);
   const r = s.el, g = (id) => $(id, r);
@@ -576,7 +607,7 @@ function openFind(prev) {
   const allOn = () => !f.sel || active.every((x) => f.sel.has(x.id));
   const label = () => (allOn() ? '全部場地' : !f.sel || f.sel.size === 0 ? '未選場地' : `${f.sel.size} 個場地`);
   const drawSp = () => {
-    g('#qsb').textContent = label() + '　▾';
+    g('#qsb').textContent = label();
     g('#qsp').innerHTML = `<div class="h"><span>勾選要查詢的場地</span><span><button type="button" data-all="1">全選</button><button type="button" data-all="0">取消</button></span></div>` +
       active.map((x) => `<label style="--c:${colorOf(x.id)}"><input type="checkbox" data-sp="${x.id}" ${!f.sel || f.sel.has(x.id) ? 'checked' : ''}><i></i>${esc(x.name)}</label>`).join('');
   };
@@ -611,7 +642,7 @@ function openFind(prev) {
   g('#qsp').addEventListener('change', (e) => {
     const c = e.target.closest('[data-sp]'); if (!c) return;
     const n = new Set(f.sel || active.map((x) => x.id)); if (c.checked) n.add(c.dataset.sp); else n.delete(c.dataset.sp);
-    f.sel = active.every((x) => n.has(x.id)) ? null : n; g('#qsb').textContent = label() + '　▾'; run();
+    f.sel = active.every((x) => n.has(x.id)) ? null : n; g('#qsb').textContent = label(); run();
   });
   g('#qres').addEventListener('click', (e) => {
     const p = e.target.closest('[data-pick]'); if (!p) return;
@@ -624,7 +655,36 @@ function openFind(prev) {
   run();
 }
 
+/* ============ 我的預約 ============ */
+const ST = { pending: '待審查', approved: '已核准', rejected: '已退回' };
+function openMine() {
+  const s = sheet('我的預約', '<div class="skeleton">載入中…</div>', '');
+  let rows = null, cat = 'all';
+  const body = s.el.querySelector('.sh-body');
+  const draw = () => {
+    const gs = new Map();
+    for (const r of rows) { const k = r.series_id || r.id; if (!gs.has(k)) gs.set(k, []); gs.get(k).push(r); }
+    const list = [...gs.values()].map((it) => it.sort((a, b) => a.booking_date.localeCompare(b.booking_date) || a.start_time.localeCompare(b.start_time)))
+      .sort((a, b) => b[0].created_at.localeCompare(a[0].created_at));
+    const shown = list.filter((it) => cat === 'all' || it[0].status === cat);
+    const cnt = (c) => list.filter((it) => c === 'all' || it[0].status === c).length;
+    body.innerHTML = `<div class="tab" role="tablist">${[['all', '全部'], ['pending', '待審查'], ['approved', '已核准'], ['rejected', '已退回']].map(([k, l]) => `<button class="pill" role="tab" data-cat="${k}" aria-pressed="${cat === k}">${l}${cnt(k) ? ` ${cnt(k)}` : ''}</button>`).join('')}</div>` +
+      (shown.length ? shown.map((it) => { const f = it[0]; return `<article class="mine"><div class="mine-top"><b>${esc(f.title)}</b><span class="tag ${esc(f.status)}">${esc(ST[f.status] || f.status)}</span></div>
+        <div class="m">${esc(f.space_name)}　${hm(f.start_time)} – ${hm(f.end_time)}</div>
+        <div class="dates">${it.map((x) => `<span class="dchip">${mdw(x.booking_date)}</span>`).join('')}</div>
+        ${f.status === 'rejected' ? `<div class="why"><small>退回原因</small>${esc(f.review_note || '（沒有填寫）')}</div>` : ''}</article>`; }).join('')
+        : '<div class="empty">還沒有預約紀錄</div>');
+  };
+  body.addEventListener('click', (e) => { const p = e.target.closest('[data-cat]'); if (p && rows) { cat = p.dataset.cat; draw(); } });
+  supabase.rpc('venue_my_requests').then(({ data, error }) => {
+    if (s.closed) return;
+    if (error) { body.innerHTML = '<div class="err">暫時無法讀取，請稍後再試</div>'; return; }
+    rows = data || []; draw();
+  });
+}
+
 /* ============ 啟動 ============ */
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.menu) { state.menu = false; renderTop(); } });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && lastLoad && Date.now() - lastLoad > 60000) reload(); });
 (async () => {
   render();
