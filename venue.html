@@ -28,33 +28,43 @@
   svg{ display:block; flex:none; }
   .sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 
-  /* 頂端列：左選單、中標題、右使用者 */
+  /* 頂端列（與守望花園、我的服事相同）：左漢堡選單＋標題、右功能圖示 */
   .top{ position:sticky; top:0; z-index:30; background:var(--bg); border-bottom:1px solid var(--border); padding-top:env(safe-area-inset-top,0px); }
-  :root{ --fs:15px; }
-  .top-in{ max-width:640px; margin:0 auto; height:56px; display:flex; align-items:center; gap:10px; padding:0 8px 0 12px; position:relative; }
-  .menu-btn{ width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
-  .top h1{ font-size:20px; font-weight:700; margin:0; flex:1; min-width:0; }
-  .hr{ display:flex; gap:2px; }
-  .hr button{ width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
-  .hr button:hover{ background:var(--card); }
+  :root{ --fs:15px; --hov:#f4f4f5; --hov-soft:#fafafa; --menu-ink:#52525b; --menu-ink-hi:#18181b; --menu-line:#f4f4f5; }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --hov:#334155; --hov-soft:#273449; --menu-ink:#94a3b8; --menu-ink-hi:#f1f5f9; --menu-line:#334155; } }
+  .top-in{ max-width:672px; margin:0 auto; height:56px; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 12px; position:relative; }
+  @media (min-width:640px){ .top-in{ padding:0 20px; } }
+  .top-l{ display:flex; align-items:center; min-width:0; }
+  .mwrap{ position:relative; flex:none; }
+  .menu-btn,.hr button{ position:relative; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:background-color .15s ease; }
+  .menu-btn:hover,.hr button:hover{ background:var(--hov); }
+  .menu-btn:active,.hr button:active{ background:var(--hov); filter:brightness(.97); }
+  .menu-btn{ z-index:50; }
+  .menu-btn.open{ background:var(--hov); border-radius:8px; }
+  .top h1{ font-size:17px; font-weight:600; margin:0 0 0 4px; padding:4px 8px; white-space:nowrap; }
+  @media (min-width:360px){ .top h1{ font-size:18px; } }
+  @media (max-width:359px){ .menu-btn,.hr button{ width:40px; height:40px; } }
+  .hr{ display:flex; align-items:center; flex:none; }
   .idrow{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px 10px; }
   .who{ display:flex; align-items:center; gap:8px; font-size:15px; font-weight:500; min-width:0; }
   .who b{ font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .who button.avatar:hover{ background:var(--border); }
   .avatar.high{ color:#f59e0b; }
   .fsw{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:144px; flex:none; }
-  .fsw button{ height:40px; border-radius:8px; background:var(--card); font-weight:500; display:flex; align-items:center; justify-content:center; }
+  .fsw button{ height:40px; border-radius:8px; background:var(--hov); font-weight:500; display:flex; align-items:center; justify-content:center; }
   .fsw button[aria-pressed="true"]{ background:#18181b; color:#fff; }
-  .avatar{ width:40px; height:40px; border-radius:50%; background:var(--card); color:var(--primary); display:flex; align-items:center; justify-content:center; flex:none; }
+  .avatar{ width:40px; height:40px; border-radius:50%; background:var(--hov); color:#71717a; display:flex; align-items:center; justify-content:center; flex:none; }
   .link{ color:var(--primary); font-size:15px; font-weight:600; padding:8px; border-radius:8px; }
   .link:hover{ background:var(--primary-tint); }
-  .menu{ position:absolute; left:12px; top:60px; width:230px; background:var(--bg); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 6px 24px rgba(0,0,0,.12); }
-  .menu a,.menu button{ display:flex; align-items:center; gap:14px; width:100%; padding:14px 16px; font-size:15px; font-weight:500; color:var(--sub); text-decoration:none; text-align:left; }
-  .menu a + a,.menu a + button,.menu button + button{ border-top:1px solid var(--border); }
-  .menu a:hover,.menu button:hover{ background:var(--card); }
-  .menu-bg{ position:fixed; inset:0; z-index:25; }
+  .menu{ position:absolute; left:0; top:calc(100% + 8px); z-index:50; width:224px; background:var(--bg); border:1px solid var(--menu-line); border-radius:8px; overflow:hidden; box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1); animation:menuIn .25s ease-out; }
+  @keyframes menuIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+  .menu a,.menu button{ display:flex; align-items:center; gap:12px; width:100%; padding:14px 16px; font-size:14px; font-weight:500; color:var(--menu-ink); text-decoration:none; text-align:left; transition:background-color .15s ease,color .15s ease; }
+  .menu a + a,.menu a + button,.menu button + button{ border-top:1px solid var(--menu-line); }
+  .menu a:hover,.menu button:hover{ background:var(--hov-soft); color:var(--menu-ink-hi); }
+  .menu a:active,.menu button:active{ background:var(--hov); }
+  .menu-bg{ position:fixed; inset:0; z-index:40; }
 
-  main{ max-width:640px; margin:0 auto; padding-bottom:40px; }
+  main{ max-width:672px; margin:0 auto; padding-bottom:40px; }
 
   /* 工具列：今天｜天 月｜找場地｜新增 */
   .tb{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; background:var(--card); border-bottom:1px solid var(--border); }
@@ -270,6 +280,7 @@ const IC = {
   shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
   sqplus: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/>',
   user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  settings: '<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/>',
 };
 const svg = (n, s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
 
@@ -302,27 +313,31 @@ async function loadSpaces() {
 const shortName = (n) => { n = (n || '').trim(); return /^[\u4e00-\u9fff]{2,3}$/.test(n) ? n.slice(1) : n; };   // 去掉姓氏
 const ROLE_INFO = { member: ['user', '會友'], coworker: ['usercheck', '同工'], admin_staff: ['folder', '行政'], leader: ['star', '區長', 1], pastor: ['cap', '牧者', 1], admin: ['shield', '管理員', 1] };
 const roleOf = () => ROLE_INFO[state.role] || ['user', state.role === 'r_wt7kod' ? '服事管家' : '會友'];
-const FONTS = [{ id: 'sm', px: 13, btn: 11, label: '小字' }, { id: 'md', px: 15, btn: 15, label: '標準字' }, { id: 'lg', px: 18, btn: 19, label: '大字' }];
+const FONTS = [{ id: 'sm', px: 13, btn: 9, label: '小字' }, { id: 'md', px: 15, btn: 13, label: '標準字' }, { id: 'lg', px: 18, btn: 18, label: '大字' }];
 const FONT_KEY = 'tbc_venue_fontsize';
 const applyFont = (id) => { const f = FONTS.find((x) => x.id === id) || FONTS[1]; state.fs = f.id; document.documentElement.style.setProperty('--fs', f.px + 'px'); };
 try { applyFont(localStorage.getItem(FONT_KEY) || 'md'); } catch (e) { applyFont('md'); }
 function renderTop() {
   $('#top').innerHTML = `
-    <button class="menu-btn" data-act="menu" aria-label="${state.menu ? '關閉選單' : '開啟選單'}" aria-expanded="${state.menu}">${svg(state.menu ? 'x' : 'menu', 24)}</button>
-    <h1>場地預約</h1>
-    <div class="hr">
-      <button data-act="new" aria-label="新增預約">${svg('sqplus', 24)}</button>
-      <button data-act="find" aria-label="快速找場地">${svg('search', 24)}</button>
-      <button data-act="mine" aria-label="我的預約">${svg('list', 24)}</button>
+    <div class="top-l">
+      <div class="mwrap">
+        <button class="menu-btn${state.menu ? ' open' : ''}" data-act="menu" aria-label="${state.menu ? '關閉選單' : '開啟選單'}" aria-expanded="${state.menu}">${svg(state.menu ? 'x' : 'menu', 24)}</button>
+        ${state.menu ? `<div class="menu-bg" data-act="menu"></div><nav class="menu" aria-label="主選單">
+          <a href="./index.html">${svg('home')}回首頁</a>
+          <a href="./prayer.html">${svg('hand')}我的禱告</a>
+          <a href="./search.html">${svg('clock')}我的服事</a>
+          <a href="./venue.html">${svg('cal')}場地預約</a>
+          ${state.session ? `<button data-act="logout">${svg('logout')}登出</button>` : `<button data-act="login">${svg('login')}登入</button>`}
+        </nav>` : ''}
+      </div>
+      <h1>場地預約</h1>
     </div>
-    ${state.menu ? `<div class="menu-bg" data-act="menu"></div><nav class="menu" aria-label="選單">
-      <a href="./index.html">${svg('home')}回首頁</a>
-      <a href="./prayer.html">${svg('hand')}我的禱告</a>
-      <a href="./search.html">${svg('clock')}我的服事</a>
-      <a href="./venue.html">${svg('cal')}場地預約</a>
-      <a href="./manager.html">${svg('users')}個人設定</a>
-      ${state.session ? `<button data-act="logout">${svg('logout')}登出</button>` : `<button data-act="login">${svg('login')}登入</button>`}
-    </nav>` : ''}`;
+    <div class="hr">
+      <button data-act="new" aria-label="新增預約" title="新增預約">${svg('sqplus', 24)}</button>
+      <button data-act="find" aria-label="快速找場地" title="快速找場地">${svg('search', 24)}</button>
+      <button data-act="mine" aria-label="我的預約" title="我的預約">${svg('list', 24)}</button>
+      <button data-act="settings" aria-label="個人設定" title="個人設定">${svg('settings', 24)}</button>
+    </div>`;
 }
 function idRow() {
   const [ic, label, high] = state.session ? roleOf() : ['user', '訪客'];
@@ -432,6 +447,7 @@ $('#top').addEventListener('click', (ev) => {
   if (state.menu) { state.menu = false; renderTop(); }
   if (a === 'login') openLogin();
   if (a === 'logout') supabase.auth.signOut();
+  if (a === 'settings') window.location.href = './manager.html';
   if (a === 'find') openFind();
   if (a === 'mine') needLogin(openMine);
   if (a === 'new') needLogin(() => openBooking({ date: state.sel >= todayStr() ? state.sel : todayStr() }));
