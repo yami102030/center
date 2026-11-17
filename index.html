@@ -81,33 +81,9 @@
     .garden-fill{ transition:none; }
   }
 
-  /* 頂端列與漢堡選單（與守望花園、我的服事、場地預約相同） */
-  :root{ --hov:#f4f4f5; --hov-soft:#fafafa; --menu-ink:#52525b; --menu-ink-hi:#18181b; --menu-line:#f4f4f5; }
-  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --hov:#334155; --hov-soft:#273449; --menu-ink:#94a3b8; --menu-ink-hi:#f1f5f9; --menu-line:#334155; } }
-  :root[data-theme="dark"]{ --hov:#334155; --hov-soft:#273449; --menu-ink:#94a3b8; --menu-ink-hi:#f1f5f9; --menu-line:#334155; }
-  .top{ position:sticky; top:0; z-index:30; width:100%; background:var(--bg); border-bottom:1px solid var(--border); padding-top:env(safe-area-inset-top,0px); }
-  .top-in{ max-width:672px; margin:0 auto; height:56px; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 12px; }
-  @media (min-width:640px){ .top-in{ padding:0 20px; } }
-  .top-l{ display:flex; align-items:center; min-width:0; }
-  .mwrap{ position:relative; flex:none; }
-  .ibtn{ position:relative; width:44px; height:44px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:none; border:0; padding:0; color:inherit; cursor:pointer; transition:background-color .15s ease; }
-  .ibtn:hover,.ibtn:active{ background:var(--hov); }
-  @media (max-width:359px){ .ibtn{ width:40px; height:40px; } }
-  .ibtn.open{ background:var(--hov); border-radius:8px; z-index:50; }
-  .top h1{ font-size:17px; font-weight:600; margin:0 0 0 4px; padding:4px 8px; white-space:nowrap; }
-  @media (min-width:360px){ .top h1{ font-size:18px; } }
-  .menu{ position:absolute; left:0; top:calc(100% + 8px); z-index:50; width:224px; background:var(--bg); border:1px solid var(--menu-line); border-radius:8px; overflow:hidden; box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1); animation:menuIn .25s ease-out; }
-  @keyframes menuIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
-  .menu a,.menu button{ display:flex; align-items:center; gap:12px; width:100%; padding:14px 16px; font-size:14px; font-weight:500; color:var(--menu-ink); text-decoration:none; text-align:left; background:none; border:0; cursor:pointer; transition:background-color .15s ease,color .15s ease; }
-  .menu a + a,.menu a + button{ border-top:1px solid var(--menu-line); }
-  .menu a:hover,.menu button:hover{ background:var(--hov-soft); color:var(--menu-ink-hi); }
-  .menu a:active,.menu button:active{ background:var(--hov); }
-  .menu-bg{ position:fixed; inset:0; z-index:40; }
 </style>
 </head>
-<body class="min-h-[100dvh] flex flex-col">
-  <header class="top"><div class="top-in" id="top"></div></header>
-  <div class="flex-1 w-full flex flex-col items-center p-6 pt-10 sm:pt-20 pb-10">
+<body class="min-h-[100dvh] flex flex-col items-center p-6 pt-10 sm:pt-20 pb-10">
   <main class="w-full max-w-3xl">
 
     <div class="text-center mb-12">
@@ -193,9 +169,7 @@
       </div>
     </section>
   </main>
-  </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
   <script>
   (function () {
     // 標語寬度最多為標題的 85%，若超過就自動縮小
@@ -667,58 +641,6 @@
       if (document.visibilityState === 'visible' && lastLoad && Date.now() - lastLoad > GARDEN.REFRESH_AFTER_MS) load();
     });
     load();
-  })();
-  </script>
-  <script>
-  // 頂端列：漢堡選單（回首頁、我的禱告、我的服事、場地預約、登出）＋個人設定（齒輪）
-  (function () {
-    var top = document.getElementById('top'); if (!top) return;
-    var open = false, loggedIn = false, client = null;
-    function ic(p, n) { return '<svg width="' + (n || 20) + '" height="' + (n || 20) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; }
-    var I = {
-      menu: '<path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/>',
-      x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
-      home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
-      hand: '<path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/><path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 15 6 6"/><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z"/>',
-      clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-      cal: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
-      logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
-      gear: '<path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/>'
-    };
-    function render() {
-      top.innerHTML =
-        '<div class="top-l"><div class="mwrap">' +
-          '<button type="button" class="ibtn' + (open ? ' open' : '') + '" data-act="menu" aria-label="' + (open ? '關閉選單' : '開啟選單') + '" aria-expanded="' + open + '">' + ic(open ? I.x : I.menu, 24) + '</button>' +
-          (open ? '<div class="menu-bg" data-act="menu"></div><nav class="menu" aria-label="主選單">' +
-            '<a href="./index.html">' + ic(I.home) + '回首頁</a>' +
-            '<a href="./prayer.html">' + ic(I.hand) + '我的禱告</a>' +
-            '<a href="./search.html">' + ic(I.clock) + '我的服事</a>' +
-            '<a href="./venue.html">' + ic(I.cal) + '場地預約</a>' +
-            (loggedIn ? '<button type="button" data-act="logout">' + ic(I.logout) + '登出</button>' : '') +
-          '</nav>' : '') +
-        '</div><h1>首頁</h1></div>' +
-        '<a class="ibtn" href="./manager.html" aria-label="個人設定" title="個人設定">' + ic(I.gear, 24) + '</a>';
-    }
-    top.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-act]'); if (!b) return;
-      var a = b.getAttribute('data-act');
-      if (a === 'menu') { open = !open; render(); return; }
-      if (a === 'logout') {
-        open = false;
-        try { localStorage.removeItem('tbc_user'); } catch (x) {}
-        try { document.cookie = 'tbc_user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'; } catch (x) {}
-        (client ? client.auth.signOut() : Promise.resolve()).then(function () { loggedIn = false; render(); });
-      }
-    });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && open) { open = false; render(); } });
-    render();
-    // 有登入時，選單才顯示「登出」
-    try {
-      if (window.supabase && window.TBC_CONFIG) {
-        client = window.supabase.createClient(window.TBC_CONFIG.SUPABASE_URL, window.TBC_CONFIG.SUPABASE_KEY);
-        client.auth.getSession().then(function (r) { loggedIn = !!(r && r.data && r.data.session); render(); });
-      }
-    } catch (x) {}
   })();
   </script>
 </body>
