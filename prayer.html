@@ -141,7 +141,7 @@
         // 共用按鈕狀態樣式：hover / active / focus-visible / disabled
         const focusRing = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2";
         const disabledCls = "disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none";
-        const btnPrimary = `px-5 py-2.5 rounded-full text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-colors duration-150 ${disabledCls} ${focusRing}`;
+        const btnPrimary = `px-5 py-2.5 rounded-full text-sm font-medium text-white bg-zinc-900 hover:bg-zinc-700 active:bg-zinc-800 transition-colors duration-150 ${disabledCls} ${focusRing}`;
         const btnDark = `px-5 py-2.5 rounded-full text-sm font-medium text-white bg-zinc-900 hover:bg-zinc-700 active:bg-zinc-800 transition-colors duration-150 ${disabledCls} ${focusRing}`;
         const btnOutline = `px-4 py-2.5 rounded-full text-sm font-medium border border-zinc-200 text-zinc-700 bg-white hover:bg-zinc-50 active:bg-zinc-100 transition-colors duration-150 ${disabledCls} ${focusRing}`;
         // 大按鈕（兩顆等寬並排）：取消＝淺灰框、主要動作＝深灰底白字、退回＝淡紅底紅字
@@ -477,7 +477,7 @@
                                 <InlineError message={error} />
 
                                 <button type="submit" disabled={busy}
-                                    className={`w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-medium py-3.5 rounded-full transition-colors duration-150 mt-4 text-base ${disabledCls} ${focusRing}`}>
+                                    className={`w-full bg-zinc-900 hover:bg-zinc-700 active:bg-zinc-800 text-white font-medium py-3.5 rounded-full transition-colors duration-150 mt-4 text-base ${disabledCls} ${focusRing}`}>
                                     {busy ? '處理中' : '登入'}
                                 </button>
                             </form>
@@ -1739,7 +1739,7 @@
             ) : (
                 <div className="grid grid-cols-2 gap-3 mt-4">
                     <button onClick={() => run(() => api.approve(post.id, isPublic))} disabled={busy}
-                        className={`inline-flex items-center justify-center gap-2 h-12 rounded-full bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white text-base font-medium transition-colors duration-150 ${disabledCls} ${focusRing}`}>
+                        className={`inline-flex items-center justify-center gap-2 h-12 rounded-full bg-zinc-900 hover:bg-zinc-700 active:bg-zinc-800 text-white text-base font-medium transition-colors duration-150 ${disabledCls} ${focusRing}`}>
                         <CheckIcon size={18} />{busy ? '處理中' : '核准'}
                     </button>
                     <button onClick={() => setReturning(true)} disabled={busy}

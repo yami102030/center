@@ -10,11 +10,15 @@
 <script src="../management/tbc-config.js"></script>
 <style>
   /* 風格：TBC ONE（圓角、細框、不加陰影）＋ Together 紫色 #8806ce */
-  :root{ --bg:#ffffff; --card:#f7f9fa; --text:#262626; --sub:#595959; --mute:#8c8c8c; --border:#e8e8e8;
+  :root{
+  --btn:#18181b; --btn-hover:#3f3f46; --btn-press:#27272a; --on-btn:#ffffff;
+ --bg:#ffffff; --card:#f7f9fa; --text:#262626; --sub:#595959; --mute:#8c8c8c; --border:#e8e8e8;
          --primary:#8806ce; --primary-hover:#7205ad; --primary-tint:#f7eefc; --primary-ink:#5c048c;
          --good:#8806ce; --adhoc:#f2f4cd; --busy:#c9c9c9; --bad:#d4380d; --bad-bg:#fff1f0; --green:#1f7a45; --green-bg:#e8f6ee; }
   @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){ --bg:#0b1120; --card:#1e293b; --text:#f1f5f9; --sub:#94a3b8; --mute:#64748b; --border:#334155;
+    :root:not([data-theme="light"]){
+  --btn:#f1f5f9; --btn-hover:#e2e8f0; --btn-press:#cbd5e1; --on-btn:#0b1120;
+ --bg:#0b1120; --card:#1e293b; --text:#f1f5f9; --sub:#94a3b8; --mute:#64748b; --border:#334155;
       --adhoc:#33361a; --busy:#475569; --primary-tint:#3a1a4d; --primary-ink:#e6c9f6; --good:#d9afef; --bad:#ff7a45; --bad-bg:#3a1d17; --green:#6fd09a; --green-bg:#14301f; }
   }
   *{ box-sizing:border-box; }
@@ -31,7 +35,9 @@
   /* 頂端列（與守望花園、我的服事相同）：左漢堡選單＋標題、右功能圖示 */
   .top{ position:sticky; top:0; z-index:30; background:var(--bg); border-bottom:1px solid var(--border); padding-top:env(safe-area-inset-top,0px); }
   :root{ --fs:15px; --hov:#f4f4f5; --hov-soft:#fafafa; --menu-ink:#52525b; --menu-ink-hi:#18181b; --menu-line:#f4f4f5; }
-  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --hov:#334155; --hov-soft:#273449; --menu-ink:#94a3b8; --menu-ink-hi:#f1f5f9; --menu-line:#334155; } }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --btn:#f1f5f9; --btn-hover:#e2e8f0; --btn-press:#cbd5e1; --on-btn:#0b1120;
+ --hov:#334155; --hov-soft:#273449; --menu-ink:#94a3b8; --menu-ink-hi:#f1f5f9; --menu-line:#334155; } }
   .top-in{ max-width:672px; margin:0 auto; height:56px; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 12px; position:relative; }
   @media (min-width:640px){ .top-in{ padding:0 20px; } }
   .top-l{ display:flex; align-items:center; min-width:0; }
@@ -76,8 +82,8 @@
   .tb-right{ display:flex; gap:6px; }
   .btn-icon{ width:40px; height:40px; border-radius:50%; border:1px solid var(--border); background:var(--bg); display:flex; align-items:center; justify-content:center; color:var(--text); }
   .btn-icon:hover{ background:var(--primary-tint); }
-  .btn-icon.primary{ background:var(--primary); border-color:var(--primary); color:#fff; }
-  .btn-icon.primary:hover{ background:var(--primary-hover); }
+  .btn-icon.primary{ background:var(--btn); border-color:var(--btn); color:var(--on-btn); }
+  .btn-icon.primary:hover{ background:var(--btn-hover); }
 
   /* 標題＋前後翻頁 */
   .nav{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:12px; }
@@ -140,8 +146,9 @@
   .sh-foot > *{ flex:1; }
   .btn{ height:46px; border-radius:9999px; font-weight:600; font-size:16px; display:inline-flex; align-items:center; justify-content:center; gap:6px; border:1px solid var(--border); background:var(--bg); }
   .btn:hover{ background:var(--card); }
-  .btn.primary{ background:var(--primary); border-color:var(--primary); color:#fff; }
-  .btn.primary:hover{ background:var(--primary-hover); }
+  .btn.primary{ background:var(--btn); border-color:var(--btn); color:var(--on-btn); }
+  .btn.primary:active{ background:var(--btn-press); border-color:var(--btn-press); }
+  .btn.primary:hover{ background:var(--btn-hover); border-color:var(--btn-hover); }
   .btn:disabled{ opacity:.45; cursor:not-allowed; }
   .f{ margin-bottom:14px; }
   .f > label, .f > .lb{ display:block; font-weight:600; font-size:14px; margin-bottom:6px; }

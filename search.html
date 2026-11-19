@@ -660,7 +660,7 @@
                   </div>
 
                   {loginError && <div className="flex items-center gap-2 text-red-500 bg-red-50 p-3 rounded-lg text-sm font-medium"><AlertCircle size={16} /><span>{loginError}</span></div>}
-                  <button type="submit" className={`w-full font-medium py-3.5 rounded-full hover:-translate-y-0.5 transition-all duration-200 text-base ${seasonType === 'view' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-[#8ebe84] hover:bg-[#7aab70] text-white'}`}>
+                  <button type="submit" className={`w-full font-medium py-3.5 rounded-full hover:-translate-y-0.5 transition-all duration-200 text-base bg-zinc-900 hover:bg-zinc-700 active:bg-zinc-800 text-white`}>
                       查詢
                   </button>
                 </form>
@@ -884,7 +884,7 @@
                     {!isSyncing && isViewAllowed && displayShifts.length > 0 && (seasonType === 'view' || (seasonType === 'next' && nextButtonsConfig)) && (
                         <button
                             onClick={handleDownloadAllICS}
-                            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium shadow-sm transition-all active:scale-95 ${seasonType === 'view' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-[#8ebe84] hover:bg-[#7aab70] text-white'}`}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium shadow-sm transition-all active:scale-95 bg-zinc-900 hover:bg-zinc-700 active:bg-zinc-800 text-white`}
                         >
                             <CalendarPlus size={14} />
                             全部加入行事曆（{displayShifts.length}）
@@ -971,7 +971,7 @@
                                                   </a>
                                               );
                                           })()}
-                                          <button onClick={() => onRequestSwap({ date: shift.date, role: shift.role, session: shift.rawSession, owner: name })} className="bg-white hover:bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full transition-all active:scale-95 border border-emerald-200 flex-shrink-0 shadow-sm text-xs font-medium text-center whitespace-nowrap">
+                                          <button onClick={() => onRequestSwap({ date: shift.date, role: shift.role, session: shift.rawSession, owner: name })} className="bg-white hover:bg-zinc-50 text-zinc-800 px-3 py-1.5 rounded-full transition-all active:scale-95 border border-zinc-300 flex-shrink-0 shadow-sm text-xs font-medium text-center whitespace-nowrap">
                                             換班查詢
                                           </button>
                                       </>
