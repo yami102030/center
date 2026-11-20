@@ -154,6 +154,7 @@
   .vcard:has(+ .vlist){ border-radius:0; }
   .vlist{ margin:0 12px; border:1px solid var(--border); border-top:0; border-radius:0 0 16px 16px; overflow:hidden; background:var(--bg); }
   .vlist .ev:last-child{ border-bottom:0; }
+  .vlist .ev:last-child .ev-t{ border-bottom-left-radius:15px; }  /* 最後一列的左下角跟著卡片圓角走，審核中的藍色外框才不會被切掉 */
   .dayhead b{ font-size:calc(var(--fs) + 2px); font-weight:700; }
   .dayhead span.d{ color:var(--sub); font-size:14px; margin-left:auto; }
   .list{ margin:0; padding:0; list-style:none; }
