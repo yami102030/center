@@ -103,7 +103,7 @@
   .lg-note{ font-size:12px; color:#94a3b8; padding-top:16px; border-top:1px solid var(--lg-line); }
 
   /* 工具列：分頁籤（紫色）左＝天／月、右＝今天；選取的分頁與下方內容相連 */
-  .tb{ display:flex; align-items:flex-end; justify-content:space-between; gap:8px; margin:8px 12px 0; padding:12px 16px 0; background:var(--primary); border-radius:16px 16px 0 0; }
+  .tb{ display:flex; align-items:flex-end; justify-content:center; gap:8px; margin:8px 12px 0; padding:12px 16px 0; background:var(--primary); border-radius:16px 16px 0 0; }
   .vtabs{ display:flex; align-items:flex-end; }
   .vtab{ position:relative; height:40px; min-width:60px; padding:0 16px; border-radius:12px 12px 0 0; font-weight:500; color:#fff; transition:background-color .15s ease; }
   .vtab:hover{ background:rgba(255,255,255,.15); }
@@ -151,7 +151,8 @@
   .dayhead{ display:flex; align-items:center; gap:10px; padding:4px 4px 4px 16px; }
   .vcard{ margin:0 12px; background:var(--card); border-radius:0 0 16px 16px; overflow:hidden; }
   .grid + .dayhead{ margin-top:12px; }
-  .vlist{ margin:12px 12px 0; border:1px solid var(--border); border-radius:16px; overflow:hidden; background:var(--bg); }
+  .vcard:has(+ .vlist){ border-radius:0; }
+  .vlist{ margin:0 12px; border:1px solid var(--border); border-top:0; border-radius:0 0 16px 16px; overflow:hidden; background:var(--bg); }
   .vlist .ev:last-child{ border-bottom:0; }
   .dayhead b{ font-size:calc(var(--fs) + 2px); font-weight:700; }
   .dayhead span.d{ color:var(--sub); font-size:14px; margin-left:auto; }
