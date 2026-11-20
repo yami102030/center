@@ -33,7 +33,7 @@
   .sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 
   /* 頂端列（與守望花園、我的服事相同）：左漢堡選單＋標題、右功能圖示 */
-  .top{ position:sticky; top:0; z-index:30; background:var(--bg); border-bottom:1px solid var(--border); padding-top:env(safe-area-inset-top,0px); }
+  .top{ position:sticky; top:0; z-index:30; background:var(--primary); border-bottom:1px solid var(--primary); color:#fff; padding-top:env(safe-area-inset-top,0px); }
   :root{ --fs:15px; --hov:#f4f4f5; --hov-soft:#fafafa; --menu-ink:#52525b; --menu-ink-hi:#18181b; --menu-line:#f4f4f5; }
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --btn:#f1f5f9; --btn-hover:#e2e8f0; --btn-press:#cbd5e1; --on-btn:#0b1120;
@@ -42,12 +42,12 @@
   @media (min-width:640px){ .top-in{ padding:0 20px; } }
   .top-l{ display:flex; align-items:center; min-width:0; }
   .mwrap{ position:relative; flex:none; }
-  .menu-btn,.hr button{ position:relative; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:background-color .15s ease; }
-  .menu-btn:hover,.hr button:hover{ background:var(--hov); }
-  .menu-btn:active,.hr button:active{ background:var(--hov); filter:brightness(.97); }
+  .menu-btn,.hr button{ position:relative; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; transition:background-color .15s ease; }
+  .menu-btn:hover,.hr button:hover{ background:rgba(255,255,255,.15); }
+  .menu-btn:active,.hr button:active{ background:rgba(255,255,255,.25); }
   .menu-btn{ z-index:50; }
-  .menu-btn.open{ background:var(--hov); border-radius:8px; }
-  .top h1{ font-size:17px; font-weight:600; margin:0 0 0 4px; padding:4px 8px; white-space:nowrap; }
+  .menu-btn.open{ background:rgba(255,255,255,.2); border-radius:8px; }
+  .top h1{ font-size:17px; font-weight:600; margin:0 0 0 4px; padding:4px 8px; white-space:nowrap; color:#fff; }
   @media (min-width:360px){ .top h1{ font-size:18px; } }
   @media (max-width:359px){ .menu-btn,.hr button{ width:40px; height:40px; } }
   .hr{ display:flex; align-items:center; flex:none; }
@@ -104,15 +104,15 @@
   .lg-note{ font-size:12px; color:#94a3b8; padding-top:16px; border-top:1px solid var(--lg-line); }
 
   /* 工具列：分頁籤（紫色）左＝天／月、右＝今天；選取的分頁與下方內容相連 */
-  .tb{ display:flex; align-items:flex-end; justify-content:space-between; gap:8px; margin:8px 12px 0; padding:12px 16px 0; background:var(--primary); border-radius:16px; }
+  .tb{ display:flex; align-items:flex-end; justify-content:space-between; gap:8px; margin:8px 12px 0; padding:12px 16px 0; background:var(--primary); border-radius:16px 16px 0 0; }
   .vtabs{ display:flex; align-items:flex-end; }
   .vtab{ position:relative; height:40px; min-width:60px; padding:0 16px; border-radius:12px 12px 0 0; font-weight:500; color:#fff; transition:background-color .15s ease; }
   .vtab:hover{ background:rgba(255,255,255,.15); }
-  .vtab[aria-pressed="true"]{ background:var(--bg); color:var(--text); font-weight:700; }
+  .vtab[aria-pressed="true"]{ background:var(--card); color:var(--text); font-weight:700; }
   .vtab[aria-pressed="true"]::before,.vtab[aria-pressed="true"]::after{ content:""; position:absolute; bottom:0; width:12px; height:12px; pointer-events:none; }
-  .vtab[aria-pressed="true"]::before{ left:-12px; background:radial-gradient(circle at 0 0, transparent 12px, var(--bg) 12px); }
-  .vtab[aria-pressed="true"]::after{ right:-12px; background:radial-gradient(circle at 100% 0, transparent 12px, var(--bg) 12px); }
-  .vtoday{ height:32px; margin-bottom:4px; padding:0 14px; border-radius:9999px; border:1px solid rgba(255,255,255,.7); background:transparent; color:#fff; font-weight:500; transition:background-color .15s ease; }
+  .vtab[aria-pressed="true"]::before{ left:-12px; background:radial-gradient(circle at 0 0, transparent 12px, var(--card) 12px); }
+  .vtab[aria-pressed="true"]::after{ right:-12px; background:radial-gradient(circle at 100% 0, transparent 12px, var(--card) 12px); }
+  .vtoday{ height:32px; margin-bottom:4px; padding:0 14px; border-radius:9999px; border:0; background:transparent; color:#fff; font-weight:500; transition:background-color .15s ease; }
   .vtoday:hover{ background:rgba(255,255,255,.15); }
   .btn-soft{ height:40px; padding:0 14px; border-radius:9999px; border:1px solid var(--border); background:var(--bg); font-weight:500; }
   .btn-soft:hover{ background:var(--primary-tint); }
@@ -149,7 +149,10 @@
   .dots i{ width:5px; height:5px; border-radius:50%; background:var(--primary); }
 
   /* 當天條列 */
-  .dayhead{ display:flex; align-items:center; gap:10px; padding:4px 4px 4px 16px; background:var(--card); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+  .dayhead{ display:flex; align-items:center; gap:10px; padding:4px 4px 4px 16px; }
+  .vcard{ margin:0 12px; background:var(--card); border-radius:0 0 16px 16px; overflow:hidden; }
+  .vlist{ margin:12px 12px 0; border:1px solid var(--border); border-radius:16px; overflow:hidden; background:var(--bg); }
+  .vlist .ev:last-child{ border-bottom:0; }
   .dayhead b{ font-size:calc(var(--fs) + 2px); font-weight:700; }
   .dayhead span.d{ color:var(--sub); font-size:14px; margin-left:auto; }
   .list{ margin:0; padding:0; list-style:none; }
@@ -414,6 +417,7 @@ function render() {
 
   if (state.err) h += `<div class="note" role="alert">${esc(state.err)} <button class="link" data-act="retry">重新載入</button></div>`;
 
+  h += '<div class="vcard">';
   if (state.view === 'month') {
     const g = monthGrid(state.month);
     const by = new Map();
@@ -432,7 +436,7 @@ function render() {
   const left = relWord || `${+sel.slice(5, 7)}月${+sel.slice(8, 10)}日`;
   const right = relWord ? `${sel.slice(0, 4)}年${+sel.slice(5, 7)}月${+sel.slice(8, 10)}日` : `星期${WEEK[dow(sel)]}`;
   h += `<div class="dayhead"><b>${left}</b><span class="d">${right}</span>
-    <div class="arrows"><button data-act="dprev" aria-label="前一天">${svg('left')}</button><button data-act="dnext" aria-label="後一天">${svg('right')}</button></div></div>`;
+    <div class="arrows"><button data-act="dprev" aria-label="前一天">${svg('left')}</button><button data-act="dnext" aria-label="後一天">${svg('right')}</button></div></div></div>`;
 
   const evs = (monthEvents || []).filter((e) => e.booking_date === sel).sort((a, b) => a.start_time.localeCompare(b.start_time) || a.space_name.localeCompare(b.space_name, 'zh-TW'));
   if (!monthEvents && !state.err) h += `<div class="skeleton">載入中…</div>`;
@@ -440,11 +444,11 @@ function render() {
   else {
     const pages = Math.ceil(evs.length / PAGE);
     const pg = Math.min(state.page, pages - 1);
-    h += `<ul class="list">${evs.slice(pg * PAGE, pg * PAGE + PAGE).map((e) => `
+    h += `<div class="vlist"><ul class="list">${evs.slice(pg * PAGE, pg * PAGE + PAGE).map((e) => `
       <li class="ev ${e.kind === 'pending' ? 'pending' : ''}${e.is_recurring ? ' rec' : ''}" style="--c:${colorOf(e.space_id)}">
         <div class="ev-t"><b>${hm(e.start_time)}</b><small>${hm(e.end_time)}</small></div>
         <div class="ev-b"><span class="ev-sp">${esc(e.space_name)}</span><span class="ev-ti">${esc(e.title)}</span></div>
-      </li>`).join('')}</ul>`;
+      </li>`).join('')}</ul></div>`;
     if (pages > 1) h += `<div class="pager"><button class="pbtn" data-act="pprev" ${pg === 0 ? 'disabled' : ''}>‹ 上一頁</button><button class="pbtn" data-act="pnext" ${pg >= pages - 1 ? 'disabled' : ''}>下一頁 ›</button></div>`;
   }
   $('#main').innerHTML = h;
