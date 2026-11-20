@@ -231,8 +231,9 @@
   .mine{ border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:10px; }
   .mine-top{ display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
   .mine-top b{ font-size:16px; overflow-wrap:anywhere; }
-  .tag{ flex:none; font-size:12px; font-weight:600; padding:3px 10px; border-radius:9999px; background:var(--card); color:var(--sub); }
-  .tag.pending{ background:#fff7e0; color:#a36a00; } .tag.approved{ background:var(--green-bg); color:var(--green); } .tag.rejected{ background:var(--bad-bg); color:var(--bad); }
+  /* 卡片右上的狀態文字：不用底色、標準字重（顏色維持狀態色） */
+  .tag{ flex:none; font-size:14px; font-weight:400; padding:2px 0 0; background:none; color:var(--sub); }
+  .tag.pending{ color:#a36a00; } .tag.approved{ color:var(--green); } .tag.rejected{ color:var(--bad); }
   .mine .m{ font-size:14px; color:var(--sub); margin-top:6px; }
   .why{ margin-top:10px; padding:10px 12px; border-radius:8px; background:var(--bad-bg); color:var(--bad); font-size:14px; overflow-wrap:anywhere; }
   .why small{ display:block; font-size:12px; opacity:.85; }
