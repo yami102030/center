@@ -14,7 +14,7 @@
   --btn:#334155; --btn-hover:#1e293b; --btn-press:#0f172a; --on-btn:#ffffff;
  --bg:#ffffff; --card:#f7f9fa; --text:#262626; --sub:#595959; --mute:#8c8c8c; --border:#e8e8e8;
          --primary:#8806ce; --primary-hover:#7205ad; --primary-tint:#f7eefc; --primary-ink:#5c048c;
-         --good:#8806ce; --adhoc:#f2f4cd; --busy:#c9c9c9; --bad:#d4380d; --bad-bg:#fff1f0; --green:#1f7a45; --green-bg:#e8f6ee; }
+         --good:#8806ce; --adhoc:#eeeede; --busy:#c9c9c9; --bad:#d4380d; --bad-bg:#fff1f0; --green:#1f7a45; --green-bg:#e8f6ee; }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
   --btn:#f1f5f9; --btn-hover:#e2e8f0; --btn-press:#cbd5e1; --on-btn:#0b1120;
@@ -225,7 +225,9 @@
   .tl-why{ font-size:13px; color:var(--bad); margin-top:6px; }
   .wait{ text-align:center; color:var(--sub); font-size:14px; margin:14px 0 4px; }
   .tab{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-.tab .pill{ border-color:var(--border); background:var(--bg); color:var(--sub); transition:background-color .15s ease; }
+.tab{ flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+  .tab::-webkit-scrollbar{ display:none; }
+  .tab .pill{ flex:none; height:auto; padding:8px 16px; font-size:14px; line-height:20px; white-space:nowrap; border-color:var(--border); background:var(--bg); color:var(--sub); transition:background-color .15s ease; }
 .tab .pill:hover{ background:var(--hov-soft); }
 .tab .pill[aria-pressed="true"]{ background:var(--text); border-color:var(--text); color:var(--bg); }
   .mine{ border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:10px; }
@@ -263,8 +265,8 @@
   .qsum{ font-size:14px; color:var(--sub); margin:8px 0; }
   .qsum b{ color:var(--text); }
   .sp-panel{ margin-top:8px; padding:8px 12px; border:1px solid var(--border); border-radius:8px; }
-  .sp-panel .h{ display:flex; justify-content:space-between; align-items:center; font-size:13px; color:var(--sub); margin-bottom:4px; }
-  .sp-panel .h button{ color:var(--primary); font-weight:600; padding:4px 6px; }
+  .sp-panel .h{ display:flex; justify-content:flex-start; align-items:center; font-size:13px; color:var(--sub); margin-bottom:4px; }
+  .sp-panel .h button{ color:var(--primary); font-weight:400; padding:4px 6px 4px 0; margin-right:12px; }
   .sp-panel label{ display:flex; align-items:center; gap:10px; padding:8px 0; }
   .sp-panel input{ width:20px; height:20px; accent-color:var(--primary); margin:0; }
   .sp-panel i{ width:12px; height:12px; border-radius:3px; background:var(--c); }
@@ -739,7 +741,7 @@ function openFind(prev) {
   const label = () => (allOn() ? '全部場地' : !f.sel || f.sel.size === 0 ? '未選場地' : `${f.sel.size} 個場地`);
   const drawSp = () => {
     g('#qsb').textContent = label();
-    g('#qsp').innerHTML = `<div class="h"><span>勾選要查詢的場地</span><span><button type="button" data-all="1">全選</button><button type="button" data-all="0">取消</button></span></div>` +
+    g('#qsp').innerHTML = `<div class="h"><span><button type="button" data-all="1">全選</button><button type="button" data-all="0">取消</button></span></div>` +
       active.map((x) => `<label style="--c:${colorOf(x.id)}"><input type="checkbox" data-sp="${x.id}" ${!f.sel || f.sel.has(x.id) ? 'checked' : ''}><i></i>${esc(x.name)}</label>`).join('');
   };
   async function run() {
@@ -756,7 +758,7 @@ function openFind(prev) {
       return { x, mine, cl, free: !cl.length, alts: cl.length ? alternatives(mine, st, dur) : [] };
     }).sort((a, b) => (b.free - a.free) || a.x.name.localeCompare(b.x.name, 'zh-TW'));
     const n = rows.filter((q) => q.free).length;
-    res.innerHTML = `<div class="qsum">${rows.length ? `<b>${mdw(f.date)} ${f.start}–${endOf(f)}</b>　${n ? `${n} 個場地可預約` : '這個時段都被占用了'}` : '沒有符合的場地'}</div>` +
+    res.innerHTML = `<div class="qsum">${rows.length ? `<b>${mdw(f.date)} ${f.start}–${endOf(f)}</b>　${n ? '' : '這個時段都被占用了'}` : '沒有符合的場地'}</div>` +
       rows.map((q) => `<div class="qr ${q.free ? '' : 'busy'}" style="--c:${colorOf(q.x.id)}"><div style="min-width:0"><b>${esc(q.x.name)}</b>${q.free
         ? `<span class="ok">可預約</span>${q.mine.length ? `<div class="no" style="color:var(--sub)">不可預約：${q.mine.map((e) => `${hm(e.start_time)}–${hm(e.end_time)}`).join('、')}</div>` : ''}`
         : `<span class="no">不可預約：${q.cl.map((e) => `${hm(e.start_time)}–${hm(e.end_time)}`).join('、')}</span>${q.alts.length ? `<div class="alts"><span>推薦時間</span>${q.alts.map((a) => `<button type="button" class="pill good" data-pick="${q.x.id}" data-s="${m2hm(a)}">${m2hm(a)}–${m2hm(a + dur)}</button>`).join('')}</div>` : ''}`}</div>
