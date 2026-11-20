@@ -490,6 +490,44 @@
         const ICON_BTN_DARK = "relative inline-flex items-center justify-center w-11 h-11 max-[359px]:w-10 max-[359px]:h-10 rounded-full text-white hover:bg-white/15 active:bg-white/25 transition-colors duration-150";
         const ICON_BTN = "relative inline-flex items-center justify-center w-11 h-11 max-[359px]:w-10 max-[359px]:h-10 rounded-full text-zinc-800 hover:bg-zinc-100 active:bg-zinc-200 transition-colors duration-150";
 
+        // ===== 文字大小（A A A）：與守望花園相同的三段按鈕；選擇會記在這支手機上 =====
+        const SERVE_FONTS = [
+          { id: 'sm', zoom: 0.87, btn: 9,  label: '小字' },
+          { id: 'md', zoom: 1,    btn: 13, label: '標準字' },
+          { id: 'lg', zoom: 1.2,  btn: 18, label: '大字' },
+        ];
+        const SERVE_FONT_KEY = 'tbc_serve_fontsize';
+        const loadServeFont = () => { try { return localStorage.getItem(SERVE_FONT_KEY) || 'md'; } catch (e) { return 'md'; } };
+        const useServeZoom = () => {
+          const [id, setId] = useState(loadServeFont);
+          useEffect(() => {
+            const on = () => setId(loadServeFont());
+            window.addEventListener('tbc-serve-fontsize', on);
+            return () => window.removeEventListener('tbc-serve-fontsize', on);
+          }, []);
+          return (SERVE_FONTS.find(f => f.id === id) || SERVE_FONTS[1]).zoom;
+        };
+        function FontSizeSwitch() {
+          const [size, setSize] = useState(loadServeFont);
+          const pick = (id) => {
+            setSize(id);
+            try { localStorage.setItem(SERVE_FONT_KEY, id); } catch (e) {}
+            window.dispatchEvent(new Event('tbc-serve-fontsize'));
+          };
+          return (
+            <div className="grid grid-cols-3 gap-1.5 w-36 shrink-0" role="group" aria-label="文字大小">
+              {SERVE_FONTS.map(f => {
+                const active = size === f.id;
+                return (
+                  <button key={f.id} type="button" onClick={() => pick(f.id)} aria-pressed={active} aria-label={f.label} title={f.label}
+                    className={`w-full h-10 rounded-lg inline-flex items-center justify-center font-medium transition-colors duration-150 active:scale-[0.98] ${active ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-800 hover:bg-zinc-200'}`}
+                    style={{ fontSize: f.btn }}>A</button>
+                );
+              })}
+            </div>
+          );
+        }
+
         // 漢堡選單（樣式與守望花園相同）：回首頁、我的禱告、我的服事、場地預約、登出
         function NavMenu({ onBack, onLogout, onDark }) {
           const [open, setOpen] = useState(false);
@@ -502,7 +540,7 @@
           const goTo = (url) => () => { setOpen(false); window.location.href = url; };
           const items = [
             { id: 'index',  label: '回首頁',   icon: <Home size={20} />,      onClick: goTo('./index.html') },
-            { id: 'prayer', label: '我的禱告', icon: <HandHeart size={20} />, onClick: goTo('./prayer.html') },
+            { id: 'prayer', label: '守望花園', icon: <HandHeart size={20} />, onClick: goTo('./prayer.html') },
             { id: 'serve',  label: '我的服事', icon: <Clock size={20} />,     onClick: onBack ? () => { setOpen(false); onBack(); } : goTo('./search.html') },
             { id: 'venue',  label: '場地預約', icon: <Calendar size={20} />,  onClick: goTo('./venue.html') },
             ...(onLogout ? [{ id: 'out', label: '登出', icon: <LogOut size={20} />, onClick: () => { setOpen(false); onLogout(); } }] : []),
@@ -576,7 +614,7 @@
         }
 
         // 頂部列＋身分列（權限圖示＋姓名）
-        function AppHeader({ title, name, onBack, onLogout, canSwitch, onSwitch, subText, seasonType }) {
+        function AppHeader({ title, name, onBack, onLogout, canSwitch, onSwitch, subText, seasonType, showFontSwitch }) {
           // 權限圖示：只有「登入帳號本人」就是畫面上這個姓名時才顯示他的權限；
           // 查別人的姓名、沒登入、或讀不到，一律顯示一般的人像圖示（不顯示任何權限）
           const [role, setRole] = useState(null);
@@ -606,6 +644,7 @@
             <React.Fragment>
               <TopBar title={title} onBack={onBack} onLogout={onLogout} canSwitch={canSwitch} onSwitch={onSwitch} tone={seasonType} />
               <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 pt-4">
+                <div className="flex items-center justify-between gap-3 min-w-0">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div title={meta ? meta.label : undefined} aria-label={meta ? meta.label : undefined}
                     className={`w-10 h-10 shrink-0 rounded-full bg-zinc-100 ${meta && meta.high ? 'text-amber-500' : 'text-zinc-500'} flex items-center justify-center ${meta ? 'cursor-help' : ''}`}>
@@ -615,6 +654,8 @@
                     <h2 className="text-[15px] font-medium text-zinc-900 truncate">{name}</h2>
                     {subText && <p className="text-sm text-zinc-500">{subText}</p>}
                   </div>
+                </div>
+                {showFontSwitch && <FontSizeSwitch />}
                 </div>
               </div>
             </React.Fragment>
@@ -879,6 +920,7 @@
              return `https://www.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&ctz=Asia/Taipei`;
           };
 
+          const serveZoom = useServeZoom();
           return (
             <div className="min-h-screen bg-white flex flex-col">
               <AppHeader
@@ -888,9 +930,10 @@
                 onLogout={onLogout}
                 canSwitch={!!(systemConfig.current && systemConfig.next)}
                 onSwitch={() => setSeasonType(seasonType === 'view' ? 'next' : 'view')}
+                showFontSwitch
               />
 
-              <main className="flex-grow p-4 sm:p-6 space-y-4 max-w-2xl mx-auto w-full">
+              <main className="flex-grow p-4 sm:p-6 space-y-4 max-w-2xl mx-auto w-full" style={{ zoom: serveZoom }}>
                 <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
                     <div className="flex items-center gap-2">
                         <Calendar className={seasonType === 'view' ? 'text-indigo-500' : 'text-[#4f8a45]'} size={20} />
@@ -1250,6 +1293,7 @@
             setCandidates(potential);
           }, [initialRequest, scheduleData, peopleData, seasonType]);
 
+          const serveZoom = useServeZoom();
           return (
             <div className="min-h-screen bg-white flex flex-col">
               <AppHeader
@@ -1259,7 +1303,7 @@
                 onBack={onBack}
                 onLogout={onLogout}
               />
-              <main className="flex-grow p-6 space-y-6 max-w-2xl mx-auto w-full">
+              <main className="flex-grow p-6 space-y-6 max-w-2xl mx-auto w-full" style={{ zoom: serveZoom }}>
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-[#bab0af]">
                    <h3 className="text-xs font-medium text-slate-400 mb-3">幫今天的服事找合適人選：</h3>
                    <div className="flex items-center gap-4">
