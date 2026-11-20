@@ -54,8 +54,7 @@
   .idrow{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px 10px; }
   .who{ display:flex; align-items:center; gap:8px; font-size:15px; font-weight:500; min-width:0; }
   .who b{ font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .who button.avatar:hover{ background:var(--border); }
-  .avatar.high{ color:#f59e0b; }
+    .avatar.high{ color:#f59e0b; }
   .fsw{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:144px; flex:none; }
   .fsw button{ height:40px; border-radius:8px; background:var(--hov); font-weight:500; display:flex; align-items:center; justify-content:center; }
   .fsw button[aria-pressed="true"]{ background:#18181b; color:#fff; }
@@ -252,6 +251,7 @@
   .qr{ display:flex; gap:10px; align-items:center; justify-content:space-between; padding:12px; margin-bottom:8px; border:1px solid var(--border); border-left:6px solid var(--c); border-radius:8px; }
   .qr.busy{ background:var(--card); }
   .qr b{ display:block; }
+  .qr .btn{ font-size:inherit; }
   .qr .ok{ color:var(--primary); font-size:13px; font-weight:600; }
   .qr .no{ color:var(--bad); font-size:13px; }
   .qr .alts{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:6px; }
@@ -395,8 +395,8 @@ function renderTop() {
     </div>`;
 }
 function idRow() {
-  const [ic, label, high] = state.session ? roleOf() : ['user', '訪客'];
-  return `<div class="idrow"><div class="who"><button class="avatar${high ? ' high' : ''}" data-act="role" aria-label="權限：${label}，點一下切換顯示" title="點一下看權限">${svg(ic, 20)}</button><b id="idname" data-name="${esc(state.session ? (state.name || '會友') : '訪客')}" data-role="${label}">${esc(state.session ? (state.name || '會友') : '訪客')}</b></div>
+  const [ic, , high] = state.session ? roleOf() : ['user', '訪客'];
+  return `<div class="idrow"><div class="who"><span class="avatar${high ? ' high' : ''}" aria-hidden="true">${svg(ic, 20)}</span><b>${esc(state.session ? (state.name || '會友') : '訪客')}</b></div>
     <div class="fsw" role="group" aria-label="文字大小">${FONTS.map((f) => `<button data-act="fs" data-id="${f.id}" aria-pressed="${state.fs === f.id}" aria-label="${f.label}" title="${f.label}" style="font-size:${f.btn}px">A</button>`).join('')}</div></div>`;
 }
 
@@ -413,7 +413,6 @@ function render() {
         <button class="vtab" data-act="view" data-v="day" aria-pressed="${state.view === 'day'}">天</button>
         <button class="vtab" data-act="view" data-v="month" aria-pressed="${state.view === 'month'}">月</button>
       </div>
-      <button class="vtoday" data-act="today">今天</button>
     </div>`;
 
   if (state.err) h += `<div class="note" role="alert">${esc(state.err)} <button class="link" data-act="retry">重新載入</button></div>`;
@@ -467,7 +466,6 @@ async function reload(force) {
   render();
 }
 
-let roleTimer;
 $('#main').addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act, today = todayStr();
@@ -484,12 +482,6 @@ $('#main').addEventListener('click', (ev) => {
   else if (a === 'pprev') { state.page = Math.max(0, state.page - 1); render(); }
   else if (a === 'pnext') { state.page += 1; render(); }
   else if (a === 'retry') { reload(); }
-  else if (a === 'role') {
-    const n = $('#idname'); if (!n) return;
-    const showing = n.textContent === n.dataset.role;
-    n.textContent = showing ? n.dataset.name : n.dataset.role;
-    clearTimeout(roleTimer); if (!showing) roleTimer = setTimeout(() => { n.textContent = n.dataset.name; }, 3000);
-  }
   else if (a === 'fs') { applyFont(b.dataset.id); try { localStorage.setItem(FONT_KEY, b.dataset.id); } catch (e) { /* 略過 */ } render(); }
   else if (a === 'find') openFind();
   else if (a === 'mine') needLogin(openMine);

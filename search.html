@@ -631,8 +631,15 @@
                 if (mine.length === 0) return;
                 const { data: rows } = await supabase.from('vw_public_members').select('id').eq('name', name);
                 if (!(rows || []).some(r => mine.includes(r.id))) return;
-                const { data: r } = await supabase.from('user_roles').select('role').eq('user_uid', uid).maybeSingle();
-                if (alive) setRole(r?.role || 'member');
+                // 最高權限：優先用資料庫整理好的 my_access.top_role；沒有再從所有權限中挑最高
+                let top = null;
+                try { const { data: acc } = await supabase.rpc('my_access'); if (acc && acc.top_role) top = acc.top_role; } catch (e) {}
+                if (!top) {
+                  const { data: rs } = await supabase.from('user_roles').select('role').eq('user_uid', uid);
+                  const rank = (x) => ['member', 'coworker', 'admin_staff', 'leader', 'pastor', 'admin'].indexOf(x);
+                  top = (rs || []).map(x => x.role).sort((x, y) => rank(y) - rank(x))[0] || null;
+                }
+                if (alive) setRole(top || 'member');
               } catch (e) {}
             })();
             return () => { alive = false; };
@@ -646,8 +653,8 @@
               <div className="max-w-2xl mx-auto w-full px-4 sm:px-6 pt-4">
                 <div className="flex items-center justify-between gap-3 min-w-0">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div title={meta ? meta.label : undefined} aria-label={meta ? meta.label : undefined}
-                    className={`w-10 h-10 shrink-0 rounded-full bg-zinc-100 ${meta && meta.high ? 'text-amber-500' : 'text-zinc-500'} flex items-center justify-center ${meta ? 'cursor-help' : ''}`}>
+                  <div aria-hidden="true"
+                    className={`w-10 h-10 shrink-0 rounded-full bg-zinc-100 ${meta && meta.high ? 'text-amber-500' : 'text-zinc-500'} flex items-center justify-center`}>
                     <RoleIcon size={20} />
                   </div>
                   <div className="min-w-0">
