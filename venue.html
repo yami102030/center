@@ -191,7 +191,8 @@
   .sh-foot > *{ flex:1; }
   .btn{ height:46px; border-radius:9999px; font-weight:600; font-size:16px; display:inline-flex; align-items:center; justify-content:center; gap:6px; border:1px solid var(--border); background:var(--bg); }
   .btn:hover{ background:var(--card); }
-  .btn.primary{ background:var(--btn); border-color:var(--btn); color:var(--on-btn); }
+  .sheet .btn{ font-weight:400; }   /* 彈窗內按鈕（取消、送出申請、預約…）：標準字、不加粗 */
+.btn.primary{ background:var(--btn); border-color:var(--btn); color:var(--on-btn); }
   .btn.primary:active{ background:var(--btn-press); border-color:var(--btn-press); }
   .btn.primary:hover{ background:var(--btn-hover); border-color:var(--btn-hover); }
   .btn:disabled{ opacity:.45; cursor:not-allowed; }

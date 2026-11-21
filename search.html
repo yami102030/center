@@ -584,7 +584,7 @@
 
         // 頂端列（與守望花園相同）：左＝漢堡選單＋標題；右＝查詢切換、個人設定
         function TopBar({ title, onBack, onLogout, canSwitch, onSwitch, tone }) {
-          const bg = tone === 'next' ? 'bg-[#3f7a36] border-[#3f7a36]' : 'bg-[#8806ce] border-[#8806ce]';
+          const bg = tone === 'next' ? 'bg-[#90cc62] border-[#90cc62]' : 'bg-[#8806ce] border-[#8806ce]';
           return (
             <header className={`${bg} border-b sticky top-0 z-40`} style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
               <div className="max-w-2xl mx-auto w-full px-3 sm:px-5 h-14 flex items-center justify-between gap-2">
@@ -1038,7 +1038,7 @@
                                                   </a>
                                               );
                                           })()}
-                                          <button onClick={() => onRequestSwap({ date: shift.date, role: shift.role, session: shift.rawSession, owner: name })} className="bg-[#f2edf3] hover:bg-[#e9e1ea] text-zinc-800 px-3 py-1.5 rounded-full transition-all active:scale-95 border border-zinc-300 flex-shrink-0 shadow-sm text-xs font-medium text-center whitespace-nowrap">
+                                          <button onClick={() => onRequestSwap({ date: shift.date, role: shift.role, session: shift.rawSession, owner: name })} className="bg-[#eaeae5] hover:bg-[#dedcd4] text-zinc-800 px-3 py-1.5 rounded-full transition-all active:scale-95 border border-zinc-300 flex-shrink-0 shadow-sm text-xs font-medium text-center whitespace-nowrap">
                                             換班查詢
                                           </button>
                                       </>
@@ -1378,7 +1378,7 @@
                                     const isCopied = copiedId === uniqueId;
 
                                     return (
-                                      <div key={i} className="text-sm bg-[#f2edf3] text-indigo-600 pl-3 pr-1.5 py-1.5 rounded-lg border border-indigo-100 flex items-center gap-1 transition-all">
+                                      <div key={i} className="text-sm bg-[#eaeae5] text-indigo-600 pl-3 pr-1.5 py-1.5 rounded-lg border border-indigo-100 flex items-center gap-1 transition-all">
                                           <span className="font-medium">{formattedDate}</span>
                                           <span className="opacity-70 text-xs">
                                               ({swap.role}{swap.role !== '執事輪值' && ` • ${swap.session}`})

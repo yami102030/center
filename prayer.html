@@ -586,18 +586,29 @@
         // 內文固定顯示 3 行；超過才出現「...更多」，就地展開，展開後最後出現「較少」
         const ClampText = ({ text }) => {
             const [expanded, setExpanded] = useState(false);
-            const [clamped, setClamped] = useState(false);
-            const textRef = useRef(null);
+            const [cut, setCut] = useState(null);   // null＝全文 3 行放得下；數字＝折疊時保留的字數
+            const ghostRef = useRef(null);          // 看不見的「量尺」：跟內文同寬同字級，用來算出第 3 行能放幾個字
 
-            // 量一量：內文超過 3 行才需要「...更多」
+            // 先量好「...更多」要佔的位置，再決定保留幾個字：字永遠不會被「...更多」切到
             const measure = useCallback(() => {
-                const el = textRef.current;
-                if (el) setClamped(el.scrollHeight > el.clientHeight + 1);
-            }, []);
+                const g = ghostRef.current;
+                if (!g) return;
+                const lh = parseFloat(getComputedStyle(g).lineHeight);
+                const limit = lh * 3 + 1;
+                g.textContent = text;
+                if (g.offsetHeight <= limit) { setCut(null); return; }
+                let lo = 0, hi = text.length;
+                while (lo < hi) {
+                    const mid = (lo + hi + 1) >> 1;
+                    g.textContent = text.slice(0, mid).trimEnd() + '...更多';
+                    if (g.offsetHeight <= limit) lo = mid; else hi = mid - 1;
+                }
+                setCut(Math.max(0, lo - 1));        // 多留一個字的餘裕
+            }, [text]);
             useLayoutEffect(() => { if (!expanded) measure(); }, [expanded, text, measure]);
             useEffect(() => {
                 window.addEventListener('resize', measure);
-                window.addEventListener('tbc-fontsize', measure);   // 按 A 改字級後，重新量一次要不要顯示「...更多」
+                window.addEventListener('tbc-fontsize', measure);   // 按 A 改字級後，重新量一次
                 if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
                 return () => { window.removeEventListener('resize', measure); window.removeEventListener('tbc-fontsize', measure); };
             }, [measure]);
@@ -611,11 +622,13 @@
                 </p>
             ) : (
                 <div className="relative">
-                    <p ref={textRef} style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words line-clamp-3">{text}</p>
-                    {clamped && (
-                        <button type="button" onClick={() => setExpanded(true)} aria-expanded="false" style={fsStyle}
-                            className={`absolute right-0 bottom-0 pl-2 bg-white ${moreCls}`}>...更多</button>
-                    )}
+                    <p ref={ghostRef} aria-hidden="true" style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words absolute left-0 right-0 top-0 invisible pointer-events-none"></p>
+                    <p style={fsStyle} className="text-zinc-700 whitespace-pre-line break-words">
+                        {cut == null ? text : text.slice(0, cut).trimEnd()}
+                        {cut != null && (
+                            <button type="button" onClick={() => setExpanded(true)} aria-expanded="false" style={fsStyle} className={moreCls}>...更多</button>
+                        )}
+                    </p>
                 </div>
             );
         };
@@ -1439,7 +1452,7 @@
                             <CategoryAvatar id={post.category} />
                             <span className="text-[15px] font-medium text-zinc-900 truncate min-w-0">{name}</span>
                         </div>
-                        {returned && <button type="button" onClick={() => goEdit(post.id)} className={`${btnGhost} shrink-0`}><PencilIcon size={16} />重新送審</button>}
+                        {returned && <button type="button" onClick={() => goEdit(post.id)} className={`${btnGhost} shrink-0`}><PencilIcon size={16} /><span className="text-red-600">重新送審</span></button>}
                     </div>
                     <ClampText text={post.content} />
                     {(returned || forceReason) && (
