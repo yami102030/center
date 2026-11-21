@@ -1038,7 +1038,7 @@
                                                   </a>
                                               );
                                           })()}
-                                          <button onClick={() => onRequestSwap({ date: shift.date, role: shift.role, session: shift.rawSession, owner: name })} className="bg-[#eaeae5] hover:bg-[#dedcd4] text-zinc-800 px-3 py-1.5 rounded-full transition-all active:scale-95 border border-zinc-300 flex-shrink-0 shadow-sm text-xs font-medium text-center whitespace-nowrap">
+                                          <button onClick={() => onRequestSwap({ date: shift.date, role: shift.role, session: shift.rawSession, owner: name })} className="bg-[#FBF3FF] hover:bg-[#F1E4F9] text-zinc-800 px-3 py-1.5 rounded-full transition-all active:scale-95 border border-zinc-300 flex-shrink-0 shadow-sm text-xs font-medium text-center whitespace-nowrap">
                                             換班查詢
                                           </button>
                                       </>
@@ -1378,7 +1378,7 @@
                                     const isCopied = copiedId === uniqueId;
 
                                     return (
-                                      <div key={i} className="text-sm bg-[#eaeae5] text-indigo-600 pl-3 pr-1.5 py-1.5 rounded-lg border border-indigo-100 flex items-center gap-1 transition-all">
+                                      <div key={i} className="text-sm bg-[#FBF3FF] text-indigo-600 pl-3 pr-1.5 py-1.5 rounded-lg border border-indigo-100 flex items-center gap-1 transition-all">
                                           <span className="font-medium">{formattedDate}</span>
                                           <span className="opacity-70 text-xs">
                                               ({swap.role}{swap.role !== '執事輪值' && ` • ${swap.session}`})
