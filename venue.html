@@ -603,6 +603,16 @@ const durHtml = (st, id) => `
     <div id="${id}-ce" ${st.dur === 0 ? '' : 'hidden'} style="margin-top:8px"><label for="${id}-ed" class="hint" style="display:block;margin:0 0 4px">結束時間</label>
       <select class="inp" id="${id}-ed">${END_OPTS.map((t) => `<option ${t === st.customEnd ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
     <div class="big" id="${id}-big"></div></div>`;
+/* 過期時間：選今天時，開始時間只能是「現在之後」（15 分鐘一格，往後進位） */
+const ceil15 = (t) => m2hm(Math.ceil(tmin(t) / 15) * 15);
+const minStartFor = (date) => (date && date === todayStr() ? ceil15(nowHm()) : '');
+const pastMsg = (st) => { const m = minStartFor(st.date); if (!m || st.start >= m) return ''; return START_OPTS.some((t) => t >= m) ? '不能預約已過去的時間' : '今天已沒有可預約的時間，請改選其他日期'; };
+function refillStart(root, st, id) {
+  const m = minStartFor(st.date);
+  if (m && st.start < m) { const f = START_OPTS.find((t) => t >= m); if (f) st.start = f; }
+  $(`#${id}-st`, root).innerHTML = START_OPTS.filter((t) => !m || t >= m || t === st.start).map((t) => `<option ${t === st.start ? 'selected' : ''}>${t}</option>`).join('');
+  $(`#${id}-big`, root).textContent = timeValid(st) ? `${st.start} – ${endOf(st)}` : '';
+}
 const durMin = (st) => st.dur || (tmin(st.customEnd) - tmin(st.start));
 const endOf = (st) => m2hm(tmin(st.start) + durMin(st));
 const timeValid = (st) => { const d = durMin(st); return d > 0 && tmin(st.start) + d <= 24 * 60 - 1; };
@@ -657,6 +667,7 @@ function openBooking(init, onBack) {
     if (!b.title.trim()) return '請填寫活動名稱';
     if (!b.date) return '請選擇日期';
     if (b.date < today) return '不能預約過去的日期';
+    if (pastMsg(b)) return pastMsg(b);
     if (!timeValid(b)) return '結束時間要晚於開始時間，且不能超過 23:59';
     if (!b.contact.trim()) return '請填寫聯絡人';
     return '';
@@ -676,13 +687,14 @@ function openBooking(init, onBack) {
       <div class="tl-ax">${[8, 11, 14, 17, 20, 23].map((h) => `<span style="left:${pos(h * 60)}%">${pad(h)}</span>`).join('')}</div>
       <div class="tl-lg"><span><i></i>已預約</span>${timeValid(b) ? `<span class="${ok ? 'ok' : 'no'}">${ok ? '可預約' : '不可預約'}</span>` : ''}</div>
       ${ok ? '' : `<div class="tl-why">${clash(b.date).map((e) => `${hm(e.start_time)}–${hm(e.end_time)}`).join('、')}</div>`}`;
-    g('#bsub').disabled = !ok;
+    g('#bsub').disabled = !ok || !!pastMsg(b);
   }
-  const upd = () => { g('#ber').textContent = ''; refresh(); };
+  const upd = () => { g('#ber').textContent = pastMsg(b); refresh(); };
   bindDur(r, b, 'b', upd);
+  refillStart(r, b, 'b');
   g('#bt').addEventListener('input', (e) => { b.title = e.target.value; });
   g('#bs').addEventListener('change', (e) => { b.space = e.target.value; upd(); });
-  g('#bd').addEventListener('change', (e) => { b.date = e.target.value; upd(); });
+  g('#bd').addEventListener('change', (e) => { b.date = e.target.value; refillStart(r, b, 'b'); upd(); });
   g('#bc').addEventListener('input', (e) => { b.contact = e.target.value; });
   refresh();
 
@@ -714,9 +726,9 @@ function openBooking(init, onBack) {
 
 /* ============ 快速找場地 ============ */
 const LUNCH_FROM = 12 * 60, LUNCH_TO = 13 * 60;
-function alternatives(busy, want, dur) {
+function alternatives(busy, want, dur, minMin = 0) {
   let c = [];
-  for (let s = 8 * 60; s + dur <= 23 * 60; s += 15) if (busy.every((e) => !(tmin(e.start_time) < s + dur && tmin(e.end_time) > s))) c.push(s);
+  for (let s = Math.max(8 * 60, minMin); s + dur <= 23 * 60; s += 15) if (busy.every((e) => !(tmin(e.start_time) < s + dur && tmin(e.end_time) > s))) c.push(s);
   const nl = c.filter((s) => !(s < LUNCH_TO && s + dur > LUNCH_FROM));   // 盡量避開中午 12:00–13:00
   if (nl.length) c = nl;
   c.sort((a, b) => Math.abs(a - want) - Math.abs(b - want) || a - b);
@@ -748,6 +760,7 @@ function openFind(prev) {
   async function run() {
     const my = ++token, res = g('#qres');
     if (!f.date || f.date < today) { res.innerHTML = `<div class="err">${f.date ? '不能預約過去的日期' : '請選擇日期'}</div>`; return; }
+    if (pastMsg(f)) { res.innerHTML = `<div class="err">${pastMsg(f)}</div>`; return; }
     if (!timeValid(f)) { res.innerHTML = '<div class="err">結束時間要晚於開始時間，且不能超過 23:59</div>'; return; }
     res.innerHTML = '<div class="qsum">查詢中…</div>';
     try { await ensureDates([f.date]); } catch (e) { res.innerHTML = '<div class="err">暫時無法讀取預約，請稍後再試</div>'; return; }
@@ -756,10 +769,10 @@ function openFind(prev) {
     const rows = active.filter((x) => !f.sel || f.sel.has(x.id)).map((x) => {
       const mine = day.filter((e) => e.space_id === x.id);
       const cl = mine.filter((e) => tmin(e.start_time) < en && tmin(e.end_time) > st);
-      return { x, mine, cl, free: !cl.length, alts: cl.length ? alternatives(mine, st, dur) : [] };
+      return { x, mine, cl, free: !cl.length, alts: cl.length ? alternatives(mine, st, dur, minStartFor(f.date) ? tmin(minStartFor(f.date)) : 0) : [] };
     }).sort((a, b) => (b.free - a.free) || a.x.name.localeCompare(b.x.name, 'zh-TW'));
     const n = rows.filter((q) => q.free).length;
-    res.innerHTML = `<div class="qsum">${rows.length ? `<b>${mdw(f.date)} ${f.start}–${endOf(f)}</b>　${n ? '' : '這個時段都被占用了'}` : '沒有符合的場地'}</div>` +
+    res.innerHTML = `<div class="qsum">${rows.length ? `<b>${mdw(f.date)} ${f.start}–${endOf(f)}</b>　${n ? '' : '無可用場地'}` : '沒有符合的場地'}</div>` +
       rows.map((q) => `<div class="qr ${q.free ? '' : 'busy'}" style="--c:${colorOf(q.x.id)}"><div style="min-width:0"><b>${esc(q.x.name)}</b>${q.free
         ? `<span class="ok">可預約</span>${q.mine.length ? `<div class="no" style="color:var(--sub)">不可預約：${q.mine.map((e) => `${hm(e.start_time)}–${hm(e.end_time)}`).join('、')}</div>` : ''}`
         : `<span class="no">不可預約：${q.cl.map((e) => `${hm(e.start_time)}–${hm(e.end_time)}`).join('、')}</span>${q.alts.length ? `<div class="alts"><span>推薦時間</span>${q.alts.map((a) => `<button type="button" class="pill good" data-pick="${q.x.id}" data-s="${m2hm(a)}">${m2hm(a)}–${m2hm(a + dur)}</button>`).join('')}</div>` : ''}`}</div>
@@ -767,7 +780,8 @@ function openFind(prev) {
   }
   drawSp();
   bindDur(r, f, 'q', run);
-  g('#qd').addEventListener('change', (e) => { f.date = e.target.value; run(); });
+  refillStart(r, f, 'q');
+  g('#qd').addEventListener('change', (e) => { f.date = e.target.value; refillStart(r, f, 'q'); run(); });
   g('#qsb').addEventListener('click', () => { const p = g('#qsp'); p.hidden = !p.hidden; g('#qsb').setAttribute('aria-expanded', String(!p.hidden)); });
   g('#qsp').addEventListener('click', (e) => {
     const a = e.target.closest('[data-all]'); if (!a) return;
