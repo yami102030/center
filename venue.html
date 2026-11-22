@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- TBC ONE 場地預約（會友端） — 由原始碼打包（src/center/venue），勿手動修改 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -14,7 +15,7 @@
   --btn:#334155; --btn-hover:#1e293b; --btn-press:#0f172a; --on-btn:#ffffff;
  --bg:#ffffff; --card:#f7f9fa; --text:#262626; --sub:#595959; --mute:#8c8c8c; --border:#e8e8e8;
          --primary:#8806ce; --primary-hover:#7205ad; --primary-tint:#f7eefc; --primary-ink:#5c048c;
-         --good:#8806ce; --adhoc:#eeeede; --busy:#c9c9c9; --bad:#d4380d; --bad-bg:#fff1f0; --green:#1f7a45; --green-bg:#e8f6ee; }
+         --good:#8806ce; --adhoc:#f5f5f0; --busy:#c9c9c9; --bad:#d4380d; --bad-bg:#fff1f0; --green:#1f7a45; --green-bg:#e8f6ee; }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
   --btn:#f1f5f9; --btn-hover:#e2e8f0; --btn-press:#cbd5e1; --on-btn:#0b1120;
@@ -289,364 +290,67 @@
 <div id="layer"></div>
 
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const { SUPABASE_URL, SUPABASE_KEY } = window.TBC_CONFIG;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-/* ============ 小工具 ============ */
-const $ = (s, r = document) => r.querySelector(s);
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const pad = (n) => String(n).padStart(2, '0');
-const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
-const todayStr = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei' }).format(new Date());
-const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
-const fmt = (d) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
-const addDays = (s, n) => { const d = parse(s); d.setUTCDate(d.getUTCDate() + n); return fmt(d); };
-const addMonths = (s, n) => { const d = parse(s); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + n); return fmt(d); };
-const monthStart = (s) => s.slice(0, 7) + '-01';
-const dow = (s) => parse(s).getUTCDay();
-const dim = (s) => new Date(Date.UTC(+s.slice(0, 4), +s.slice(5, 7), 0)).getUTCDate();
-const monthGrid = (first) => { const lead = dow(first); const weeks = Math.ceil((lead + dim(first)) / 7); const st = addDays(first, -lead); return Array.from({ length: weeks * 7 }, (_, i) => addDays(st, i)); };
-const hm = (t) => String(t).slice(0, 5);
-const tmin = (t) => { const [h, m] = hm(t).split(':').map(Number); return h * 60 + m; };
-const m2hm = (m) => `${pad(Math.floor(m / 60))}:${pad(m % 60)}`;
-const opts = (a, b) => { const o = []; for (let m = tmin(a); m <= tmin(b); m += 15) o.push(m2hm(m)); return o; };
-const nowHm = () => new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
-const mdw = (d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}（${WEEK[dow(d)]}）`;
-const COLORS = ['#0070d5', '#0f8b8d', '#d9822b', '#8a5cd0', '#d4609f', '#4a9c5d', '#c25b4a', '#5b6b7a', '#b08900', '#2f6fb0'];
-const START_OPTS = opts('08:00', '22:45');
-const END_OPTS = opts('08:15', '23:45');
-const DURS = [[60, '1 小時'], [90, '1.5 小時'], [120, '2 小時'], [180, '3 小時']];
-const PAGE = 8;
-
-const IC = {
-  left: '<path d="m15 18-6-6 6-6"/>', right: '<path d="m9 18 6-6-6-6"/>', back: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
-  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>', search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
-  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
-  menu: '<path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/>',
-  home: '<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
-  hand: '<path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/><path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 15 6 6"/><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z"/>',
-  cal: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
-  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
-  logout: '<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
-  login: '<path d="m10 17 5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>',
-  list: '<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',
-  usercheck: '<path d="m16 11 2 2 4-4"/><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',
-  folder: '<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',
-  star: '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
-  cap: '<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
-  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
-  sqplus: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/>',
-  user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-  lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
-  eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
-  eyeoff: '<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>',
-};
-const svg = (n, s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
-
-/* ============ 資料 ============ */
-const state = { role: 'member', fs: 'md', menu: false, view: 'month', sel: todayStr(), month: monthStart(todayStr()), page: 0, spaces: [], err: '', loading: true, session: null, name: '' };
-const cache = new Map();
-let lastLoad = 0;
-
-const colorOf = (id) => { const i = state.spaces.findIndex((s) => s.id === id); return COLORS[(i < 0 ? 0 : i) % COLORS.length]; };
-
-async function loadMonth(first, force) {
-  if (!force && cache.has(first)) return cache.get(first);
-  const g = monthGrid(first);
-  const { data, error } = await supabase.rpc('get_venue_public_events', { p_from: g[0], p_to: g[g.length - 1] });
-  if (error) throw error;
-  cache.set(first, data || []);
-  lastLoad = Date.now();
-  return data || [];
-}
-const eventsOn = (d) => (cache.get(monthStart(d)) || []).filter((e) => e.booking_date === d);
-const ensureDates = (dates) => Promise.all([...new Set(dates.map(monthStart))].map((m) => loadMonth(m)));
-
-async function loadSpaces() {
-  const { data, error } = await supabase.rpc('venue_list_public_spaces');
-  if (error) throw error;
-  state.spaces = data || [];
-}
-
-/* ============ 畫面：頂端列 ============ */
-const shortName = (n) => { n = (n || '').trim(); return /^[\u4e00-\u9fff]{2,3}$/.test(n) ? n.slice(1) : n; };   // 去掉姓氏
-const ROLE_INFO = { member: ['user', '會友'], coworker: ['usercheck', '同工'], admin_staff: ['folder', '行政'], leader: ['star', '區長', 1], pastor: ['cap', '牧者', 1], admin: ['shield', '管理員', 1] };
-const roleOf = () => ROLE_INFO[state.role] || ['user', state.role === 'r_wt7kod' ? '服事管家' : '會友'];
-const FONTS = [{ id: 'sm', px: 13, btn: 9, label: '小字' }, { id: 'md', px: 15, btn: 13, label: '標準字' }, { id: 'lg', px: 18, btn: 18, label: '大字' }];
-const FONT_KEY = 'tbc_venue_fontsize';
-const applyFont = (id) => { const f = FONTS.find((x) => x.id === id) || FONTS[1]; state.fs = f.id; document.documentElement.style.setProperty('--fs', f.px + 'px'); };
-try { applyFont(localStorage.getItem(FONT_KEY) || 'md'); } catch (e) { applyFont('md'); }
-function renderTop() {
-  $('#top').innerHTML = `
+import{createClient as Ft}from"https://esm.sh/@supabase/supabase-js@2";var ht="Asia/Taipei",G=t=>String(t).padStart(2,"0"),K=["日","一","二","三","四","五","六"],k=()=>new Intl.DateTimeFormat("en-CA",{timeZone:ht}).format(new Date),B=t=>{let[e,s,a]=t.split("-").map(Number);return new Date(Date.UTC(e,s-1,a))},bt=t=>`${t.getUTCFullYear()}-${G(t.getUTCMonth()+1)}-${G(t.getUTCDate())}`,O=(t,e)=>{let s=B(t);return s.setUTCDate(s.getUTCDate()+e),bt(s)},ft=(t,e)=>{let s=B(t);return s.setUTCDate(1),s.setUTCMonth(s.getUTCMonth()+e),bt(s)},q=t=>t.slice(0,7)+"-01",Z=t=>B(t).getUTCDay(),Ot=t=>{let e=B(t);return new Date(Date.UTC(e.getUTCFullYear(),e.getUTCMonth()+1,0)).getUTCDate()},st=t=>{let e=Z(t),s=Math.ceil((e+Ot(t))/7),a=O(t,-e);return Array.from({length:s*7},(l,i)=>O(a,i))};var E=t=>(t||"").slice(0,5),f=t=>{let[e,s]=t.split(":").map(Number);return e*60+(s||0)};var vt=["#0070d5","#0f8b8d","#d9822b","#8a5cd0","#d4609f","#4a9c5d","#c25b4a","#5b6b7a","#b08900","#2f6fb0"];var S=t=>`${G(Math.floor(t/60))}:${G(t%60)}`;var $t=(t,e)=>{let s=[];for(let a=f(t);a<=f(e);a+=15)s.push(S(a));return s};var qt=t=>S(Math.ceil(f(t)/15)*15);var nt=()=>new Intl.DateTimeFormat("en-GB",{timeZone:ht,hour:"2-digit",minute:"2-digit",hour12:!1}).format(new Date),jt="08:00",Ut="22:45",It=480,Nt=1380,j=$t(jt,Ut),lt=$t("08:15","23:45"),it=[[60,"1 小時"],[90,"1.5 小時"],[120,"2 小時"],[180,"3 小時"]];var gt=t=>{let e=new Map(t.map((s,a)=>[s.id,s.color||vt[a%vt.length]]));return s=>e.get(s)||"#8c8c8c"},Y=t=>t&&t===k()?qt(nt()):"",yt=(t,e,s,a=0)=>{let l=[];for(let p=Math.max(It,a);p+s<=Nt;p+=15)t.every(v=>!(f(v.start_time)<p+s&&f(v.end_time)>p))&&l.push(p);let i=l.filter(p=>!(p<780&&p+s>720));i.length&&(l=i),l.sort((p,v)=>Math.abs(p-e)-Math.abs(v-e)||p-v);let o=[];for(let p of l)if(o.every(v=>Math.abs(v-p)>=45)&&o.push(p),o.length>=3)break;return o.sort((p,v)=>p-v)};var{SUPABASE_URL:Rt,SUPABASE_KEY:Pt}=window.TBC_CONFIG,L=Ft(Rt,Pt),h=(t,e=document)=>e.querySelector(t),M=t=>String(t??"").replace(/[&<>"']/g,e=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[e]),Tt=t=>String(t).padStart(2,"0"),kt=t=>`${+t.slice(5,7)}/${+t.slice(8,10)}（${K[Z(t)]}）`,J=8,Yt={left:'<path d="m15 18-6-6 6-6"/>',right:'<path d="m9 18 6-6-6-6"/>',back:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',menu:'<path d="M4 12h16"/><path d="M4 6h16"/><path d="M4 18h16"/>',home:'<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',hand:'<path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/><path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 15 6 6"/><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z"/>',cal:'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',logout:'<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',login:'<path d="m10 17 5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>',list:'<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/>',usercheck:'<path d="m16 11 2 2 4-4"/><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',folder:'<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',star:'<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',cap:'<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',shield:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',sqplus:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/><path d="M12 8v8"/>',user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',lock:'<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',eye:'<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',eyeoff:'<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>'},g=(t,e=20)=>`<svg width="${e}" height="${e}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${Yt[t]}</svg>`,n={role:"member",fs:"md",menu:!1,view:"month",sel:k(),month:q(k()),page:0,spaces:[],err:"",loading:!0,session:null,name:""},A=new Map,ot=0,xt=null,Mt=null,rt=t=>(Mt!==n.spaces&&(xt=gt(n.spaces),Mt=n.spaces),xt(t));async function tt(t,e){if(!e&&A.has(t))return A.get(t);let s=st(t),{data:a,error:l}=await L.rpc("get_venue_public_events",{p_from:s[0],p_to:s[s.length-1]});if(l)throw l;return A.set(t,a||[]),ot=Date.now(),a||[]}var ct=t=>(A.get(q(t))||[]).filter(e=>e.booking_date===t),Et=t=>Promise.all([...new Set(t.map(q))].map(e=>tt(e)));async function zt(){let{data:t,error:e}=await L.rpc("venue_list_public_spaces");if(e)throw e;n.spaces=t||[]}var Vt={member:["user","會友"],coworker:["usercheck","同工"],admin_staff:["folder","行政"],leader:["star","區長",1],pastor:["cap","牧者",1],admin:["shield","管理員",1]},Wt=()=>Vt[n.role]||["user",n.role==="r_wt7kod"?"服事管家":"會友"],dt=[{id:"sm",px:13,btn:9,label:"小字"},{id:"md",px:15,btn:13,label:"標準字"},{id:"lg",px:18,btn:18,label:"大字"}],Ct="tbc_venue_fontsize",pt=t=>{let e=dt.find(s=>s.id===t)||dt[1];n.fs=e.id,document.documentElement.style.setProperty("--fs",e.px+"px")};try{pt(localStorage.getItem(Ct)||"md")}catch{pt("md")}function Q(){h("#top").innerHTML=`
     <div class="top-l">
       <div class="mwrap">
-        <button class="menu-btn${state.menu ? ' open' : ''}" data-act="menu" aria-label="${state.menu ? '關閉選單' : '開啟選單'}" aria-expanded="${state.menu}">${svg(state.menu ? 'x' : 'menu', 24)}</button>
-        ${state.menu ? `<div class="menu-bg" data-act="menu"></div><nav class="menu" aria-label="主選單">
-          <a href="./index.html">${svg('home')}回首頁</a>
-          <a href="./prayer.html">${svg('hand')}守望花園</a>
-          <a href="./search.html">${svg('clock')}我的服事</a>
-          <a href="./venue.html">${svg('cal')}場地預約</a>
-          ${state.session ? `<button data-act="logout">${svg('logout')}登出</button>` : `<button data-act="login">${svg('login')}登入</button>`}
-        </nav>` : ''}
+        <button class="menu-btn${n.menu?" open":""}" data-act="menu" aria-label="${n.menu?"關閉選單":"開啟選單"}" aria-expanded="${n.menu}">${g(n.menu?"x":"menu",24)}</button>
+        ${n.menu?`<div class="menu-bg" data-act="menu"></div><nav class="menu" aria-label="主選單">
+          <a href="./index.html">${g("home")}回首頁</a>
+          <a href="./prayer.html">${g("hand")}守望花園</a>
+          <a href="./search.html">${g("clock")}我的服事</a>
+          <a href="./venue.html">${g("cal")}場地預約</a>
+          ${n.session?`<button data-act="logout">${g("logout")}登出</button>`:`<button data-act="login">${g("login")}登入</button>`}
+        </nav>`:""}
       </div>
       <h1>場地預約</h1>
     </div>
     <div class="hr">
-      <button data-act="new" aria-label="新增預約" title="新增預約">${svg('sqplus', 24)}</button>
-      <button data-act="find" aria-label="快速找場地" title="快速找場地">${svg('search', 24)}</button>
-      <button data-act="mine" aria-label="我的預約" title="我的預約">${svg('list', 24)}</button>
-    </div>`;
-}
-function idRow() {
-  const [ic, , high] = state.session ? roleOf() : ['user', '訪客'];
-  return `<div class="idrow"><div class="who"><span class="avatar${high ? ' high' : ''}" aria-hidden="true">${svg(ic, 20)}</span><b>${esc(state.session ? (state.name || '會友') : '訪客')}</b></div>
-    <div class="fsw" role="group" aria-label="文字大小">${FONTS.map((f) => `<button data-act="fs" data-id="${f.id}" aria-pressed="${state.fs === f.id}" aria-label="${f.label}" title="${f.label}" style="font-size:${f.btn}px">A</button>`).join('')}</div></div>`;
-}
-
-/* ============ 畫面：主畫面（月曆＋當天條列） ============ */
-function render() {
-  renderTop();
-  const today = todayStr();
-  const sel = state.sel;
-  const first = monthStart(sel);
-  const monthEvents = cache.get(state.view === 'month' ? state.month : first) || null;
-  let h = idRow() + `
+      <button data-act="new" aria-label="新增預約" title="新增預約">${g("sqplus",24)}</button>
+      <button data-act="find" aria-label="快速找場地" title="快速找場地">${g("search",24)}</button>
+      <button data-act="mine" aria-label="我的預約" title="我的預約">${g("list",24)}</button>
+    </div>`}function Gt(){let[t,,e]=n.session?Wt():["user","訪客"];return`<div class="idrow"><div class="who"><span class="avatar${e?" high":""}" aria-hidden="true">${g(t,20)}</span><b>${M(n.session?n.name||"會友":"訪客")}</b></div>
+    <div class="fsw" role="group" aria-label="文字大小">${dt.map(s=>`<button data-act="fs" data-id="${s.id}" aria-pressed="${n.fs===s.id}" aria-label="${s.label}" title="${s.label}" style="font-size:${s.btn}px">A</button>`).join("")}</div></div>`}function C(){Q();let t=k(),e=n.sel,s=q(e),a=A.get(n.view==="month"?n.month:s)||null,l=Gt()+`
     <div class="tb">
       <div class="vtabs" role="group" aria-label="檢視方式">
-        <button class="vtab" data-act="view" data-v="day" aria-pressed="${state.view === 'day'}">天</button>
-        <button class="vtab" data-act="view" data-v="month" aria-pressed="${state.view === 'month'}">月</button>
+        <button class="vtab" data-act="view" data-v="day" aria-pressed="${n.view==="day"}">天</button>
+        <button class="vtab" data-act="view" data-v="month" aria-pressed="${n.view==="month"}">月</button>
       </div>
-    </div>`;
-
-  if (state.err) h += `<div class="note" role="alert">${esc(state.err)} <button class="link" data-act="retry">重新載入</button></div>`;
-
-  h += '<div class="vcard">';
-  if (state.view === 'month') {
-    const g = monthGrid(state.month);
-    const by = new Map();
-    for (const e of monthEvents || []) { if (!by.has(e.booking_date)) by.set(e.booking_date, []); by.get(e.booking_date).push(e); }
-    h += `<div class="nav"><h2>${state.month.slice(0, 4)}年${+state.month.slice(5, 7)}月</h2>
-      <div class="arrows"><button data-act="mprev" aria-label="上個月">${svg('left')}</button><button data-act="mnext" aria-label="下個月">${svg('right')}</button></div></div>
-      <div class="wk">${WEEK.map((w) => `<span>${w}</span>`).join('')}</div>
-      <div class="grid" role="grid" aria-label="月曆">${g.map((d) => {
-        const n = (by.get(d) || []).length;
-        return `<button class="cell${d.slice(0, 7) !== state.month.slice(0, 7) ? ' out' : ''}${d < today ? ' past' : ''}${d === sel ? ' sel' : ''}${d === today ? ' today' : ''}" data-act="pick" data-d="${d}" role="gridcell" aria-label="${+d.slice(5, 7)} 月 ${+d.slice(8, 10)} 日${n ? `，${n} 筆預約` : ''}">
-          <span class="n">${+d.slice(8, 10)}</span><span class="dots">${n ? '<i></i>' : ''}</span></button>`;
-      }).join('')}</div>`;
-  }
-
-  const relWord = sel === today ? '今天' : sel === addDays(today, 1) ? '明天' : sel === addDays(today, -1) ? '昨天' : '';
-  const left = relWord || `${+sel.slice(5, 7)}月${+sel.slice(8, 10)}日`;
-  const right = relWord ? `${sel.slice(0, 4)}年${+sel.slice(5, 7)}月${+sel.slice(8, 10)}日` : `星期${WEEK[dow(sel)]}`;
-  h += `<div class="dayhead"><b>${left}</b><span class="d">${right}</span>
-    <div class="arrows"><button data-act="dprev" aria-label="前一天">${svg('left')}</button><button data-act="dnext" aria-label="後一天">${svg('right')}</button></div></div></div>`;
-
-  const evs = (monthEvents || []).filter((e) => e.booking_date === sel).sort((a, b) => a.start_time.localeCompare(b.start_time) || a.space_name.localeCompare(b.space_name, 'zh-TW'));
-  if (!monthEvents && !state.err) h += `<div class="skeleton">載入中…</div>`;
-  else if (!evs.length) h += `<div class="empty">沒有人預約，歡迎來卡位</div>`;
-  else {
-    const pages = Math.ceil(evs.length / PAGE);
-    const pg = Math.min(state.page, pages - 1);
-    h += `<div class="vlist"><ul class="list">${evs.slice(pg * PAGE, pg * PAGE + PAGE).map((e) => `
-      <li class="ev ${e.kind === 'pending' ? 'pending' : ''}${e.is_recurring ? ' rec' : ''}" style="--c:${colorOf(e.space_id)}">
-        <div class="ev-t"><b>${hm(e.start_time)}</b><small>${hm(e.end_time)}</small></div>
-        <div class="ev-b"><span class="ev-sp">${esc(e.space_name)}</span><span class="ev-ti">${esc(e.title)}</span></div>
-      </li>`).join('')}</ul></div>`;
-    if (pages > 1) h += `<div class="pager"><button class="pbtn" data-act="pprev" ${pg === 0 ? 'disabled' : ''}>‹ 上一頁</button><button class="pbtn" data-act="pnext" ${pg >= pages - 1 ? 'disabled' : ''}>下一頁 ›</button></div>`;
-  }
-  $('#main').innerHTML = h;
-}
-
-async function select(d) {
-  state.sel = d; state.page = 0; state.month = monthStart(d);
-  render();
-  try { await loadMonth(state.month); state.err = ''; } catch (e) { state.err = '暫時無法讀取預約，請稍後再試'; console.error(e); }
-  render();
-}
-async function reload(force) {
-  state.err = '';
-  try { cache.clear(); await loadMonth(state.month, true); } catch (e) { state.err = '暫時無法讀取預約，請稍後再試'; console.error(e); }
-  render();
-}
-
-$('#main').addEventListener('click', (ev) => {
-  const b = ev.target.closest('[data-act]'); if (!b) return;
-  const a = b.dataset.act, today = todayStr();
-  if (a === 'today') select(today);
-  else if (a === 'view') { state.view = b.dataset.v; state.month = monthStart(state.sel); select(state.sel); }
-  else if (a === 'pick') select(b.dataset.d);
-  else if (a === 'mprev' || a === 'mnext') {
-    const m = addMonths(state.month, a === 'mprev' ? -1 : 1);
-    const d = state.sel.slice(0, 7) === m.slice(0, 7) ? state.sel : (m.slice(0, 7) === today.slice(0, 7) ? today : m);
-    select(d);
-  }
-  else if (a === 'dprev') select(addDays(state.sel, -1));
-  else if (a === 'dnext') select(addDays(state.sel, 1));
-  else if (a === 'pprev') { state.page = Math.max(0, state.page - 1); render(); }
-  else if (a === 'pnext') { state.page += 1; render(); }
-  else if (a === 'retry') { reload(); }
-  else if (a === 'fs') { applyFont(b.dataset.id); try { localStorage.setItem(FONT_KEY, b.dataset.id); } catch (e) { /* 略過 */ } render(); }
-  else if (a === 'find') openFind();
-  else if (a === 'mine') needLogin(openMine);
-  else if (a === 'new') needLogin(() => openBooking({ date: state.sel >= todayStr() ? state.sel : todayStr() }));
-});
-$('#top').addEventListener('click', (ev) => {
-  const b = ev.target.closest('[data-act]'); if (!b) return;
-  const a = b.dataset.act;
-  if (a === 'menu') { state.menu = !state.menu; renderTop(); return; }
-  if (state.menu) { state.menu = false; renderTop(); }
-  if (a === 'login') openLogin();
-  if (a === 'logout') supabase.auth.signOut();
-  if (a === 'find') openFind();
-  if (a === 'mine') needLogin(openMine);
-  if (a === 'new') needLogin(() => openBooking({ date: state.sel >= todayStr() ? state.sel : todayStr() }));
-});
-
-/* ============ 通用：彈出視窗、提示 ============ */
-let openCount = 0;
-function sheet(title, body, foot, cls = '') {
-  const ov = document.createElement('div');
-  ov.className = 'ov ' + cls;
-  ov.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
-    <div class="sh-head"><h3>${esc(title)}</h3><button class="x" data-close aria-label="關閉">${svg('x', 22)}</button></div>
-    <div class="sh-body">${body}</div>${foot ? `<div class="sh-foot">${foot}</div>` : ''}</div>`;
-  $('#layer').appendChild(ov);
-  document.body.style.overflow = 'hidden'; openCount++;
-  const api = { el: ov, onClose: null, closed: false };
-  api.close = () => {
-    if (api.closed) return; api.closed = true;
-    document.removeEventListener('keydown', onKey);
-    ov.remove(); openCount--; if (!openCount) document.body.style.overflow = '';
-    if (api.onClose) api.onClose();
-  };
-  const onKey = (e) => { if (e.key === 'Escape' && ov === $('#layer').lastElementChild) api.close(); };
-  document.addEventListener('keydown', onKey);
-  ov.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) api.close(); });
-  return api;
-}
-let toastTimer;
-function toast(msg) {
-  document.querySelectorAll('.toast').forEach((t) => t.remove());
-  const t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg;
-  document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 5000);
-}
-
-/* ============ 登入（會友以上；帳號規則同其他 Together 頁面） ============ */
-const VDOM = '@tbc.gmail.com';
-const toEmail = (a) => { const t = (a || '').trim(); return t.includes('@') ? t : t + VDOM; };
-let afterLogin = null;
-function needLogin(fn) { if (state.session) fn(); else { afterLogin = fn; openLogin(); } }
-function openLogin() {
-  const ov = document.createElement('div');
-  ov.className = 'lgov';
-  ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'lg-title');
-  ov.innerHTML = `<div class="lg-in">
-    <div class="lg-head"><button type="button" class="lg-x" data-close aria-label="關閉登入畫面">${svg('x', 22)}</button><span id="lg-title">歡迎登入</span><i></i></div>
+    </div>`;if(n.err&&(l+=`<div class="note" role="alert">${M(n.err)} <button class="link" data-act="retry">重新載入</button></div>`),l+='<div class="vcard">',n.view==="month"){let u=st(n.month),d=new Map;for(let m of a||[])d.has(m.booking_date)||d.set(m.booking_date,[]),d.get(m.booking_date).push(m);l+=`<div class="nav"><h2>${n.month.slice(0,4)}年${+n.month.slice(5,7)}月</h2>
+      <div class="arrows"><button data-act="mprev" aria-label="上個月">${g("left")}</button><button data-act="mnext" aria-label="下個月">${g("right")}</button></div></div>
+      <div class="wk">${K.map(m=>`<span>${m}</span>`).join("")}</div>
+      <div class="grid" role="grid" aria-label="月曆">${u.map(m=>{let w=(d.get(m)||[]).length;return`<button class="cell${m.slice(0,7)!==n.month.slice(0,7)?" out":""}${m<t?" past":""}${m===e?" sel":""}${m===t?" today":""}" data-act="pick" data-d="${m}" role="gridcell" aria-label="${+m.slice(5,7)} 月 ${+m.slice(8,10)} 日${w?`，${w} 筆預約`:""}">
+          <span class="n">${+m.slice(8,10)}</span><span class="dots">${w?"<i></i>":""}</span></button>`}).join("")}</div>`}let i=e===t?"今天":e===O(t,1)?"明天":e===O(t,-1)?"昨天":"",o=i||`${+e.slice(5,7)}月${+e.slice(8,10)}日`,p=i?`${e.slice(0,4)}年${+e.slice(5,7)}月${+e.slice(8,10)}日`:`星期${K[Z(e)]}`;l+=`<div class="dayhead"><b>${o}</b><span class="d">${p}</span>
+    <div class="arrows"><button data-act="dprev" aria-label="前一天">${g("left")}</button><button data-act="dnext" aria-label="後一天">${g("right")}</button></div></div></div>`;let v=(a||[]).filter(u=>u.booking_date===e).sort((u,d)=>u.start_time.localeCompare(d.start_time)||u.space_name.localeCompare(d.space_name,"zh-TW"));if(!a&&!n.err)l+='<div class="skeleton">載入中…</div>';else if(!v.length)l+='<div class="empty">沒有人預約，歡迎來卡位</div>';else{let u=Math.ceil(v.length/J),d=Math.min(n.page,u-1);l+=`<div class="vlist"><ul class="list">${v.slice(d*J,d*J+J).map(m=>`
+      <li class="ev ${m.kind==="pending"?"pending":""}${m.is_recurring?" rec":""}" style="--c:${rt(m.space_id)}">
+        <div class="ev-t"><b>${E(m.start_time)}</b><small>${E(m.end_time)}</small></div>
+        <div class="ev-b"><span class="ev-sp">${M(m.space_name)}</span><span class="ev-ti">${M(m.title)}</span></div>
+      </li>`).join("")}</ul></div>`,u>1&&(l+=`<div class="pager"><button class="pbtn" data-act="pprev" ${d===0?"disabled":""}>‹ 上一頁</button><button class="pbtn" data-act="pnext" ${d>=u-1?"disabled":""}>下一頁 ›</button></div>`)}h("#main").innerHTML=l}async function U(t){n.sel=t,n.page=0,n.month=q(t),C();try{await tt(n.month),n.err=""}catch(e){n.err="暫時無法讀取預約，請稍後再試",console.error(e)}C()}async function Lt(t){n.err="";try{A.clear(),await tt(n.month,!0)}catch(e){n.err="暫時無法讀取預約，請稍後再試",console.error(e)}C()}h("#main").addEventListener("click",t=>{let e=t.target.closest("[data-act]");if(!e)return;let s=e.dataset.act,a=k();if(s==="today")U(a);else if(s==="view")n.view=e.dataset.v,n.month=q(n.sel),U(n.sel);else if(s==="pick")U(e.dataset.d);else if(s==="mprev"||s==="mnext"){let l=ft(n.month,s==="mprev"?-1:1),i=n.sel.slice(0,7)===l.slice(0,7)?n.sel:l.slice(0,7)===a.slice(0,7)?a:l;U(i)}else if(s==="dprev")U(O(n.sel,-1));else if(s==="dnext")U(O(n.sel,1));else if(s==="pprev")n.page=Math.max(0,n.page-1),C();else if(s==="pnext")n.page+=1,C();else if(s==="retry")Lt();else if(s==="fs"){pt(e.dataset.id);try{localStorage.setItem(Ct,e.dataset.id)}catch{}C()}else s==="find"?mt():s==="mine"?R(Ht):s==="new"&&R(()=>et({date:n.sel>=k()?n.sel:k()}))});h("#top").addEventListener("click",t=>{let e=t.target.closest("[data-act]");if(!e)return;let s=e.dataset.act;if(s==="menu"){n.menu=!n.menu,Q();return}n.menu&&(n.menu=!1,Q()),s==="login"&&St(),s==="logout"&&L.auth.signOut(),s==="find"&&mt(),s==="mine"&&R(Ht),s==="new"&&R(()=>et({date:n.sel>=k()?n.sel:k()}))});var F=0;function ut(t,e,s,a=""){let l=document.createElement("div");l.className="ov "+a,l.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="${M(t)}">
+    <div class="sh-head"><h3>${M(t)}</h3><button class="x" data-close aria-label="關閉">${g("x",22)}</button></div>
+    <div class="sh-body">${e}</div>${s?`<div class="sh-foot">${s}</div>`:""}</div>`,h("#layer").appendChild(l),document.body.style.overflow="hidden",F++;let i={el:l,onClose:null,closed:!1};i.close=()=>{i.closed||(i.closed=!0,document.removeEventListener("keydown",o),l.remove(),F--,F||(document.body.style.overflow=""),i.onClose&&i.onClose())};let o=p=>{p.key==="Escape"&&l===h("#layer").lastElementChild&&i.close()};return document.addEventListener("keydown",o),l.addEventListener("click",p=>{p.target.closest("[data-close]")&&i.close()}),i}var _t;function Kt(t){document.querySelectorAll(".toast").forEach(s=>s.remove());let e=document.createElement("div");e.className="toast",e.setAttribute("role","status"),e.textContent=t,document.body.appendChild(e),clearTimeout(_t),_t=setTimeout(()=>e.remove(),5e3)}var Bt="@tbc.gmail.com",Zt=t=>{let e=(t||"").trim();return e.includes("@")?e:e+Bt},z=null;function R(t){n.session?t():(z=t,St())}function St(){let t=document.createElement("div");t.className="lgov",t.setAttribute("role","dialog"),t.setAttribute("aria-modal","true"),t.setAttribute("aria-labelledby","lg-title"),t.innerHTML=`<div class="lg-in">
+    <div class="lg-head"><button type="button" class="lg-x" data-close aria-label="關閉登入畫面">${g("x",22)}</button><span id="lg-title">歡迎登入</span><i></i></div>
     <div class="lg-card">
       <form id="lf">
-        <div class="lg-f"><label for="la">帳號</label><div class="lg-w"><span class="lg-ic">${svg('user', 18)}</span><input id="la" class="lg-inp" autocomplete="username" placeholder="電話號碼或電子郵件" required></div></div>
-        <div class="lg-f"><label for="lp">密碼</label><div class="lg-w"><span class="lg-ic">${svg('lock', 18)}</span><input id="lp" class="lg-inp pw" type="password" autocomplete="current-password" placeholder="6位以上英數組合" required><button type="button" class="lg-eye" id="lq" aria-label="顯示密碼">${svg('eye', 18)}</button></div></div>
+        <div class="lg-f"><label for="la">帳號</label><div class="lg-w"><span class="lg-ic">${g("user",18)}</span><input id="la" class="lg-inp" autocomplete="username" placeholder="電話號碼或電子郵件" required></div></div>
+        <div class="lg-f"><label for="lp">密碼</label><div class="lg-w"><span class="lg-ic">${g("lock",18)}</span><input id="lp" class="lg-inp pw" type="password" autocomplete="current-password" placeholder="6位以上英數組合" required><button type="button" class="lg-eye" id="lq" aria-label="顯示密碼">${g("eye",18)}</button></div></div>
         <div class="lg-err" id="le" role="alert" hidden></div>
         <button class="btn primary lg-sub" type="submit" id="lb">登入</button>
       </form>
       <div class="lg-links"><div>首次設定密碼？請<a href="./manager.html#signup">點這裡</a></div><div class="lg-note">沒有帳號、忘記密碼？請聯絡行政辦公室</div></div>
-    </div></div>`;
-  $('#layer').appendChild(ov);
-  document.body.style.overflow = 'hidden'; openCount++;
-  const s = { el: ov, onClose: null, closed: false };
-  const onKey = (e) => { if (e.key === 'Escape' && ov === $('#layer').lastElementChild) s.close(); };
-  s.close = () => {
-    if (s.closed) return; s.closed = true;
-    document.removeEventListener('keydown', onKey);
-    ov.remove(); openCount--; if (!openCount) document.body.style.overflow = '';
-    if (s.onClose) s.onClose();
-  };
-  document.addEventListener('keydown', onKey);
-  ov.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) s.close(); });
-  $('#la', ov).focus();
-  $('#lq', ov).addEventListener('click', () => {
-    const p = $('#lp', ov), show = p.type === 'password';
-    p.type = show ? 'text' : 'password';
-    $('#lq', ov).innerHTML = svg(show ? 'eyeoff' : 'eye', 18);
-    $('#lq', ov).setAttribute('aria-label', show ? '隱藏密碼' : '顯示密碼');
-  });
-  $('#lf', ov).addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = $('#lb', ov), err = $('#le', ov); btn.disabled = true; btn.textContent = '處理中';
-    const { error } = await supabase.auth.signInWithPassword({ email: toEmail($('#la', ov).value), password: $('#lp', ov).value });
-    btn.disabled = false; btn.textContent = '登入';
-    if (error) { err.hidden = false; err.textContent = /Invalid login/i.test(error.message) ? '登入失敗：帳號或密碼錯誤' : '登入發生問題，稍後再試'; return; }
-    s.onClose = null; s.close();
-  });
-  s.onClose = () => { afterLogin = null; };
-}
-
-async function onSession(session) {
-  state.session = session; state.name = ''; state.role = 'member';
-  render();
-  if (session) {
-    try { const { data } = await supabase.rpc('my_access'); if (data && data.name) state.name = data.name; if (data && data.top_role) state.role = data.top_role; } catch (e) { /* 沒有姓名也能用 */ }
-    render();
-    if (afterLogin) { const f = afterLogin; afterLogin = null; f(); }
-  }
-}
-
-/* ============ 共用：時間與時長選擇 ============ */
-const durHtml = (st, id) => `
-  <div class="f"><label for="${id}-st">開始時間</label>
-    <select class="inp" id="${id}-st">${(START_OPTS.includes(st.start) ? START_OPTS : [...START_OPTS, st.start].sort()).map((t) => `<option ${t === st.start ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+    </div></div>`,h("#layer").appendChild(t),document.body.style.overflow="hidden",F++;let e={el:t,onClose:null,closed:!1},s=a=>{a.key==="Escape"&&t===h("#layer").lastElementChild&&e.close()};e.close=()=>{e.closed||(e.closed=!0,document.removeEventListener("keydown",s),t.remove(),F--,F||(document.body.style.overflow=""),e.onClose&&e.onClose())},document.addEventListener("keydown",s),t.addEventListener("click",a=>{a.target.closest("[data-close]")&&e.close()}),h("#la",t).focus(),h("#lq",t).addEventListener("click",()=>{let a=h("#lp",t),l=a.type==="password";a.type=l?"text":"password",h("#lq",t).innerHTML=g(l?"eyeoff":"eye",18),h("#lq",t).setAttribute("aria-label",l?"隱藏密碼":"顯示密碼")}),h("#lf",t).addEventListener("submit",async a=>{a.preventDefault();let l=h("#lb",t),i=h("#le",t);l.disabled=!0,l.textContent="處理中";let{error:o}=await L.auth.signInWithPassword({email:Zt(h("#la",t).value),password:h("#lp",t).value});if(l.disabled=!1,l.textContent="登入",o){i.hidden=!1,i.textContent=/Invalid login/i.test(o.message)?"登入失敗：帳號或密碼錯誤":"登入發生問題，稍後再試";return}e.onClose=null,e.close()}),e.onClose=()=>{z=null}}async function wt(t){if(n.session=t,n.name="",n.role="member",C(),t){try{let{data:e}=await L.rpc("my_access");e&&e.name&&(n.name=e.name),e&&e.top_role&&(n.role=e.top_role)}catch{}if(C(),z){let e=z;z=null,e()}}}var Dt=(t,e)=>`
+  <div class="f"><label for="${e}-st">開始時間</label>
+    <select class="inp" id="${e}-st">${(j.includes(t.start)?j:[...j,t.start].sort()).map(s=>`<option ${s===t.start?"selected":""}>${s}</option>`).join("")}</select></div>
   <div class="f"><span class="lb">用多久</span>
-    <div class="pills" id="${id}-du">${DURS.map(([m, l]) => `<button type="button" class="pill" data-m="${m}" aria-pressed="${st.dur === m}">${l}</button>`).join('')}<button type="button" class="pill" data-m="0" aria-pressed="${st.dur === 0}">自訂</button></div>
-    <div id="${id}-ce" ${st.dur === 0 ? '' : 'hidden'} style="margin-top:8px"><label for="${id}-ed" class="hint" style="display:block;margin:0 0 4px">結束時間</label>
-      <select class="inp" id="${id}-ed">${END_OPTS.map((t) => `<option ${t === st.customEnd ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-    <div class="big" id="${id}-big"></div></div>`;
-/* 過期時間：選今天時，開始時間只能是「現在之後」（15 分鐘一格，往後進位） */
-const ceil15 = (t) => m2hm(Math.ceil(tmin(t) / 15) * 15);
-const minStartFor = (date) => (date && date === todayStr() ? ceil15(nowHm()) : '');
-const pastMsg = (st) => { const m = minStartFor(st.date); if (!m || st.start >= m) return ''; return START_OPTS.some((t) => t >= m) ? '不能預約已過去的時間' : '今天已沒有可預約的時間，請改選其他日期'; };
-function refillStart(root, st, id) {
-  const m = minStartFor(st.date);
-  if (m && st.start < m) { const f = START_OPTS.find((t) => t >= m); if (f) st.start = f; }
-  $(`#${id}-st`, root).innerHTML = START_OPTS.filter((t) => !m || t >= m || t === st.start).map((t) => `<option ${t === st.start ? 'selected' : ''}>${t}</option>`).join('');
-  $(`#${id}-big`, root).textContent = timeValid(st) ? `${st.start} – ${endOf(st)}` : '';
-}
-const durMin = (st) => st.dur || (tmin(st.customEnd) - tmin(st.start));
-const endOf = (st) => m2hm(tmin(st.start) + durMin(st));
-const timeValid = (st) => { const d = durMin(st); return d > 0 && tmin(st.start) + d <= 24 * 60 - 1; };
-function bindDur(root, st, id, onChange) {
-  const sync = () => {
-    root.querySelectorAll(`#${id}-du .pill`).forEach((p) => p.setAttribute('aria-pressed', String(+p.dataset.m === st.dur)));
-    $(`#${id}-ce`, root).hidden = st.dur !== 0;
-    $(`#${id}-big`, root).textContent = timeValid(st) ? `${st.start} – ${endOf(st)}` : '';
-  };
-  $(`#${id}-st`, root).addEventListener('change', (e) => { st.start = e.target.value; sync(); onChange(); });
-  $(`#${id}-ed`, root).addEventListener('change', (e) => { st.customEnd = e.target.value; sync(); onChange(); });
-  $(`#${id}-du`, root).addEventListener('click', (e) => {
-    const p = e.target.closest('.pill'); if (!p) return;
-    const m = +p.dataset.m;
-    if (m === 0 && st.dur !== 0) { const e2 = timeValid(st) ? endOf(st) : ''; if (e2 && END_OPTS.includes(e2)) { st.customEnd = e2; $(`#${id}-ed`, root).value = e2; } }
-    st.dur = m; sync(); onChange();
-  });
-  sync();
-}
-
-/* ============ 新增預約 ============ */
-function openBooking(init, onBack) {
-  const today = todayStr();
-  const b = { title: '', space: init.spaceId || (state.spaces[0] && state.spaces[0].id) || '', date: init.date, start: init.start || '19:00', dur: init.dur ?? 120, customEnd: init.customEnd || '21:00',
-              repeat: false, weeks: 4, contact: state.name || '', org: '', phone: '', note: '', skip: false };
-  if (init.dur === undefined && init.durMin) { b.dur = DURS.some(([m]) => m === init.durMin) ? init.durMin : 0; if (b.dur === 0) b.customEnd = m2hm(tmin(b.start) + init.durMin); }
-  const s = sheet('新增預約', `
+    <div class="pills" id="${e}-du">${it.map(([s,a])=>`<button type="button" class="pill" data-m="${s}" aria-pressed="${t.dur===s}">${a}</button>`).join("")}<button type="button" class="pill" data-m="0" aria-pressed="${t.dur===0}">自訂</button></div>
+    <div id="${e}-ce" ${t.dur===0?"":"hidden"} style="margin-top:8px"><label for="${e}-ed" class="hint" style="display:block;margin:0 0 4px">結束時間</label>
+      <select class="inp" id="${e}-ed">${lt.map(s=>`<option ${s===t.customEnd?"selected":""}>${s}</option>`).join("")}</select></div>
+    <div class="big" id="${e}-big"></div></div>`,N=t=>{let e=Y(t.date);return!e||t.start>=e?"":j.some(s=>s>=e)?"不能預約已過去的時間":"今天已沒有可預約的時間，請改選其他日期"};function X(t,e,s){let a=Y(e.date);if(a&&e.start<a){let l=j.find(i=>i>=a);l&&(e.start=l)}h(`#${s}-st`,t).innerHTML=j.filter(l=>!a||l>=a||l===e.start).map(l=>`<option ${l===e.start?"selected":""}>${l}</option>`).join(""),h(`#${s}-big`,t).textContent=D(e)?`${e.start} – ${V(e)}`:""}var P=t=>t.dur||f(t.customEnd)-f(t.start),V=t=>S(f(t.start)+P(t)),D=t=>{let e=P(t);return e>0&&f(t.start)+e<=1439};function At(t,e,s,a){let l=()=>{t.querySelectorAll(`#${s}-du .pill`).forEach(i=>i.setAttribute("aria-pressed",String(+i.dataset.m===e.dur))),h(`#${s}-ce`,t).hidden=e.dur!==0,h(`#${s}-big`,t).textContent=D(e)?`${e.start} – ${V(e)}`:""};h(`#${s}-st`,t).addEventListener("change",i=>{e.start=i.target.value,l(),a()}),h(`#${s}-ed`,t).addEventListener("change",i=>{e.customEnd=i.target.value,l(),a()}),h(`#${s}-du`,t).addEventListener("click",i=>{let o=i.target.closest(".pill");if(!o)return;let p=+o.dataset.m;if(p===0&&e.dur!==0){let v=D(e)?V(e):"";v&&lt.includes(v)&&(e.customEnd=v,h(`#${s}-ed`,t).value=v)}e.dur=p,l(),a()}),l()}function et(t,e){let s=k(),a={title:"",space:t.spaceId||n.spaces[0]&&n.spaces[0].id||"",date:t.date,start:t.start||"19:00",dur:t.dur??120,customEnd:t.customEnd||"21:00",repeat:!1,weeks:4,contact:n.name||"",org:"",phone:"",note:"",skip:!1};t.dur===void 0&&t.durMin&&(a.dur=it.some(([r])=>r===t.durMin)?t.durMin:0,a.dur===0&&(a.customEnd=S(f(a.start)+t.durMin)));let l=ut("新增預約",`
     <form id="bf" novalidate>
       <div class="f"><label for="bt">活動名稱 <span class="req">*</span></label><input id="bt" class="inp" maxlength="200" placeholder="例如：小組聚會、敬拜團練" data-first></div>
-      <div class="f"><label for="bs">場地 <span class="req">*</span></label><select id="bs" class="inp">${state.spaces.map((x) => `<option value="${x.id}" ${x.id === b.space ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select></div>
-      <div class="f"><label for="bd">日期 <span class="req">*</span></label><input id="bd" class="inp" type="date" min="${today}" value="${b.date}"></div>
-      ${durHtml(b, 'b')}
+      <div class="f"><label for="bs">場地 <span class="req">*</span></label><select id="bs" class="inp">${n.spaces.map(r=>`<option value="${r.id}" ${r.id===a.space?"selected":""}>${M(r.name)}</option>`).join("")}</select></div>
+      <div class="f"><label for="bd">日期 <span class="req">*</span></label><input id="bd" class="inp" type="date" min="${s}" value="${a.date}"></div>
+      ${Dt(a,"b")}
       <div class="tl" id="bav" aria-live="polite"></div>
-      <div class="f" style="margin-top:14px"><label for="bc">聯絡人 <span class="req">*</span></label><input id="bc" class="inp" maxlength="50" value="${esc(b.contact)}"></div>
+      <div class="f" style="margin-top:14px"><label for="bc">聯絡人 <span class="req">*</span></label><input id="bc" class="inp" maxlength="50" value="${M(a.contact)}"></div>
       <details><summary>更多資訊</summary><div>
         <div class="f"><label for="bo">借用單位</label><input id="bo" class="inp" maxlength="100"></div>
         <div class="f"><label for="bp">聯絡電話</label><input id="bp" class="inp" type="tel" inputmode="tel" maxlength="30"></div>
@@ -654,194 +358,21 @@ function openBooking(init, onBack) {
       </div></details>
       <p class="wait">申請要審核，請耐心等候</p>
       <div class="err" id="ber" role="alert"></div>
-    </form>`,
-    `<button type="button" class="btn" data-close>取消</button><button type="submit" form="bf" class="btn primary" id="bsub">送出申請</button>`);
-  const r = s.el, g = (id) => $(id, r);
-  let saved = false, token = 0;
-  s.onClose = () => { if (!saved && onBack) onBack(); };
-  setTimeout(() => { const f = r.querySelector('[data-first]'); if (f) f.focus(); }, 50);
-
-  const dates = () => [b.date];
-  const clash = (d) => eventsOn(d).filter((e) => e.space_id === b.space && tmin(e.start_time) < tmin(b.start) + durMin(b) && tmin(e.end_time) > tmin(b.start));
-  const errors = () => {
-    if (!b.title.trim()) return '請填寫活動名稱';
-    if (!b.date) return '請選擇日期';
-    if (b.date < today) return '不能預約過去的日期';
-    if (pastMsg(b)) return pastMsg(b);
-    if (!timeValid(b)) return '結束時間要晚於開始時間，且不能超過 23:59';
-    if (!b.contact.trim()) return '請填寫聯絡人';
-    return '';
-  };
-  async function refresh() {
-    const my = ++token;
-    const ds = b.date && b.date >= today ? dates() : [];
-    try { await ensureDates(ds); } catch (e) { /* 伺服器送出時還會再檢查一次 */ }
-    if (my !== token || s.closed) return;
-    const av = g('#bav');
-    if (!ds.length) { av.innerHTML = ''; g('#bsub').disabled = false; return; }
-    const day = eventsOn(b.date).filter((e) => e.space_id === b.space);
-    const ok = !timeValid(b) || clash(b.date).length === 0;
-    const pos = (m) => Math.min(100, Math.max(0, (m - 480) / 900 * 100));
-    const seg = (a, z) => `left:${pos(a)}%;width:${Math.max(0, pos(z) - pos(a))}%`;
-    av.innerHTML = `<div class="tl-bar">${day.map((e) => `<i style="${seg(tmin(e.start_time), tmin(e.end_time))}"></i>`).join('')}${timeValid(b) ? `<b class="${ok ? '' : 'bad'}" style="${seg(tmin(b.start), tmin(b.start) + durMin(b))}"></b>` : ''}</div>
-      <div class="tl-ax">${[8, 11, 14, 17, 20, 23].map((h) => `<span style="left:${pos(h * 60)}%">${pad(h)}</span>`).join('')}</div>
-      <div class="tl-lg"><span><i></i>已預約</span>${timeValid(b) ? `<span class="${ok ? 'ok' : 'no'}">${ok ? '可預約' : '不可預約'}</span>` : ''}</div>
-      ${ok ? '' : `<div class="tl-why">${clash(b.date).map((e) => `${hm(e.start_time)}–${hm(e.end_time)}`).join('、')}</div>`}`;
-    g('#bsub').disabled = !ok || !!pastMsg(b);
-  }
-  const upd = () => { g('#ber').textContent = pastMsg(b); refresh(); };
-  bindDur(r, b, 'b', upd);
-  refillStart(r, b, 'b');
-  g('#bt').addEventListener('input', (e) => { b.title = e.target.value; });
-  g('#bs').addEventListener('change', (e) => { b.space = e.target.value; upd(); });
-  g('#bd').addEventListener('change', (e) => { b.date = e.target.value; refillStart(r, b, 'b'); upd(); });
-  g('#bc').addEventListener('input', (e) => { b.contact = e.target.value; });
-  refresh();
-
-  g('#bf').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    b.org = g('#bo').value; b.phone = g('#bp').value; b.note = g('#bn').value;
-    const er = errors(); if (er) { g('#ber').textContent = er; return; }
-    const btn = g('#bsub'); btn.disabled = true; btn.textContent = '送出中…';
-    const ds = dates();
-    const { data, error } = await supabase.rpc('venue_submit_request', {
-      p_space_id: b.space, p_title: b.title.trim(), p_dates: ds, p_start_time: b.start, p_end_time: endOf(b),
-      p_org_unit: b.org.trim() || null, p_contact_name: b.contact.trim(), p_contact_phone: b.phone.trim() || null, p_note: b.note.trim() || null,
-      p_skip_conflicts: false,
-    });
-    btn.textContent = '送出申請';
-    if (error) {
-      btn.disabled = false;
-      if (error.code === '42501' || /請先登入/.test(error.message || '')) { s.close(); needLogin(() => openBooking(init, onBack)); return; }
-      g('#ber').textContent = error.message || '送出失敗，請稍後再試';
-      cache.clear(); refresh();
-      return;
-    }
-    saved = true; s.close();
-    const n = data && data.created || 1, sk = (data && data.skipped || []).length;
-    toast((data && data.status === 'approved' ? `已預約成功（共 ${n} 場）` : `申請送出 （共 ${n} 場），耐心等候`) + (sk ? `；略過 ${sk} 場衝突` : ''));
-    cache.clear(); state.view = 'month'; await select(ds[0]);
-  });
-}
-
-/* ============ 快速找場地 ============ */
-const LUNCH_FROM = 12 * 60, LUNCH_TO = 13 * 60;
-function alternatives(busy, want, dur, minMin = 0) {
-  let c = [];
-  for (let s = Math.max(8 * 60, minMin); s + dur <= 23 * 60; s += 15) if (busy.every((e) => !(tmin(e.start_time) < s + dur && tmin(e.end_time) > s))) c.push(s);
-  const nl = c.filter((s) => !(s < LUNCH_TO && s + dur > LUNCH_FROM));   // 盡量避開中午 12:00–13:00
-  if (nl.length) c = nl;
-  c.sort((a, b) => Math.abs(a - want) - Math.abs(b - want) || a - b);
-  const out = [];
-  for (const x of c) { if (out.every((o) => Math.abs(o - x) >= 45)) out.push(x); if (out.length >= 3) break; }
-  return out.sort((a, b) => a - b);
-}
-function openFind(prev) {
-  const today = todayStr();
-  const nh = parseInt(nowHm().slice(0, 2), 10);
-  const f = prev || { date: state.sel >= today ? state.sel : today, start: (state.sel === today || state.sel < today) ? `${pad(Math.min(22, Math.max(8, nh + 1)))}:00` : '19:00', dur: 120, customEnd: '21:00', sel: null };
-  const s = sheet('快速找場地', `
-    <div class="f"><label for="qd">日期</label><input id="qd" class="inp" type="date" min="${today}" value="${f.date}"></div>
-    ${durHtml(f, 'q')}
+    </form>`,'<button type="button" class="btn" data-close>取消</button><button type="submit" form="bf" class="btn primary" id="bsub">送出申請</button>'),i=l.el,o=r=>h(r,i),p=!1,v=0;l.onClose=()=>{!p&&e&&e()},setTimeout(()=>{let r=i.querySelector("[data-first]");r&&r.focus()},50);let u=()=>[a.date],d=r=>ct(r).filter($=>$.space_id===a.space&&f($.start_time)<f(a.start)+P(a)&&f($.end_time)>f(a.start)),m=()=>a.title.trim()?a.date?a.date<s?"不能預約過去的日期":N(a)?N(a):D(a)?a.contact.trim()?"":"請填寫聯絡人":"結束時間要晚於開始時間，且不能超過 23:59":"請選擇日期":"請填寫活動名稱";async function w(){let r=++v,$=a.date&&a.date>=s?u():[];try{await Et($)}catch{}if(r!==v||l.closed)return;let x=o("#bav");if(!$.length){x.innerHTML="",o("#bsub").disabled=!1;return}let I=ct(a.date).filter(c=>c.space_id===a.space),_=!D(a)||d(a.date).length===0,T=c=>Math.min(100,Math.max(0,(c-480)/900*100)),H=(c,y)=>`left:${T(c)}%;width:${Math.max(0,T(y)-T(c))}%`;x.innerHTML=`<div class="tl-bar">${I.map(c=>`<i style="${H(f(c.start_time),f(c.end_time))}"></i>`).join("")}${D(a)?`<b class="${_?"":"bad"}" style="${H(f(a.start),f(a.start)+P(a))}"></b>`:""}</div>
+      <div class="tl-ax">${[8,11,14,17,20,23].map(c=>`<span style="left:${T(c*60)}%">${Tt(c)}</span>`).join("")}</div>
+      <div class="tl-lg"><span><i></i>已預約</span>${D(a)?`<span class="${_?"ok":"no"}">${_?"可預約":"不可預約"}</span>`:""}</div>
+      ${_?"":`<div class="tl-why">${d(a.date).map(c=>`${E(c.start_time)}–${E(c.end_time)}`).join("、")}</div>`}`,o("#bsub").disabled=!_||!!N(a)}let b=()=>{o("#ber").textContent=N(a),w()};At(i,a,"b",b),X(i,a,"b"),o("#bt").addEventListener("input",r=>{a.title=r.target.value}),o("#bs").addEventListener("change",r=>{a.space=r.target.value,b()}),o("#bd").addEventListener("change",r=>{a.date=r.target.value,X(i,a,"b"),b()}),o("#bc").addEventListener("input",r=>{a.contact=r.target.value}),w(),o("#bf").addEventListener("submit",async r=>{r.preventDefault(),a.org=o("#bo").value,a.phone=o("#bp").value,a.note=o("#bn").value;let $=m();if($){o("#ber").textContent=$;return}let x=o("#bsub");x.disabled=!0,x.textContent="送出中…";let I=u(),{data:_,error:T}=await L.rpc("venue_submit_request",{p_space_id:a.space,p_title:a.title.trim(),p_dates:I,p_start_time:a.start,p_end_time:V(a),p_org_unit:a.org.trim()||null,p_contact_name:a.contact.trim(),p_contact_phone:a.phone.trim()||null,p_note:a.note.trim()||null,p_skip_conflicts:!1});if(x.textContent="送出申請",T){if(x.disabled=!1,T.code==="42501"||/請先登入/.test(T.message||"")){l.close(),R(()=>et(t,e));return}o("#ber").textContent=T.message||"送出失敗，請稍後再試",A.clear(),w();return}p=!0,l.close();let H=_&&_.created||1,c=(_&&_.skipped||[]).length;Kt((_&&_.status==="approved"?`已預約成功（共 ${H} 場）`:`申請送出 （共 ${H} 場），耐心等候`)+(c?`；略過 ${c} 場衝突`:"")),A.clear(),n.view="month",await U(I[0])})}function mt(t){let e=k(),s=parseInt(nt().slice(0,2),10),a=t||{date:n.sel>=e?n.sel:e,start:n.sel===e||n.sel<e?`${Tt(Math.min(22,Math.max(8,s+1)))}:00`:"19:00",dur:120,customEnd:"21:00",sel:null},l=ut("快速找場地",`
+    <div class="f"><label for="qd">日期</label><input id="qd" class="inp" type="date" min="${e}" value="${a.date}"></div>
+    ${Dt(a,"q")}
     <div class="f"><span class="lb">場地</span>
       <button type="button" class="inp selbtn" id="qsb" aria-expanded="false"></button>
       <div class="sp-panel" id="qsp" hidden></div></div>
-    <div id="qres" aria-live="polite"></div>`, '');
-  const r = s.el, g = (id) => $(id, r);
-  let token = 0;
-  const active = state.spaces;
-  const allOn = () => !f.sel || active.every((x) => f.sel.has(x.id));
-  const label = () => (allOn() ? '全部場地' : !f.sel || f.sel.size === 0 ? '未選場地' : `${f.sel.size} 個場地`);
-  const drawSp = () => {
-    g('#qsb').textContent = label();
-    g('#qsp').innerHTML = `<div class="h"><span><button type="button" data-all="1">全選</button><button type="button" data-all="0">取消</button></span></div>` +
-      active.map((x) => `<label style="--c:${colorOf(x.id)}"><input type="checkbox" data-sp="${x.id}" ${!f.sel || f.sel.has(x.id) ? 'checked' : ''}><i></i>${esc(x.name)}</label>`).join('');
-  };
-  async function run() {
-    const my = ++token, res = g('#qres');
-    if (!f.date || f.date < today) { res.innerHTML = `<div class="err">${f.date ? '不能預約過去的日期' : '請選擇日期'}</div>`; return; }
-    if (pastMsg(f)) { res.innerHTML = `<div class="err">${pastMsg(f)}</div>`; return; }
-    if (!timeValid(f)) { res.innerHTML = '<div class="err">結束時間要晚於開始時間，且不能超過 23:59</div>'; return; }
-    res.innerHTML = '<div class="qsum">查詢中…</div>';
-    try { await ensureDates([f.date]); } catch (e) { res.innerHTML = '<div class="err">暫時無法讀取預約，請稍後再試</div>'; return; }
-    if (my !== token || s.closed) return;
-    const st = tmin(f.start), dur = durMin(f), en = st + dur, day = eventsOn(f.date);
-    const rows = active.filter((x) => !f.sel || f.sel.has(x.id)).map((x) => {
-      const mine = day.filter((e) => e.space_id === x.id);
-      const cl = mine.filter((e) => tmin(e.start_time) < en && tmin(e.end_time) > st);
-      return { x, mine, cl, free: !cl.length, alts: cl.length ? alternatives(mine, st, dur, minStartFor(f.date) ? tmin(minStartFor(f.date)) : 0) : [] };
-    }).sort((a, b) => (b.free - a.free) || a.x.name.localeCompare(b.x.name, 'zh-TW'));
-    const n = rows.filter((q) => q.free).length;
-    res.innerHTML = `<div class="qsum">${rows.length ? `<b>${mdw(f.date)} ${f.start}–${endOf(f)}</b>　${n ? '' : '無可用場地'}` : '沒有符合的場地'}</div>` +
-      rows.map((q) => `<div class="qr ${q.free ? '' : 'busy'}" style="--c:${colorOf(q.x.id)}"><div style="min-width:0"><b>${esc(q.x.name)}</b>${q.free
-        ? `<span class="ok">可預約</span>${q.mine.length ? `<div class="no" style="color:var(--sub)">不可預約：${q.mine.map((e) => `${hm(e.start_time)}–${hm(e.end_time)}`).join('、')}</div>` : ''}`
-        : `<span class="no">不可預約：${q.cl.map((e) => `${hm(e.start_time)}–${hm(e.end_time)}`).join('、')}</span>${q.alts.length ? `<div class="alts"><span>推薦時間</span>${q.alts.map((a) => `<button type="button" class="pill good" data-pick="${q.x.id}" data-s="${m2hm(a)}">${m2hm(a)}–${m2hm(a + dur)}</button>`).join('')}</div>` : ''}`}</div>
-        ${q.free ? `<button type="button" class="btn primary" style="flex:none;padding:0 14px;height:34px" data-pick="${q.x.id}" data-s="${f.start}">預約</button>` : ''}</div>`).join('');
-  }
-  drawSp();
-  bindDur(r, f, 'q', run);
-  refillStart(r, f, 'q');
-  g('#qd').addEventListener('change', (e) => { f.date = e.target.value; refillStart(r, f, 'q'); run(); });
-  g('#qsb').addEventListener('click', () => { const p = g('#qsp'); p.hidden = !p.hidden; g('#qsb').setAttribute('aria-expanded', String(!p.hidden)); });
-  g('#qsp').addEventListener('click', (e) => {
-    const a = e.target.closest('[data-all]'); if (!a) return;
-    f.sel = a.dataset.all === '1' ? null : new Set(); drawSp(); run();
-  });
-  g('#qsp').addEventListener('change', (e) => {
-    const c = e.target.closest('[data-sp]'); if (!c) return;
-    const n = new Set(f.sel || active.map((x) => x.id)); if (c.checked) n.add(c.dataset.sp); else n.delete(c.dataset.sp);
-    f.sel = active.every((x) => n.has(x.id)) ? null : n; g('#qsb').textContent = label(); run();
-  });
-  g('#qres').addEventListener('click', (e) => {
-    const p = e.target.closest('[data-pick]'); if (!p) return;
-    const pick = { spaceId: p.dataset.pick, start: p.dataset.s };
-    const go = () => openBooking({ date: f.date, spaceId: pick.spaceId, start: pick.start, dur: f.dur, customEnd: f.customEnd, durMin: f.dur ? undefined : durMin(f) },
-                                 () => openFind({ ...f }));   // 預約視窗按關閉，就回到這裡可以直接選別的場地
-    s.onClose = null; s.close();
-    needLogin(go);
-  });
-  run();
-}
+    <div id="qres" aria-live="polite"></div>`,""),i=l.el,o=b=>h(b,i),p=0,v=n.spaces,u=()=>!a.sel||v.every(b=>a.sel.has(b.id)),d=()=>u()?"全部場地":!a.sel||a.sel.size===0?"未選場地":`${a.sel.size} 個場地`,m=()=>{o("#qsb").textContent=d(),o("#qsp").innerHTML='<div class="h"><span><button type="button" data-all="1">全選</button><button type="button" data-all="0">取消</button></span></div>'+v.map(b=>`<label style="--c:${rt(b.id)}"><input type="checkbox" data-sp="${b.id}" ${!a.sel||a.sel.has(b.id)?"checked":""}><i></i>${M(b.name)}</label>`).join("")};async function w(){let b=++p,r=o("#qres");if(!a.date||a.date<e){r.innerHTML=`<div class="err">${a.date?"不能預約過去的日期":"請選擇日期"}</div>`;return}if(N(a)){r.innerHTML=`<div class="err">${N(a)}</div>`;return}if(!D(a)){r.innerHTML='<div class="err">結束時間要晚於開始時間，且不能超過 23:59</div>';return}r.innerHTML='<div class="qsum">查詢中…</div>';try{await Et([a.date])}catch{r.innerHTML='<div class="err">暫時無法讀取預約，請稍後再試</div>';return}if(b!==p||l.closed)return;let $=f(a.start),x=P(a),I=$+x,_=ct(a.date),T=v.filter(c=>!a.sel||a.sel.has(c.id)).map(c=>{let y=_.filter(W=>W.space_id===c.id),at=y.filter(W=>f(W.start_time)<I&&f(W.end_time)>$);return{x:c,mine:y,cl:at,free:!at.length,alts:at.length?yt(y,$,x,Y(a.date)?f(Y(a.date)):0):[]}}).sort((c,y)=>y.free-c.free||c.x.name.localeCompare(y.x.name,"zh-TW")),H=T.filter(c=>c.free).length;r.innerHTML=`<div class="qsum">${T.length?`<b>${kt(a.date)} ${a.start}–${V(a)}</b>　${H?"":"無可用場地"}`:"沒有符合的場地"}</div>`+T.map(c=>`<div class="qr ${c.free?"":"busy"}" style="--c:${rt(c.x.id)}"><div style="min-width:0"><b>${M(c.x.name)}</b>${c.free?`<span class="ok">可預約</span>${c.mine.length?`<div class="no" style="color:var(--sub)">不可預約：${c.mine.map(y=>`${E(y.start_time)}–${E(y.end_time)}`).join("、")}</div>`:""}`:`<span class="no">不可預約：${c.cl.map(y=>`${E(y.start_time)}–${E(y.end_time)}`).join("、")}</span>${c.alts.length?`<div class="alts"><span>推薦時間</span>${c.alts.map(y=>`<button type="button" class="pill good" data-pick="${c.x.id}" data-s="${S(y)}">${S(y)}–${S(y+x)}</button>`).join("")}</div>`:""}`}</div>
+        ${c.free?`<button type="button" class="btn primary" style="flex:none;padding:0 14px;height:34px" data-pick="${c.x.id}" data-s="${a.start}">預約</button>`:""}</div>`).join("")}m(),At(i,a,"q",w),X(i,a,"q"),o("#qd").addEventListener("change",b=>{a.date=b.target.value,X(i,a,"q"),w()}),o("#qsb").addEventListener("click",()=>{let b=o("#qsp");b.hidden=!b.hidden,o("#qsb").setAttribute("aria-expanded",String(!b.hidden))}),o("#qsp").addEventListener("click",b=>{let r=b.target.closest("[data-all]");r&&(a.sel=r.dataset.all==="1"?null:new Set,m(),w())}),o("#qsp").addEventListener("change",b=>{let r=b.target.closest("[data-sp]");if(!r)return;let $=new Set(a.sel||v.map(x=>x.id));r.checked?$.add(r.dataset.sp):$.delete(r.dataset.sp),a.sel=v.every(x=>$.has(x.id))?null:$,o("#qsb").textContent=d(),w()}),o("#qres").addEventListener("click",b=>{let r=b.target.closest("[data-pick]");if(!r)return;let $={spaceId:r.dataset.pick,start:r.dataset.s},x=()=>et({date:a.date,spaceId:$.spaceId,start:$.start,dur:a.dur,customEnd:a.customEnd,durMin:a.dur?void 0:P(a)},()=>mt({...a}));l.onClose=null,l.close(),R(x)}),w()}var Jt={pending:"待審查",approved:"已核准",rejected:"已退回"};function Ht(){let t=ut("我的預約",'<div class="skeleton">載入中…</div>',""),e=null,s="all",a=t.el.querySelector(".sh-body"),l=()=>{let i=new Map;for(let u of e){let d=u.series_id||u.id;i.has(d)||i.set(d,[]),i.get(d).push(u)}let o=[...i.values()].map(u=>u.sort((d,m)=>d.booking_date.localeCompare(m.booking_date)||d.start_time.localeCompare(m.start_time))).sort((u,d)=>d[0].created_at.localeCompare(u[0].created_at)),p=o.filter(u=>s==="all"||u[0].status===s),v=u=>o.filter(d=>u==="all"||d[0].status===u).length;a.innerHTML=`<div class="tab" role="tablist">${[["all","全部"],["pending","待審查"],["approved","已核准"],["rejected","已退回"]].map(([u,d])=>`<button class="pill" role="tab" data-cat="${u}" aria-pressed="${s===u}">${d}</button>`).join("")}</div>`+(p.length?p.map(u=>{let d=u[0];return`<article class="mine"><div class="mine-top"><b>${M(d.title)}</b><span class="tag ${M(d.status)}">${M(Jt[d.status]||d.status)}</span></div>
+        <div class="m">${M(d.space_name)}　${E(d.start_time)} – ${E(d.end_time)}</div>
+        <div class="dates">${u.map(m=>`<span class="dchip">${kt(m.booking_date)}</span>`).join("")}</div>
+        ${d.status==="rejected"?`<div class="why"><small>退回原因</small>${M(d.review_note||"（沒有填寫）")}</div>`:""}</article>`}).join(""):'<div class="empty">預約全數過關</div>')};a.addEventListener("click",i=>{let o=i.target.closest("[data-cat]");o&&e&&(s=o.dataset.cat,l())}),L.rpc("venue_my_requests").then(({data:i,error:o})=>{if(!t.closed){if(o){a.innerHTML='<div class="err">暫時無法讀取，請稍後再試</div>';return}e=i||[],l()}})}document.addEventListener("keydown",t=>{t.key==="Escape"&&n.menu&&(n.menu=!1,Q())});document.addEventListener("visibilitychange",()=>{document.visibilityState==="visible"&&ot&&Date.now()-ot>6e4&&Lt()});(async()=>{C(),L.auth.onAuthStateChange((t,e)=>{wt(e)}),L.auth.getSession().then(({data:t})=>wt(t.session));try{await zt()}catch(t){console.error(t),n.err="暫時無法讀取場地，請稍後再試"}try{await tt(n.month)}catch(t){console.error(t),n.err="暫時無法讀取預約，請稍後再試"}n.loading=!1,C()})();
 
-/* ============ 我的預約 ============ */
-const ST = { pending: '待審查', approved: '已核准', rejected: '已退回' };
-function openMine() {
-  const s = sheet('我的預約', '<div class="skeleton">載入中…</div>', '');
-  let rows = null, cat = 'all';
-  const body = s.el.querySelector('.sh-body');
-  const draw = () => {
-    const gs = new Map();
-    for (const r of rows) { const k = r.series_id || r.id; if (!gs.has(k)) gs.set(k, []); gs.get(k).push(r); }
-    const list = [...gs.values()].map((it) => it.sort((a, b) => a.booking_date.localeCompare(b.booking_date) || a.start_time.localeCompare(b.start_time)))
-      .sort((a, b) => b[0].created_at.localeCompare(a[0].created_at));
-    const shown = list.filter((it) => cat === 'all' || it[0].status === cat);
-    const cnt = (c) => list.filter((it) => c === 'all' || it[0].status === c).length;
-    body.innerHTML = `<div class="tab" role="tablist">${[['all', '全部'], ['pending', '待審查'], ['approved', '已核准'], ['rejected', '已退回']].map(([k, l]) => `<button class="pill" role="tab" data-cat="${k}" aria-pressed="${cat === k}">${l}</button>`).join('')}</div>` +
-      (shown.length ? shown.map((it) => { const f = it[0]; return `<article class="mine"><div class="mine-top"><b>${esc(f.title)}</b><span class="tag ${esc(f.status)}">${esc(ST[f.status] || f.status)}</span></div>
-        <div class="m">${esc(f.space_name)}　${hm(f.start_time)} – ${hm(f.end_time)}</div>
-        <div class="dates">${it.map((x) => `<span class="dchip">${mdw(x.booking_date)}</span>`).join('')}</div>
-        ${f.status === 'rejected' ? `<div class="why"><small>退回原因</small>${esc(f.review_note || '（沒有填寫）')}</div>` : ''}</article>`; }).join('')
-        : '<div class="empty">預約全數過關</div>');
-  };
-  body.addEventListener('click', (e) => { const p = e.target.closest('[data-cat]'); if (p && rows) { cat = p.dataset.cat; draw(); } });
-  supabase.rpc('venue_my_requests').then(({ data, error }) => {
-    if (s.closed) return;
-    if (error) { body.innerHTML = '<div class="err">暫時無法讀取，請稍後再試</div>'; return; }
-    rows = data || []; draw();
-  });
-}
-
-/* ============ 啟動 ============ */
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.menu) { state.menu = false; renderTop(); } });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && lastLoad && Date.now() - lastLoad > 60000) reload(); });
-(async () => {
-  render();
-  supabase.auth.onAuthStateChange((_e, s) => { onSession(s); });
-  supabase.auth.getSession().then(({ data }) => onSession(data.session));
-  try { await loadSpaces(); } catch (e) { console.error(e); state.err = '暫時無法讀取場地，請稍後再試'; }
-  try { await loadMonth(state.month); } catch (e) { console.error(e); state.err = '暫時無法讀取預約，請稍後再試'; }
-  state.loading = false; render();
-})();
 </script>
 </body>
 </html>
