@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- TBC ONE TBC Together — 由原始碼打包（src/center/index），勿手動修改 -->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -8,64 +9,110 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="../management/tbc-config.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = { theme: { extend: {
-                    colors: {
-                        indigo: {50: '#f7eefc', 100: '#eddaf8', 200: '#d9afef', 300: '#c17ee6', 400: '#a747db', 500: '#941fd3', 600: '#8806ce', 700: '#7205ad', 800: '#5c048c', 900: '#49036f'},
-                        emerald: {50: '#f6faf5', 100: '#ecf4ea', 200: '#d7e8d3', 300: '#bddab8', 400: '#a2ca9a', 500: '#8ebe84', 600: '#81b776', 700: '#6c9a63', 800: '#587c50', 900: '#466340'},
-                    },
-  } } }
-</script>
 <style>
-  /* 色彩依 DESIGN.md：白底畫布 #fff、淺灰帶 #f7f9fa、近黑墨色 #262626、次要灰 #595959；主色維持紫色 #8806ce */
+  /* TBC 會友端共用樣式：色彩、深色模式、字體大小、基本重設（全站只有這一份，改這裡所有會友端頁面一起更新） */
   :root{
   --btn:#334155; --btn-hover:#1e293b; --btn-press:#0f172a; --on-btn:#ffffff;
- --bg:#ffffff; --card:#f7f9fa; --text:#262626; --sub:#595959; --border:#e8e8e8; --primary:#8806ce; --primary-hover:#7205ad; --primary-tint:#f7eefc; --primary-ink:#5c048c; }
+ --bg:#ffffff; --card:#f7f9fa; --text:#262626; --sub:#595959; --mute:#8c8c8c; --border:#e8e8e8;
+         --primary:#8806ce; --primary-hover:#7205ad; --primary-tint:#f7eefc; --primary-ink:#5c048c;
+         --good:#8806ce; --adhoc:#f5f5f0; --busy:#c9c9c9; --bad:#d4380d; --bad-bg:#fff1f0; --green:#1f7a45; --green-bg:#e8f6ee; }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
   --btn:#f1f5f9; --btn-hover:#e2e8f0; --btn-press:#cbd5e1; --on-btn:#0b1120;
- --bg:#0b1120; --card:#1e293b; --text:#f1f5f9; --sub:#94a3b8; --border:#334155; --primary-tint:#3a1a4d; --primary-ink:#e6c9f6; }
+ --bg:#0b1120; --card:#1e293b; --text:#f1f5f9; --sub:#94a3b8; --mute:#64748b; --border:#334155;
+      --adhoc:#33361a; --busy:#475569; --primary-tint:#3a1a4d; --primary-ink:#e6c9f6; --good:#d9afef; --bad:#ff7a45; --bad-bg:#3a1d17; --green:#6fd09a; --green-bg:#14301f; }
   }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{ background:var(--bg); color:var(--text); font-family:'Open Sans','Noto Sans TC',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+        font-size:var(--fs,15px); letter-spacing:0; -webkit-tap-highlight-color:transparent;
+        padding-bottom:env(safe-area-inset-bottom,0px); }
+  button{ font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; }
+  button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+  input,select,textarea{ font:inherit; font-size:16px; color:var(--text); }
+  svg{ display:block; flex:none; }
+  .sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  :root{ --fs:15px; --hov:#f4f4f5; --hov-soft:#fafafa; --menu-ink:#52525b; --menu-ink-hi:#18181b; --menu-line:#f4f4f5; }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --btn:#f1f5f9; --btn-hover:#e2e8f0; --btn-press:#cbd5e1; --on-btn:#0b1120;
+ --hov:#334155; --hov-soft:#273449; --menu-ink:#94a3b8; --menu-ink-hi:#f1f5f9; --menu-line:#334155; } }
+
+
+  /* ===== 首頁版面（原本用 Tailwind 即時編譯，現在改成一般樣式；尺寸與舊版一致）===== */
   :root[data-theme="dark"]{
   --btn:#f1f5f9; --btn-hover:#e2e8f0; --btn-press:#cbd5e1; --on-btn:#0b1120;
- --bg:#0b1120; --card:#1e293b; --text:#f1f5f9; --sub:#94a3b8; --border:#334155; --primary-tint:#3a1a4d; --primary-ink:#e6c9f6; }
+  --bg:#0b1120; --card:#1e293b; --text:#f1f5f9; --sub:#94a3b8; --border:#334155; --primary-tint:#3a1a4d; --primary-ink:#e6c9f6; }
+  html{ line-height:1.5; -webkit-text-size-adjust:100%; }
   html,body{ height:100%; }
-  /* 字體：英文與數字用 Open Sans，中文自動退回 Noto Sans TC。字距預設為 0，所以中文維持正常 */
+  h1,h2,p{ margin:0; }
+  h1,h2{ font-size:inherit; font-weight:inherit; }
+  a{ color:inherit; text-decoration:none; }
+  .hidden{ display:none !important; }
   body{
-    background:var(--bg); color:var(--text);
-    font-family:'Open Sans', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-weight:400;
-    letter-spacing:0;
-    padding-top:env(safe-area-inset-top,0px);
-    padding-bottom:env(safe-area-inset-bottom,0px);
+    min-height:100dvh; display:flex; flex-direction:column; align-items:center;
+    padding:40px 24px 40px; font-weight:400; letter-spacing:0;
   }
+  @media (min-width:640px){ body{ padding-top:80px; } }
+  main{ width:100%; max-width:48rem; }
   .sub{ color:var(--sub); }
   /* 只有英文與數字才縮字距（DESIGN.md 的 -0.03em），中文不套用 */
   .latin-tight{ letter-spacing:-0.03em; }
+
+  /* 標題與標語 */
+  .hero{ text-align:center; margin-bottom:3rem; }
   .brand{ display:inline-block; max-width:100%; }
-  .tagline{ width:0; min-width:100%; white-space:nowrap; font-size:.9375rem; text-align:center; letter-spacing:0; }
+  .brand h1{ font-size:2.25rem; font-weight:700; line-height:1.08; }
+  @media (min-width:640px){ .brand h1{ font-size:3rem; } }
+  .tagline{ width:0; min-width:100%; white-space:nowrap; font-size:.9375rem; text-align:center; letter-spacing:0; margin-top:.75rem; font-weight:400; }
   @media (min-width:640px){ .tagline{ font-size:1.0625rem; } }
-  /* 按鈕：全部是膠囊形。主要＝紫色實心，不加陰影 */
+
+  /* 按鈕：全部是膠囊形。主要＝深色實心，不加陰影 */
   .btn-pill{ display:inline-flex; align-items:center; justify-content:center; gap:.25rem; height:40px; padding:0 16px; border-radius:9999px; font-size:.875rem; font-weight:400; letter-spacing:0; transition:background-color .15s ease; }
   .btn-primary{ background:var(--btn); color:var(--on-btn); }
   .btn-primary:hover{ background:var(--btn-hover); }
   .btn-primary:active{ background:var(--btn-press); }
   .btn-pill:focus-visible{ outline:2px solid var(--primary); outline-offset:3px; }
-  .entry-icon{ color:#8806ce; transition: transform .2s ease; }
-  .entry:hover .entry-icon, .entry:focus-visible .entry-icon{ transform: translateY(-3px); }
-  .entry:active .entry-icon{ transform: scale(.92); }
-  .entry:focus-visible{ outline: 2px solid #8806ce; outline-offset: 4px; border-radius: .75rem; }
+
+  /* 入口圖示：每排三個；新增頁面時由登記表（src/center/registry.js）自動長出來，超過三個會自動換排 */
+  .entries{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); column-gap:.5rem; row-gap:1.25rem; max-width:24rem; margin-left:auto; margin-right:auto; }
+  @media (min-width:640px){ .entries{ column-gap:1.5rem; max-width:28rem; } }
+  .entry{ display:flex; flex-direction:column; align-items:center; gap:.5rem; min-width:0; }
+  .entry-icon{ width:2.25rem; height:2.25rem; color:#8806ce; transition:transform .2s ease; }
+  @media (min-width:640px){ .entry-icon{ width:2.5rem; height:2.5rem; } }
+  .entry-name{ font-size:.875rem; line-height:1.25rem; font-weight:500; text-align:center; white-space:nowrap; }
+  @media (min-width:640px){ .entry-name{ font-size:1rem; line-height:1.5rem; } }
+  .entry:hover .entry-icon, .entry:focus-visible .entry-icon{ transform:translateY(-3px); }
+  .entry:active .entry-icon{ transform:scale(.92); }
+  .entry:focus-visible{ outline:2px solid #8806ce; outline-offset:4px; border-radius:.75rem; }
   @media (prefers-reduced-motion: reduce){ .entry-icon{ transition:none; } }
 
   /* ===== 守望花園 ===== */
+  #garden{ margin-top:3.5rem; }
+  @media (min-width:640px){ #garden{ margin-top:4rem; } }
+  .garden-head{ text-align:center; margin-bottom:1.25rem; }
+  .garden-head p{ margin-top:.5rem; font-size:1rem; line-height:1.5rem; font-weight:400; }
   /* 卡片：8px 圓角、1px 細框、不加陰影（DESIGN.md：Flat + Outlined） */
-  .garden-card{ background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:none; }
-  .garden-track{ background:rgba(100,116,139,.20); }
-  .garden-fill{ background:var(--primary); transition:width .8s ease; }
-  .garden-glow{ background:radial-gradient(closest-side, rgba(193,126,230,.28), rgba(193,126,230,.10) 70%, transparent); }
-  .stage-pill{ background:var(--primary-tint); color:var(--primary-ink); }
-  .banner-soft{ background:var(--primary-tint); color:var(--primary-ink); }
+  .garden-card{ background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:none; padding:1.5rem; }
+  @media (min-width:640px){ .garden-card{ padding:2rem; } }
+  .garden-view{ position:relative; margin-left:auto; margin-right:auto; width:100%; max-width:360px; aspect-ratio:320/206; }
+  .garden-glow{ position:absolute; inset:0; border-radius:50%; background:radial-gradient(closest-side, rgba(193,126,230,.28), rgba(193,126,230,.10) 70%, transparent); }
+  #plant{ position:relative; width:100%; height:100%; }
+  .garden-sum{ margin-top:1rem; text-align:center; }
+  .garden-sum .lbl{ font-size:.875rem; line-height:1.25rem; font-weight:400; }
+  .garden-num{ margin-top:.25rem; font-weight:400; line-height:1; }
+  #garden-total{ font-size:3rem; line-height:1; font-weight:600; font-variant-numeric:tabular-nums; }
+  @media (min-width:640px){ #garden-total{ font-size:3.75rem; } }
+  .garden-num .unit{ font-size:1.125rem; line-height:1.75rem; font-weight:400; margin-left:.25rem; }
+  #garden-stage{ margin-top:.75rem; display:inline-flex; align-items:center; gap:.5rem; font-size:.875rem; line-height:1.25rem; font-weight:500; }
+  .stage-pill{ background:var(--primary-tint); color:var(--primary-ink); padding:.25rem .75rem; border-radius:9999px; }
+  .garden-bar{ margin:1.25rem auto 0; max-width:28rem; }
+  .garden-track{ background:rgba(100,116,139,.20); height:.75rem; border-radius:9999px; overflow:hidden; }
+  .garden-fill{ background:var(--primary); height:100%; border-radius:9999px; transition:width .8s ease; }
+  .banner-soft{ background:var(--primary-tint); color:var(--primary-ink); margin:1.25rem auto 0; max-width:28rem; text-align:center; font-size:.875rem; line-height:1.25rem; font-weight:500; border-radius:.5rem; padding:.75rem 1rem; }
+  #garden-error{ margin-top:1.25rem; text-align:center; }
+  #garden-error p{ font-size:.875rem; line-height:1.25rem; font-weight:400; color:#f5222d; }
+  #garden-error .btn-pill{ margin-top:.75rem; }
+  .garden-cta{ margin-top:1.5rem; text-align:center; }
   /* 擺動：幅度小、速度慢，每一株的幅度、速度、起點都不同，所以不會同步 */
   .sway{ animation:sway 9s ease-in-out infinite alternate; }
   @keyframes sway{ from{ transform:rotate(calc(var(--amp,1deg) * -1)); } to{ transform:rotate(var(--amp,1deg)); } }
@@ -86,568 +133,74 @@
     .sway, .seed-ring, .mote, .garden-skeleton{ animation:none; }
     .garden-fill{ transition:none; }
   }
-
 </style>
 </head>
-<body class="min-h-[100dvh] flex flex-col items-center p-6 pt-10 sm:pt-20 pb-10">
-  <main class="w-full max-w-3xl">
+<body>
+  <main>
 
-    <div class="text-center mb-12">
+    <div class="hero">
       <!-- 標語寬度要比 TBC Together 窄 -->
       <div class="brand">
-        <h1 class="text-4xl sm:text-5xl font-bold latin-tight" style="line-height:1.08">TBC Together</h1>
-        <p id="tagline" class="tagline mt-3 font-normal sub">一起禱告、一起服事、一起成長</p>
+        <h1 class="latin-tight">TBC Together</h1>
+        <p id="tagline" class="tagline sub">一起禱告、一起服事、一起成長</p>
       </div>
     </div>
 
-    <!-- 入口圖示：固定三欄，手機上也維持同一排；之後增加入口時，複製一個 <a class="entry ..."> 並把 grid-cols-3 改成對應數字 -->
-    <nav aria-label="功能入口" class="grid grid-cols-3 gap-x-2 sm:gap-x-6 max-w-sm sm:max-w-md mx-auto">
-
-      <a href="./prayer.html" class="entry group flex flex-col items-center gap-2 min-w-0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="entry-icon w-9 h-9 sm:w-10 sm:h-10" aria-hidden="true">
-          <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"></path>
-        </svg>
-        <span class="text-sm sm:text-base font-medium text-center whitespace-nowrap">守望花園</span>
-      </a>
-
-      <a href="./search.html" class="entry group flex flex-col items-center gap-2 min-w-0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="entry-icon w-9 h-9 sm:w-10 sm:h-10" aria-hidden="true">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-          <path d="M16 3.128a4 4 0 0 1 0 7.744"></path>
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-          <circle cx="9" cy="7" r="4"></circle>
-        </svg>
-        <span class="text-sm sm:text-base font-medium text-center whitespace-nowrap">我的服事</span>
-      </a>
-
-      <a href="./venue.html" class="entry group flex flex-col items-center gap-2 min-w-0">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="entry-icon w-9 h-9 sm:w-10 sm:h-10" aria-hidden="true">
-          <path d="M8 2v4"></path><path d="M16 2v4"></path>
-          <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-          <path d="M3 10h18"></path>
-        </svg>
-        <span class="text-sm sm:text-base font-medium text-center whitespace-nowrap">場地預約</span>
-      </a>
-
-    </nav>
+    <!-- 入口圖示：由 src/center/registry.js 自動產生（src/center/index/entries.js） -->
+    <nav id="entries" class="entries" aria-label="功能入口"></nav>
 
     <!-- 守望花園：全教會累積的有效禱告回應，決定植物長到哪個階段 -->
-    <section id="garden" aria-labelledby="garden-title" class="mt-14 sm:mt-16">
-      <div class="text-center mb-5">
-        <h2 id="garden-title" class="sr-only">守望花園</h2>
-        <p class="mt-2 text-base font-normal sub">一起澆灌禱告的種子</p>
+    <section id="garden" aria-labelledby="garden-title">
+      <div class="garden-head">
+        <h2 id="garden-title" class="sr">守望花園</h2>
+        <p class="sub">一起澆灌禱告的種子</p>
       </div>
 
-      <div class="garden-card p-6 sm:p-8">
-        <div class="relative mx-auto w-full max-w-[360px] aspect-[320/206]">
-          <div id="garden-glow" class="garden-glow absolute inset-0 rounded-[50%]" aria-hidden="true" style="opacity:.3"></div>
-          <!-- 花園畫面由下方程式依「成長進度」畫出 -->
-          <svg id="plant" viewBox="0 0 320 206" class="relative w-full h-full" role="img" aria-label="守望花園"></svg>
+      <div class="garden-card">
+        <div class="garden-view">
+          <div id="garden-glow" class="garden-glow" aria-hidden="true" style="opacity:.3"></div>
+          <!-- 花園畫面由 garden.js 依「成長進度」畫出 -->
+          <svg id="plant" viewBox="0 0 320 206" role="img" aria-label="守望花園"></svg>
         </div>
 
-        <div class="mt-4 text-center" aria-live="polite">
-          <p class="text-sm font-normal sub">全教會禱告累計</p>
-          <p class="mt-1 font-normal leading-none">
-            <span id="garden-total" class="text-5xl sm:text-6xl tabular-nums font-semibold latin-tight">—</span>
-            <span class="text-lg font-normal sub ml-1">次</span>
+        <div class="garden-sum" aria-live="polite">
+          <p class="lbl sub">全教會禱告累計</p>
+          <p class="garden-num">
+            <span id="garden-total" class="latin-tight">—</span>
+            <span class="unit sub">次</span>
           </p>
-          <p id="garden-stage" class="mt-3 inline-flex items-center gap-2 text-sm font-medium">
-            <span class="stage-pill px-3 py-1 rounded-full" id="garden-stage-name">載入中</span>
+          <p id="garden-stage">
+            <span class="stage-pill" id="garden-stage-name">載入中</span>
           </p>
         </div>
 
-        <div class="mt-5 max-w-md mx-auto">
-          <div class="garden-track h-3 rounded-full overflow-hidden" role="progressbar" id="garden-bar" aria-label="花園成長進度" aria-valuemin="0" aria-valuemax="100">
-            <div id="garden-fill" class="garden-fill h-full rounded-full" style="width:0%"></div>
+        <div class="garden-bar">
+          <div class="garden-track" role="progressbar" id="garden-bar" aria-label="花園成長進度" aria-valuemin="0" aria-valuemax="100">
+            <div id="garden-fill" class="garden-fill" style="width:0%"></div>
           </div>
         </div>
 
-        <p id="garden-banner" class="banner-soft hidden mt-5 mx-auto max-w-md text-center text-sm font-medium rounded-lg px-4 py-3"></p>
+        <p id="garden-banner" class="banner-soft hidden"></p>
 
-        <div id="garden-error" class="hidden mt-5 text-center" role="alert">
-          <p class="text-sm font-normal" style="color:#f5222d">暫時無法讀取禱告回應次數，請稍後再試。</p>
-          <button id="garden-retry" type="button" class="btn-pill btn-primary mt-3">重新載入</button>
+        <div id="garden-error" class="hidden" role="alert">
+          <p>暫時無法讀取禱告回應次數，請稍後再試。</p>
+          <button id="garden-retry" type="button" class="btn-pill btn-primary">重新載入</button>
         </div>
 
-        <div class="mt-6 text-center">
+        <div class="garden-cta">
           <a href="./prayer.html" class="btn-pill btn-primary">去為彼此禱告 &rarr;</a>
         </div>
       </div>
     </section>
   </main>
 
-  <script>
-  (function () {
-    // 標語寬度最多為標題的 85%，若超過就自動縮小
-    (function fitTagline(){
-      var t = document.getElementById('tagline'); if (!t) return;
-      var fit = function(){
-        t.style.fontSize = '';
-        var size = parseFloat(getComputedStyle(t).fontSize);
-        var textW = function(){ var r = document.createRange(); r.selectNodeContents(t); return r.getBoundingClientRect().width; };
-        while (textW() > t.clientWidth * 0.85 && size > 10) { size -= 0.5; t.style.fontSize = size + 'px'; }
-      };
-      fit();
-      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
-      window.addEventListener('resize', fit);
-    })();
+<script type="module">
+var it=[{id:"prayer",name:"守望花園",href:"./prayer.html",icon:"flame",menuIcon:"hand"},{id:"search",name:"我的服事",href:"./search.html",icon:"users",menuIcon:"clock"},{id:"venue",name:"場地預約",href:"./venue.html",icon:"calendar",menuIcon:"calendar"}];import{createClient as Dt}from"https://esm.sh/@supabase/supabase-js@2.45.4";var Tt={left:'<path d="m15 18-6-6 6-6"/>',x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',home:'<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',hand:'<path d="M11 14h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16"/><path d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 15 6 6"/><path d="M19.5 8.5c.7-.7 1.5-1.6 1.5-2.7A2.73 2.73 0 0 0 16 4a2.78 2.78 0 0 0-5 1.8c0 1.2.8 2 1.5 2.8L16 12Z"/>',clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',calendar:'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',flame:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',usercheck:'<path d="m16 11 2 2 4-4"/><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>',folder:'<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',star:'<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',cap:'<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',shield:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',lock:'<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',eye:'<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',eyeoff:'<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>',alert:'<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>'},$=(u,R=20,C={})=>`<svg${R?` width="${R}" height="${R}"`:""} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${C.sw||2}" stroke-linecap="round" stroke-linejoin="round"${C.cls?` class="${C.cls}"`:""} aria-hidden="true">${Tt[u]||""}</svg>`,O=u=>String(u??"").replace(/[&<>"']/g,R=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[R]);var _t=document.getElementById("entries");_t.innerHTML=it.filter(u=>u.entry!==!1).map(u=>`
+  <a href="${O(u.href)}" class="entry">
+    ${$(u.icon,null,{sw:1.75,cls:"entry-icon"})}
+    <span class="entry-name">${O(u.name)}</span>
+  </a>`).join("");(function(){(function(){var l=document.getElementById("tagline");if(l){var e=function(){l.style.fontSize="";for(var d=parseFloat(getComputedStyle(l).fontSize),c=function(){var S=document.createRange();return S.selectNodeContents(l),S.getBoundingClientRect().width};c()>l.clientWidth*.85&&d>10;)d-=.5,l.style.fontSize=d+"px"};e(),document.fonts&&document.fonts.ready&&document.fonts.ready.then(e),window.addEventListener("resize",e)}})();var u={SUPABASE_URL:window.TBC_CONFIG.SUPABASE_URL,SUPABASE_KEY:window.TBC_CONFIG.SUPABASE_KEY,RPC_NAME:"get_prayer_total",BANNER:"讓我們繼續用禱告灌溉，期待美好的花朵綻放",TIMEOUT_MS:8e3,REFRESH_AFTER_MS:6e4,STAGES:[{id:"seed",name:"種子睡著了",label:"種子睡著了",min:0},{id:"sprout",name:"小芽冒出來",label:"小芽冒出來",min:100},{id:"grow",name:"小苗長大了",label:"小苗長大了",min:500},{id:"bloom",name:"花兒悄悄綻放",label:"花兒悄悄綻放",min:1e3},{id:"garden",name:"生命豐盛成長",label:"生命豐盛成長",min:2e3,full:3e3}]};function R(a){var l="http://www.w3.org/2000/svg";function e(t,r,i){var f=document.createElementNS(l,t);for(var o in r)f.setAttribute(o,r[o]);return i&&i.appendChild(f),f}function d(t){return Math.max(0,Math.min(1,t))}function c(t){return t=d(t),t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2}function S(t){return t=d(t),1-Math.pow(1-t,3)}var E=20261030;function N(){E=E+1831565813|0;var t=Math.imul(E^E>>>15,1|E);return t=t+Math.imul(t^t>>>7,61|t)^t,((t^t>>>14)>>>0)/4294967296}function y(t,r){return t+(r-t)*N()}function n(t){return Math.round(t*10)/10}function T(t){return Math.round(t*100)/100}var L=200;function bt(t,r,i,f){var o=[{x:t,y:L},{x:t-f,y:L-r*.38},{x:t+i*.85+f*.3,y:L-r*.72},{x:t+i,y:L-r}],A=40,p=[],h=[0],k,g,m;for(k=0;k<=A;k++)g=k/A,m=1-g,p.push({x:m*m*m*o[0].x+3*m*m*g*o[1].x+3*m*g*g*o[2].x+g*g*g*o[3].x,y:m*m*m*o[0].y+3*m*m*g*o[1].y+3*m*g*g*o[2].y+g*g*g*o[3].y}),k>0&&h.push(h[k-1]+Math.hypot(p[k].x-p[k-1].x,p[k].y-p[k-1].y));var b=h[A];this.d="M"+n(o[0].x)+" "+n(o[0].y)+"C"+n(o[1].x)+" "+n(o[1].y)+" "+n(o[2].x)+" "+n(o[2].y)+" "+n(o[3].x)+" "+n(o[3].y),this.at=function(_){for(var x=d(_)*b,w=1;w<A&&h[w]<x;)w++;var z=h[w]-h[w-1]||1,v=(x-h[w-1])/z,M=p[w-1],U=p[w];return{x:M.x+(U.x-M.x)*v,y:M.y+(U.y-M.y)*v,a:Math.atan2(U.x-M.x,-(U.y-M.y))*180/Math.PI}}}function ut(t,r){var i=e("g",{},t);return e("path",{d:"M0 0C-6 -6 -6 -17 0 -24C6 -17 6 -6 0 0Z",fill:r,opacity:.85},i),i}var ht="#f8d77f";function gt(t,r,i,f,o,A){var p=e("g",{},t),h=[],k=null,g;if(f==="petals"){var m=A?[{n:o,d:.52,r:.5,off:0,cols:[i[1],i[2]],op:.55},{n:o,d:.26,r:.27,off:180/o,cols:[i[0],i[0]],op:.6}]:[{n:o,d:.52,r:.5,off:0,cols:[i[1],i[2]],op:.6}];m.forEach(function(b,_){for(var x=0;x<b.n;x++)h.push({el:e("circle",{cx:0,cy:0,r:1,fill:b.cols[x%2],opacity:b.op},p),ang:(b.off+x*360/b.n)*Math.PI/180,d:r*b.d,r:r*b.r,str:_*.12+x/b.n*.18})}),k=e("circle",{cx:0,cy:0,r:n(r*.15),fill:ht},p)}else f==="fan"?[[1,i[2]],[.66,i[1]],[.34,i[0]]].forEach(function(b,_){var x=n(r*b[0]);h.push({el:e("path",{d:"M"+-x+" 0A"+x+" "+x+" 0 0 1 "+x+" 0Z",fill:b[1]},p),str:_*.12})}):[[1,i[2],.6,0],[.62,i[1],.85,0],[.3,i[0],1,1.5]].forEach(function(b,_){h.push({el:e("circle",{cx:0,cy:0,r:n(r*b[0]),fill:b[1],opacity:b[2]},p),rad:r*b[0],str:(2-_)*.14,bud:b[3]})});return{g:p,set:function(b,_){var x=S(b);if(x<=.001){p.setAttribute("opacity",0);return}p.setAttribute("opacity",1);var w=c(_),z=0;for(g=0;g<h.length;g++){var v=h[g],M=c((_-v.str)/.7);if(f==="petals"){var U=v.r*(.55+.45*M),W=v.d*M;v.el.setAttribute("cx",n(Math.sin(v.ang)*W)),v.el.setAttribute("cy",n(-Math.cos(v.ang)*W)),v.el.setAttribute("r",n(U)),z=Math.max(z,W+U)}else if(f==="fan")v.el.setAttribute("transform","scale("+T(.35+.65*M)+")");else{var nt=v.bud+(1-v.bud)*M;v.el.setAttribute("transform","scale("+T(nt)+")"),z=Math.max(z,v.rad*nt)}}if(p.setAttribute("transform","translate(0 "+n(-z*x)+") scale("+T(x)+")"+(f==="petals"?" rotate("+n(-30*(1-w))+")":"")),k){var ot=c((_-.25)/.6);k.setAttribute("opacity",ot),k.setAttribute("transform","scale("+T(.3+.7*ot)+")")}}}}var mt={purple:["#8806ce","#a747db","#c17ee6"],pink:["#d4609f","#e58fc0","#f4b8d9"],lavender:["#8a72d8","#a995ea","#cfc3f6"],peach:["#e98a66","#f3a98a","#fac9b0"]},xt="#86a984",Q=["#8fb08c","#a3c1a0","#7ea27c"];function X(t,r){var i=e("g",{class:"sway"},t);i.style.transformOrigin=r.x+"px "+L+"px",i.style.setProperty("--amp",r.amp+"deg"),i.style.animationDuration=r.dur+"s",i.style.animationDelay="-"+r.delay+"s";for(var f=new bt(r.x,r.h,r.lean,r.bend),o=e("path",{d:f.d,fill:"none",stroke:xt,"stroke-width":r.sw,"stroke-linecap":"round",pathLength:1,"stroke-dasharray":1,"stroke-dashoffset":1,opacity:0},i),A=[],p=0;p<r.leaves.length;p++){var h=r.leaves[p];A.push({el:ut(i,Q[Math.floor(N()*Q.length)]),f:h.f,side:h.side,ang:y(30,52),size:h.size})}var k=e("g",{},i),g=gt(k,r.R,mt[r.pal],r.type,r.n,r.double);return{start:r.start,dur:r.dur2,update:function(m,b,_){o.setAttribute("opacity",m>.002?1:0),o.setAttribute("stroke-dashoffset",n((1-m)*1e3)/1e3);for(var x=0;x<A.length;x++){var w=A[x],z=c((m-w.f)/.25);if(z<=.001){w.el.setAttribute("opacity",0);continue}var v=f.at(Math.min(w.f,m));w.el.setAttribute("opacity",1),w.el.setAttribute("transform","translate("+n(v.x)+" "+n(v.y)+") rotate("+n(v.a+w.side*(10+w.ang*z))+") scale("+T(w.size*z)+")")}var M=f.at(m);k.setAttribute("transform","translate("+n(M.x)+" "+n(M.y)+") rotate("+n(M.a*.6)+")"),g.set(b,_)}}}a.innerHTML="";var vt=e("g",{class:"g-suns"},a),tt=[{cx:160,r:72,col:"#c9b8f2",op:.2,s:2.3,d:1.2},{cx:238,r:46,col:"#f4b8d9",op:.22,s:3.4,d:1.1},{cx:82,r:38,col:"#fac9b0",op:.26,s:3.7,d:1.1}].map(function(t){return t.el=e("path",{d:"M"+-t.r+" 0A"+t.r+" "+t.r+" 0 0 1 "+t.r+" 0Z",fill:t.col,opacity:t.op,transform:"translate("+t.cx+" "+L+") scale(0)"},vt),t}),et=e("line",{x1:108,y1:L,x2:212,y2:L,class:"g-horizon","stroke-width":1.2,"stroke-linecap":"round"},a),Y=[[44,"#c17ee6"],[70,"#f4b8d9"],[118,"#fac9b0"],[205,"#cfc3f6"],[246,"#c17ee6"],[272,"#fac9b0"]].map(function(t){return{el:e("circle",{cx:t[0],cy:L-1.8,r:0,fill:t[1]},a),start:4+Math.abs(t[0]-160)/160*.5}}),j=e("g",{},a),yt=e("circle",{cx:160,cy:195,r:9,fill:"none",stroke:"#c17ee6","stroke-width":1,opacity:0,class:"seed-ring"},j),wt=e("circle",{cx:160,cy:195,r:4.5,fill:"#a747db"},j),kt=[{x:-120,h:46,R:10,pal:"lavender",type:"orb",back:1},{x:-95,h:70,R:14,pal:"pink",type:"petals",n:5,back:1},{x:-62,h:100,R:19,pal:"peach",type:"fan",back:1},{x:-78,h:36,R:8,pal:"purple",type:"orb",back:0},{x:-30,h:58,R:13,pal:"pink",type:"fan",back:0},{x:28,h:78,R:13,pal:"lavender",type:"petals",n:5,back:0},{x:45,h:38,R:8,pal:"peach",type:"orb",back:0},{x:62,h:104,R:19,pal:"pink",type:"petals",n:6,back:1},{x:98,h:64,R:16,pal:"purple",type:"fan",back:1},{x:124,h:52,R:11,pal:"lavender",type:"orb",back:0}],At=e("g",{},a),St=e("g",{},a),Mt=e("g",{},a),F=[];kt.forEach(function(t){var r=160+t.x,i=Math.abs(t.x)/160,f=[{f:.34,side:-1,size:y(.55,.75)},{f:.55,side:1,size:y(.5,.7)}];t.h>90&&f.push({f:.2,side:1,size:y(.65,.8)});var o=X(t.back?At:Mt,{x:r,h:t.h,lean:y(-12,12),bend:y(-8,8),sw:1.5,R:t.R,pal:t.pal,type:t.type,n:t.n,leaves:f,amp:n(y(.7,1.4)),dur:n(y(7,11)),delay:n(y(0,8)),start:4.06+i*.5+y(0,.08),dur2:.4});F.push(o)});for(var Et=X(St,{x:160,h:112,lean:4,bend:6,sw:2.2,R:26,pal:"purple",type:"petals",n:6,double:!0,leaves:[{f:.08,side:-1,size:.7},{f:.1,side:1,size:.66},{f:.34,side:-1,size:1},{f:.5,side:1,size:1},{f:.68,side:-1,size:.8}],amp:.9,dur:9.5,delay:1.5,start:0,dur2:1}),at=e("g",{opacity:0},a),Ct=["#f4b8d9","#fac9b0","#cfc3f6"],K=0;K<8;K++){var V=e("circle",{cx:n(y(30,290)),cy:n(y(70,180)),r:n(y(1,1.8)),fill:Ct[K%3],opacity:.7},at);V.setAttribute("class","mote"),V.style.animationDuration=n(y(9,15))+"s",V.style.animationDelay="-"+n(y(0,12))+"s"}function rt(t){var r=52+84*c(t/4.6);et.setAttribute("x1",n(160-r)),et.setAttribute("x2",n(160+r));var i=d(t/.6);wt.setAttribute("r",T(4.5+.7*i)),yt.setAttribute("opacity",T(.55*d(t/.25)*(1-d((t-1.2)/.6)))),j.setAttribute("opacity",T(1-.45*d((t-1.2)/1.2)));for(var f=0;f<tt.length;f++){var o=tt[f];o.el.setAttribute("transform","translate("+o.cx+" "+L+") scale("+T(S((t-o.s)/o.d))+")")}Et.update(c((t-.45)/2.05),c((t-2.5)/.5),c((t-3)/1));for(var A=0;A<F.length;A++){var p=(t-F[A].start)/F[A].dur;F[A].update(c(p/.6),c((p-.45)/.2),c((p-.6)/.4))}for(var h=0;h<Y.length;h++)Y[h].el.setAttribute("r",T(1.8*S((t-Y[h].start)/.4)));at.setAttribute("opacity",T(c((t-4.3)/.6)))}return rt(0),{set:rt}}var C=function(a){return document.getElementById(a)},s={total:C("garden-total"),stageName:C("garden-stage-name"),bar:C("garden-bar"),fill:C("garden-fill"),banner:C("garden-banner"),error:C("garden-error"),retry:C("garden-retry"),plant:C("plant"),glow:C("garden-glow")},B=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches,D=0,H=!1;function lt(a){for(var l=0,e=0;e<u.STAGES.length;e++)a>=u.STAGES[e].min&&(l=e);return l}var st=R(s.plant),I={p:0,target:0,raf:0,visible:!1};function G(a){I.p=a,st.set(a),s.glow.style.opacity=String(.3+.7*Math.min(1,a/4))}function Z(){cancelAnimationFrame(I.raf);var a=I.p,l=I.target;if(Math.abs(l-a)<.001)return;var e=Math.max(1200,Math.min(16e3,Math.abs(l-a)*3200+1200)),d=null;function c(S){d===null&&(d=S);var E=Math.min(1,(S-d)/e),N=E<.5?2*E*E:1-Math.pow(-2*E+2,2)/2;G(a+(l-a)*N),E<1?I.raf=requestAnimationFrame(c):G(l)}I.raf=requestAnimationFrame(c)}function J(a,l){if(I.target=a,B||l){cancelAnimationFrame(I.raf),G(a);return}I.visible&&Z()}"IntersectionObserver"in window?new IntersectionObserver(function(a){a[0].isIntersecting&&!I.visible&&(I.visible=!0,B||Z())},{threshold:.4}).observe(s.plant):I.visible=!0;function P(a){return Number(a).toLocaleString("zh-TW")}function ct(a){if(B||a===0){s.total.textContent=P(a);return}var l=null,e=900;function d(c){l===null&&(l=c);var S=Math.min(1,(c-l)/e);s.total.textContent=P(Math.round(a*(1-Math.pow(1-S,3)))),S<1?requestAnimationFrame(d):s.total.textContent=P(a)}requestAnimationFrame(d)}function dt(a){var l=lt(a),e=u.STAGES[l],d=u.STAGES[l+1],c,S=d?d.min-e.min:e.full?e.full-e.min:0,E=S>0?Math.max(0,Math.min(1,(a-e.min)/S)):1;c=E*100,c=Math.max(0,Math.min(100,c)),J(l+E),s.plant.setAttribute("aria-label","守望花園："+e.label),ct(a),s.stageName.textContent=e.label,s.fill.style.width=c.toFixed(1)+"%",s.bar.setAttribute("aria-valuenow",String(Math.round(c))),s.bar.setAttribute("aria-valuetext",d?"已完成 "+Math.round(c)+"%":"持續成長中"),s.error.classList.add("hidden");var N=null;try{N=localStorage.getItem("tbc_garden_stage")}catch{}for(var y=-1,n=0;n<u.STAGES.length;n++)u.STAGES[n].id===N&&(y=n);y>=0&&l>y?(s.banner.textContent=u.BANNER,s.banner.classList.remove("hidden")):s.banner.classList.add("hidden");try{localStorage.setItem("tbc_garden_stage",e.id)}catch{}}function pt(){J(0,!0),s.total.textContent="—",s.stageName.textContent="暫時無法顯示",s.fill.style.width="0%",s.bar.removeAttribute("aria-valuenow"),s.bar.setAttribute("aria-valuetext","無法讀取"),s.banner.classList.add("hidden"),s.error.classList.remove("hidden")}function ft(){s.stageName.textContent="載入中",s.total.classList.add("garden-skeleton"),s.error.classList.add("hidden")}function q(){if(!H){H=!0,ft();var a=typeof AbortController<"u"?new AbortController:null,l=setTimeout(function(){a&&a.abort()},u.TIMEOUT_MS);fetch(u.SUPABASE_URL+"/rest/v1/rpc/"+u.RPC_NAME,{method:"POST",headers:{apikey:u.SUPABASE_KEY,"Content-Type":"application/json"},body:"{}",signal:a?a.signal:void 0}).then(function(e){if(!e.ok)throw new Error("HTTP "+e.status);return e.json()}).then(function(e){var d=Number(e);if(e===null||typeof e=="object"||!isFinite(d)||d<0)throw new Error("bad data");D=Date.now(),s.total.classList.remove("garden-skeleton"),dt(Math.floor(d))}).catch(function(e){console.error("讀取禱告回應總數失敗:",e),s.total.classList.remove("garden-skeleton"),pt()}).then(function(){clearTimeout(l),H=!1})}}s.retry.addEventListener("click",q),document.addEventListener("visibilitychange",function(){document.visibilityState==="visible"&&D&&Date.now()-D>u.REFRESH_AFTER_MS&&q()}),q()})();
 
-    // ==========================================
-    // 守望花園設定：所有數字與文字都集中在這裡，要調整只改這一處
-    // ==========================================
-    var GARDEN = {
-      SUPABASE_URL: window.TBC_CONFIG.SUPABASE_URL,
-      SUPABASE_KEY: window.TBC_CONFIG.SUPABASE_KEY,
-      RPC_NAME: "get_prayer_total",   // 資料庫函式：只回傳「已核准且公開」貼文的回應總數
-      BANNER: '讓我們繼續用禱告灌溉，期待美好的花朵綻放',   // 進入新階段時顯示
-      TIMEOUT_MS: 8000,
-      REFRESH_AFTER_MS: 60000,        // 回到分頁時，超過這個時間才重新讀取
-      // 階段：min 是該階段起算的次數（依小到大排列）
-      STAGES: [
-        { id: 'seed',   name: '種子睡著了', label: '種子睡著了', min: 0 },
-        { id: 'sprout', name: '小芽冒出來', label: '小芽冒出來', min: 100 },
-        { id: 'grow',   name: '小苗長大了', label: '小苗長大了', min: 500 },
-        { id: 'bloom',  name: '花兒悄悄綻放', label: '花兒悄悄綻放', min: 1000 },
-        { id: 'garden', name: '生命豐盛成長', label: '生命豐盛成長', min: 2000, full: 3000 }   // full：花園完全長成的次數
-      ]
-    };
-
-    // ==========================================
-    // 花園場景（簡潔抽象風）：用「成長進度 p」一次畫出整個畫面
-    // p 的意思：0–1 種子、1–2 發芽、2–3 成長、3–4 開花、4–5 花園蔓延
-    // 畫面只用四種東西：一條地平線、細線（莖）、半透明的圓（花）、柔和的半圓色塊（背景）
-    // 每個元素有自己的開始時間與緩動，所以不會同時出現、也不會機械式排列
-    // ==========================================
-    function buildScene(svg) {
-      var NS = 'http://www.w3.org/2000/svg';
-      function mk(tag, attrs, parent) {
-        var e = document.createElementNS(NS, tag);
-        for (var k in attrs) e.setAttribute(k, attrs[k]);
-        if (parent) parent.appendChild(e);
-        return e;
-      }
-      function c01(v) { return Math.max(0, Math.min(1, v)); }
-      function eio(t) { t = c01(t); return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }   // 慢—快—慢
-      function eo(t) { t = c01(t); return 1 - Math.pow(1 - t, 3); }                                      // 先快後慢
-      // 固定的亂數種子：每次看到的花園都長得一樣，但看起來自然不規則
-      var seedN = 20261030;
-      function rnd() {
-        seedN = (seedN + 0x6D2B79F5) | 0;
-        var t = Math.imul(seedN ^ (seedN >>> 15), 1 | seedN);
-        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-      }
-      function rr(a, b) { return a + (b - a) * rnd(); }
-      function r1(n) { return Math.round(n * 10) / 10; }
-      function r2(n) { return Math.round(n * 100) / 100; }
-
-      var GROUND_Y = 200;   // 地平線的高度
-
-      // ---- 莖：用曲線取樣，之後可以問「長到 f 的位置在哪、朝向哪裡」----
-      function Stem(x, h, lean, bend) {
-        var P = [
-          { x: x, y: GROUND_Y },
-          { x: x - bend, y: GROUND_Y - h * 0.38 },
-          { x: x + lean * 0.85 + bend * 0.3, y: GROUND_Y - h * 0.72 },
-          { x: x + lean, y: GROUND_Y - h }
-        ];
-        var N = 40, pts = [], cum = [0], i, t, u;
-        for (i = 0; i <= N; i++) {
-          t = i / N; u = 1 - t;
-          pts.push({
-            x: u * u * u * P[0].x + 3 * u * u * t * P[1].x + 3 * u * t * t * P[2].x + t * t * t * P[3].x,
-            y: u * u * u * P[0].y + 3 * u * u * t * P[1].y + 3 * u * t * t * P[2].y + t * t * t * P[3].y
-          });
-          if (i > 0) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
-        }
-        var total = cum[N];
-        this.d = 'M' + r1(P[0].x) + ' ' + r1(P[0].y) + 'C' + r1(P[1].x) + ' ' + r1(P[1].y) + ' ' + r1(P[2].x) + ' ' + r1(P[2].y) + ' ' + r1(P[3].x) + ' ' + r1(P[3].y);
-        this.at = function (f) {
-          var target = c01(f) * total, k = 1;
-          while (k < N && cum[k] < target) k++;
-          var seg = cum[k] - cum[k - 1] || 1, w = (target - cum[k - 1]) / seg;
-          var a = pts[k - 1], b = pts[k];
-          return { x: a.x + (b.x - a.x) * w, y: a.y + (b.y - a.y) * w, a: Math.atan2(b.x - a.x, -(b.y - a.y)) * 180 / Math.PI };
-        };
-      }
-
-      // ---- 葉：一片簡單的橄欖形（兩條弧線）----
-      function Leaf(parent, color) {
-        var g = mk('g', {}, parent);
-        mk('path', { d: 'M0 0C-6 -6 -6 -17 0 -24C6 -17 6 -6 0 0Z', fill: color, opacity: 0.85 }, g);
-        return g;
-      }
-
-      // ---- 花：三種幾何造型 ----
-      //  petals：一圈半透明的圓，重疊處顏色自然加深
-      //  fan   ：由大到小疊起來的半圓（像日出）
-      //  orb   ：由內向外擴開的同心圓
-      var CENTER = '#f8d77f';
-      function Head(parent, R, pal, type, n, double) {
-        var g = mk('g', {}, parent);
-        var parts = [], center = null, i;
-
-        if (type === 'petals') {
-          var rings = double
-            ? [{ n: n, d: 0.52, r: 0.5,  off: 0,       cols: [pal[1], pal[2]], op: 0.55 },
-               { n: n, d: 0.26, r: 0.27, off: 180 / n, cols: [pal[0], pal[0]], op: 0.6 }]
-            : [{ n: n, d: 0.52, r: 0.5,  off: 0,       cols: [pal[1], pal[2]], op: 0.6 }];
-          rings.forEach(function (rg, ri) {
-            for (var k = 0; k < rg.n; k++) {
-              parts.push({
-                el: mk('circle', { cx: 0, cy: 0, r: 1, fill: rg.cols[k % 2], opacity: rg.op }, g),
-                ang: (rg.off + k * 360 / rg.n) * Math.PI / 180,
-                d: R * rg.d, r: R * rg.r, str: ri * 0.12 + (k / rg.n) * 0.18
-              });
-            }
-          });
-          center = mk('circle', { cx: 0, cy: 0, r: r1(R * 0.15), fill: CENTER }, g);
-        } else if (type === 'fan') {
-          [[1, pal[2]], [0.66, pal[1]], [0.34, pal[0]]].forEach(function (f, k) {
-            var rad = r1(R * f[0]);
-            parts.push({ el: mk('path', { d: 'M' + (-rad) + ' 0A' + rad + ' ' + rad + ' 0 0 1 ' + rad + ' 0Z', fill: f[1] }, g), str: k * 0.12 });
-          });
-        } else {   // orb
-          [[1, pal[2], 0.6, 0], [0.62, pal[1], 0.85, 0], [0.3, pal[0], 1, 1.5]].forEach(function (f, k) {
-            parts.push({ el: mk('circle', { cx: 0, cy: 0, r: r1(R * f[0]), fill: f[1], opacity: f[2] }, g), rad: R * f[0], str: (2 - k) * 0.14, bud: f[3] });
-          });
-        }
-
-        return {
-          g: g,
-          // bp：含苞（0→1 慢慢鼓起來）　op：綻放（0→1 慢慢展開）
-          set: function (bp, op) {
-            var hb = eo(bp);
-            if (hb <= 0.001) { g.setAttribute('opacity', 0); return; }
-            g.setAttribute('opacity', 1);
-            var oc = eio(op), ext = 0;   // ext：花朵往下延伸的距離，用來讓花永遠「坐」在莖尖上
-            for (i = 0; i < parts.length; i++) {
-              var P = parts[i], o = eio((op - P.str) / 0.7);
-              if (type === 'petals') {
-                var pr = P.r * (0.55 + 0.45 * o), pd = P.d * o;
-                P.el.setAttribute('cx', r1(Math.sin(P.ang) * pd));
-                P.el.setAttribute('cy', r1(-Math.cos(P.ang) * pd));
-                P.el.setAttribute('r', r1(pr));
-                ext = Math.max(ext, pd + pr);
-              } else if (type === 'fan') {
-                P.el.setAttribute('transform', 'scale(' + r2(0.35 + 0.65 * o) + ')');
-              } else {
-                var sc = P.bud + (1 - P.bud) * o;
-                P.el.setAttribute('transform', 'scale(' + r2(sc) + ')');
-                ext = Math.max(ext, P.rad * sc);
-              }
-            }
-            g.setAttribute('transform', 'translate(0 ' + r1(-ext * hb) + ') scale(' + r2(hb) + ')' + (type === 'petals' ? ' rotate(' + r1(-30 * (1 - oc)) + ')' : ''));
-            if (center) {
-              var co = eio((op - 0.25) / 0.6);
-              center.setAttribute('opacity', co);
-              center.setAttribute('transform', 'scale(' + r2(0.3 + 0.7 * co) + ')');
-            }
-          }
-        };
-      }
-
-      // ---- 一株植物 = 一條細線莖 + 幾片葉 + 一朵花 ----
-      var PALS = {
-        purple:   ['#8806ce', '#a747db', '#c17ee6'],
-        pink:     ['#d4609f', '#e58fc0', '#f4b8d9'],
-        lavender: ['#8a72d8', '#a995ea', '#cfc3f6'],
-        peach:    ['#e98a66', '#f3a98a', '#fac9b0']
-      };
-      var STEM_COLOR = '#86a984';
-      var GREENS = ['#8fb08c', '#a3c1a0', '#7ea27c'];
-
-      function Plant(parent, o) {
-        var root = mk('g', { 'class': 'sway' }, parent);
-        root.style.transformOrigin = o.x + 'px ' + GROUND_Y + 'px';
-        root.style.setProperty('--amp', o.amp + 'deg');
-        root.style.animationDuration = o.dur + 's';
-        root.style.animationDelay = '-' + o.delay + 's';
-        var stem = new Stem(o.x, o.h, o.lean, o.bend);
-        var path = mk('path', { d: stem.d, fill: 'none', stroke: STEM_COLOR, 'stroke-width': o.sw, 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': 1, 'stroke-dashoffset': 1, opacity: 0 }, root);
-        var leaves = [];
-        for (var i = 0; i < o.leaves.length; i++) {
-          var L = o.leaves[i];
-          leaves.push({ el: Leaf(root, GREENS[Math.floor(rnd() * GREENS.length)]), f: L.f, side: L.side, ang: rr(30, 52), size: L.size });
-        }
-        var headPos = mk('g', {}, root);
-        var head = Head(headPos, o.R, PALS[o.pal], o.type, o.n, o.double);
-        return {
-          start: o.start, dur: o.dur2,
-          update: function (sp, bp, op) {
-            path.setAttribute('opacity', sp > 0.002 ? 1 : 0);
-            path.setAttribute('stroke-dashoffset', r1((1 - sp) * 1000) / 1000);
-            for (var i = 0; i < leaves.length; i++) {
-              var L = leaves[i], lp = eio((sp - L.f) / 0.25);
-              if (lp <= 0.001) { L.el.setAttribute('opacity', 0); continue; }
-              var pos = stem.at(Math.min(L.f, sp));
-              L.el.setAttribute('opacity', 1);
-              L.el.setAttribute('transform', 'translate(' + r1(pos.x) + ' ' + r1(pos.y) + ') rotate(' + r1(pos.a + L.side * (10 + L.ang * lp)) + ') scale(' + r2(L.size * lp) + ')');
-            }
-            var tip = stem.at(sp);
-            headPos.setAttribute('transform', 'translate(' + r1(tip.x) + ' ' + r1(tip.y) + ') rotate(' + r1(tip.a * 0.6) + ')');
-            head.set(bp, op);
-          }
-        };
-      }
-
-      // ================= 建立畫面（由後往前疊）=================
-      svg.innerHTML = '';
-
-      // 1) 背景色塊：從地平線慢慢升起的柔和半圓
-      var sunLayer = mk('g', { 'class': 'g-suns' }, svg);
-      var suns = [
-        { cx: 160, r: 72, col: '#c9b8f2', op: 0.20, s: 2.3, d: 1.2 },
-        { cx: 238, r: 46, col: '#f4b8d9', op: 0.22, s: 3.4, d: 1.1 },
-        { cx: 82,  r: 38, col: '#fac9b0', op: 0.26, s: 3.7, d: 1.1 }
-      ].map(function (s) {
-        s.el = mk('path', { d: 'M' + (-s.r) + ' 0A' + s.r + ' ' + s.r + ' 0 0 1 ' + s.r + ' 0Z', fill: s.col, opacity: s.op, transform: 'translate(' + s.cx + ' ' + GROUND_Y + ') scale(0)' }, sunLayer);
-        return s;
-      });
-
-      // 2) 地平線：一條細線，從中間慢慢向兩側延伸
-      var horizon = mk('line', { x1: 108, y1: GROUND_Y, x2: 212, y2: GROUND_Y, 'class': 'g-horizon', 'stroke-width': 1.2, 'stroke-linecap': 'round' }, svg);
-
-      // 3) 地平線上的小圓點（花園長成後才出現）
-      var dots = [[44, '#c17ee6'], [70, '#f4b8d9'], [118, '#fac9b0'], [205, '#cfc3f6'], [246, '#c17ee6'], [272, '#fac9b0']].map(function (d) {
-        return { el: mk('circle', { cx: d[0], cy: GROUND_Y - 1.8, r: 0, fill: d[1] }, svg), start: 4.0 + Math.abs(d[0] - 160) / 160 * 0.5 };
-      });
-
-      // 4) 種子：一顆小圓點 + 一圈慢慢呼吸的細環
-      var seedG = mk('g', {}, svg);
-      var seedRing = mk('circle', { cx: 160, cy: 195, r: 9, fill: 'none', stroke: '#c17ee6', 'stroke-width': 1, opacity: 0, 'class': 'seed-ring' }, seedG);
-      var seedDot = mk('circle', { cx: 160, cy: 195, r: 4.5, fill: '#a747db' }, seedG);
-
-      // 5) 花：位置、高度、大小、造型、顏色都手排，刻意不對稱
-      var secondary = [
-        { x: -120, h: 46,  R: 10, pal: 'lavender', type: 'orb',    back: 1 },
-        { x: -95,  h: 70,  R: 14, pal: 'pink',     type: 'petals', n: 5, back: 1 },
-        { x: -62,  h: 100, R: 19, pal: 'peach',    type: 'fan',    back: 1 },
-        { x: -78,  h: 36,  R: 8,  pal: 'purple',   type: 'orb',    back: 0 },
-        { x: -30,  h: 58,  R: 13, pal: 'pink',     type: 'fan',    back: 0 },
-        { x: 28,   h: 78,  R: 13, pal: 'lavender', type: 'petals', n: 5, back: 0 },
-        { x: 45,   h: 38,  R: 8,  pal: 'peach',    type: 'orb',    back: 0 },
-        { x: 62,   h: 104, R: 19, pal: 'pink',     type: 'petals', n: 6, back: 1 },
-        { x: 98,   h: 64,  R: 16, pal: 'purple',   type: 'fan',    back: 1 },
-        { x: 124,  h: 52,  R: 11, pal: 'lavender', type: 'orb',    back: 0 }
-      ];
-      var layerBack = mk('g', {}, svg), layerMain = mk('g', {}, svg), layerFront = mk('g', {}, svg);
-      var plants = [];
-      secondary.forEach(function (s) {
-        var x = 160 + s.x, ds = Math.abs(s.x) / 160;
-        var leavesDef = [{ f: 0.34, side: -1, size: rr(0.55, 0.75) }, { f: 0.55, side: 1, size: rr(0.5, 0.7) }];
-        if (s.h > 90) leavesDef.push({ f: 0.2, side: 1, size: rr(0.65, 0.8) });
-        var pl = Plant(s.back ? layerBack : layerFront, {
-          x: x, h: s.h, lean: rr(-12, 12), bend: rr(-8, 8), sw: 1.5, R: s.R, pal: s.pal, type: s.type, n: s.n,
-          leaves: leavesDef, amp: r1(rr(0.7, 1.4)), dur: r1(rr(7, 11)), delay: r1(rr(0, 8)),
-          start: 4.06 + ds * 0.5 + rr(0, 0.08), dur2: 0.4
-        });
-        plants.push(pl);
-      });
-
-      // 中央第一朵花（兩圈圓，像一朵簡化的曼陀羅）
-      var main = Plant(layerMain, {
-        x: 160, h: 112, lean: 4, bend: 6, sw: 2.2, R: 26, pal: 'purple', type: 'petals', n: 6, double: true,
-        leaves: [
-          { f: 0.08, side: -1, size: 0.7 }, { f: 0.1, side: 1, size: 0.66 },
-          { f: 0.34, side: -1, size: 1.0 }, { f: 0.5, side: 1, size: 1.0 },
-          { f: 0.68, side: -1, size: 0.8 }
-        ],
-        amp: 0.9, dur: 9.5, delay: 1.5, start: 0, dur2: 1
-      });
-
-      // 6) 光點（花園長成後，非常緩慢地飄起）
-      var lights = mk('g', { opacity: 0 }, svg);
-      var lightCols = ['#f4b8d9', '#fac9b0', '#cfc3f6'];
-      for (var l = 0; l < 8; l++) {
-        var dot = mk('circle', { cx: r1(rr(30, 290)), cy: r1(rr(70, 180)), r: r1(rr(1, 1.8)), fill: lightCols[l % 3], opacity: 0.7 }, lights);
-        dot.setAttribute('class', 'mote');
-        dot.style.animationDuration = r1(rr(9, 15)) + 's';
-        dot.style.animationDelay = '-' + r1(rr(0, 12)) + 's';
-      }
-
-      function set(p) {
-        // 地平線：從中間向兩側慢慢延伸
-        var hw = 52 + 84 * eio(p / 4.6);
-        horizon.setAttribute('x1', r1(160 - hw));
-        horizon.setAttribute('x2', r1(160 + hw));
-        // 種子：稍微鼓起，發芽後淡成莖底的一個小點，細環消失
-        var sw = c01(p / 0.6);
-        seedDot.setAttribute('r', r2(4.5 + 0.7 * sw));
-        seedRing.setAttribute('opacity', r2(0.55 * c01(p / 0.25) * (1 - c01((p - 1.2) / 0.6))));
-        seedG.setAttribute('opacity', r2(1 - 0.45 * c01((p - 1.2) / 1.2)));
-        // 背景半圓：從地平線慢慢升起
-        for (var s = 0; s < suns.length; s++) {
-          var S = suns[s];
-          S.el.setAttribute('transform', 'translate(' + S.cx + ' ' + GROUND_Y + ') scale(' + r2(eo((p - S.s) / S.d)) + ')');
-        }
-        // 中央主莖：發芽 → 抽高 → 長葉，之後含苞、開花
-        main.update(eio((p - 0.45) / 2.05), eio((p - 2.5) / 0.5), eio((p - 3) / 1));
-        // 其他花：從中心向外蔓延
-        for (var j = 0; j < plants.length; j++) {
-          var q = (p - plants[j].start) / plants[j].dur;
-          plants[j].update(eio(q / 0.6), eio((q - 0.45) / 0.2), eio((q - 0.6) / 0.4));
-        }
-        for (var k = 0; k < dots.length; k++) dots[k].el.setAttribute('r', r2(1.8 * eo((p - dots[k].start) / 0.4)));
-        lights.setAttribute('opacity', r2(eio((p - 4.3) / 0.6)));
-      }
-      set(0);
-      return { set: set };
-    }
-
-    var $ = function (id) { return document.getElementById(id); };
-    var els = {
-      total: $('garden-total'), stageName: $('garden-stage-name'), bar: $('garden-bar'), fill: $('garden-fill'),
-      banner: $('garden-banner'), error: $('garden-error'),
-      retry: $('garden-retry'), plant: $('plant'), glow: $('garden-glow')
-    };
-    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var lastLoad = 0;
-    var loading = false;
-
-    function stageIndexFor(total) {
-      var idx = 0;
-      for (var i = 0; i < GARDEN.STAGES.length; i++) { if (total >= GARDEN.STAGES[i].min) idx = i; }
-      return idx;
-    }
-
-    var scene = buildScene(els.plant);
-    var grow = { p: 0, target: 0, raf: 0, visible: false };
-
-    function setP(p) {
-      grow.p = p;
-      scene.set(p);
-      els.glow.style.opacity = String(0.3 + 0.7 * Math.min(1, p / 4));
-    }
-    function runTo() {
-      cancelAnimationFrame(grow.raf);
-      var from = grow.p, to = grow.target;
-      if (Math.abs(to - from) < 0.001) return;
-      // 走得越遠，花的時間越長（約 1.2~16 秒）；全程慢—快—慢，比以前更悠哉
-      var dur = Math.max(1200, Math.min(16000, Math.abs(to - from) * 3200 + 1200));
-      var t0 = null;
-      function step(ts) {
-        if (t0 === null) t0 = ts;
-        var u = Math.min(1, (ts - t0) / dur);
-        var e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
-        setP(from + (to - from) * e);
-        if (u < 1) grow.raf = requestAnimationFrame(step); else setP(to);
-      }
-      grow.raf = requestAnimationFrame(step);
-    }
-    function growTo(p, snap) {
-      grow.target = p;
-      if (reduceMotion || snap) { cancelAnimationFrame(grow.raf); setP(p); return; }
-      if (grow.visible) runTo();
-    }
-    // 畫面捲到花園時才開始長
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function (entries) {
-        if (entries[0].isIntersecting && !grow.visible) { grow.visible = true; if (!reduceMotion) runTo(); }
-      }, { threshold: 0.4 }).observe(els.plant);
-    } else {
-      grow.visible = true;
-    }
-
-    function formatNum(n) { return Number(n).toLocaleString('zh-TW'); }
-
-    function animateNumber(to) {
-      if (reduceMotion || to === 0) { els.total.textContent = formatNum(to); return; }
-      var start = null, dur = 900;
-      function step(ts) {
-        if (start === null) start = ts;
-        var p = Math.min(1, (ts - start) / dur);
-        els.total.textContent = formatNum(Math.round(to * (1 - Math.pow(1 - p, 3))));
-        if (p < 1) requestAnimationFrame(step); else els.total.textContent = formatNum(to);
-      }
-      requestAnimationFrame(step);
-    }
-
-    function render(total) {
-      var idx = stageIndexFor(total);
-      var cur = GARDEN.STAGES[idx];
-      var next = GARDEN.STAGES[idx + 1];
-      var pct;
-      var span = next ? (next.min - cur.min) : (cur.full ? (cur.full - cur.min) : 0);
-      var frac = span > 0 ? Math.max(0, Math.min(1, (total - cur.min) / span)) : 1;
-      pct = frac * 100;
-      pct = Math.max(0, Math.min(100, pct));
-
-      growTo(idx + frac);
-      els.plant.setAttribute('aria-label', '守望花園：' + cur.label);
-      animateNumber(total);
-      els.stageName.textContent = cur.label;
-      els.fill.style.width = pct.toFixed(1) + '%';
-      els.bar.setAttribute('aria-valuenow', String(Math.round(pct)));
-      els.bar.setAttribute('aria-valuetext', next ? ('已完成 ' + Math.round(pct) + '%') : '持續成長中');
-      els.error.classList.add('hidden');
-
-      // 達成新階段時，顯示簡短鼓勵訊息（只在比上次來訪更高的階段才顯示）
-      var seen = null;
-      try { seen = localStorage.getItem('tbc_garden_stage'); } catch (e) {}
-      var seenIdx = -1;
-      for (var i = 0; i < GARDEN.STAGES.length; i++) { if (GARDEN.STAGES[i].id === seen) seenIdx = i; }
-      if (seenIdx >= 0 && idx > seenIdx) {
-        els.banner.textContent = GARDEN.BANNER;
-        els.banner.classList.remove('hidden');
-      } else {
-        els.banner.classList.add('hidden');
-      }
-      try { localStorage.setItem('tbc_garden_stage', cur.id); } catch (e) {}
-    }
-
-    function renderFailure() {
-      // 讀取失敗：維持穩定的預設畫面（播種），不顯示任何數字或進度
-      growTo(0, true);
-      els.total.textContent = '—';
-      els.stageName.textContent = '暫時無法顯示';
-      els.fill.style.width = '0%';
-      els.bar.removeAttribute('aria-valuenow');
-      els.bar.setAttribute('aria-valuetext', '無法讀取');
-      els.banner.classList.add('hidden');
-      els.error.classList.remove('hidden');
-    }
-
-    function renderLoading() {
-      els.stageName.textContent = '載入中';
-      els.total.classList.add('garden-skeleton');
-      els.error.classList.add('hidden');
-    }
-
-    function load() {
-      if (loading) return;
-      loading = true;
-      renderLoading();
-      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, GARDEN.TIMEOUT_MS);
-      fetch(GARDEN.SUPABASE_URL + '/rest/v1/rpc/' + GARDEN.RPC_NAME, {
-        method: 'POST',
-        headers: { 'apikey': GARDEN.SUPABASE_KEY, 'Content-Type': 'application/json' },
-        body: '{}',
-        signal: ctrl ? ctrl.signal : undefined
-      })
-        .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
-        .then(function (data) {
-          var n = Number(data);
-          if (data === null || typeof data === 'object' || !isFinite(n) || n < 0) throw new Error('bad data');
-          lastLoad = Date.now();
-          els.total.classList.remove('garden-skeleton');
-          render(Math.floor(n));
-        })
-        .catch(function (err) {
-          console.error('讀取禱告回應總數失敗:', err);
-          els.total.classList.remove('garden-skeleton');
-          renderFailure();
-        })
-        .then(function () { clearTimeout(timer); loading = false; });
-    }
-
-    els.retry.addEventListener('click', load);
-    document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible' && lastLoad && Date.now() - lastLoad > GARDEN.REFRESH_AFTER_MS) load();
-    });
-    load();
-  })();
-  </script>
+</script>
 </body>
 </html>
