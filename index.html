@@ -87,6 +87,10 @@
   @media (prefers-reduced-motion: reduce){ .entry-icon{ transition:none; } }
 
   /* ===== 守望花園 ===== */
+  .garden-head .login-note{ font-size:.875rem; line-height:1.25rem; margin-top:.25rem; }
+  .login-hint a{ color:var(--primary); font-weight:500; text-decoration:underline; text-underline-offset:3px; }
+  .login-hint a:hover{ color:var(--primary-hover); }
+  .login-hint a:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; border-radius:2px; }
   #garden{ margin-top:3.5rem; }
   @media (min-width:640px){ #garden{ margin-top:4rem; } }
   .garden-head{ text-align:center; margin-bottom:1.25rem; }
@@ -153,7 +157,8 @@
     <section id="garden" aria-labelledby="garden-title">
       <div class="garden-head">
         <h2 id="garden-title" class="sr">守望花園</h2>
-        <p class="sub">一起澆灌禱告的種子</p>
+        <p class="sub login-hint"><a href="./manager.html">登入</a>或首次<a href="./manager.html#signup">設定密碼</a></p>
+        <p class="sub login-note">沒有帳號、忘記密碼？請聯絡行政辦公室</p>
       </div>
 
       <div class="garden-card">
@@ -188,7 +193,7 @@
         </div>
 
         <div class="garden-cta">
-          <a href="./prayer.html" class="btn-pill btn-primary">去為彼此禱告 &rarr;</a>
+          <a href="./prayer.html" class="btn-pill btn-primary">一起澆灌禱告的種子</a>
         </div>
       </div>
     </section>
